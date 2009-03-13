@@ -12,5 +12,4 @@ Logic modell:
 Misc.
 
 - There is sth. strange, when exporting XPM images.
-- Template matching on transistor layer doesn't work.
 - Synchronisation between rendering and plugin thread needed

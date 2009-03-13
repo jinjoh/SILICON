@@ -1,8 +1,17 @@
-degate (0.0.2) unstable; urgency=low
+degate (0.0.4) unstable; urgency=low
+
+  * Template matching improved
+  * several Bugfixes
+
+ -- Martin Schobert <martin@weltregierung.de>  Fri, 13 Mar 2009 17:30:23 +0100
+	
+degate (0.0.3) unstable; urgency=low
 
   * Problem with shift-release event fixed
 
  -- Martin Schobert <martin@weltregierung.de>  Sat, 31 Jan 2009 06:23:42 +0100
+
+degate (0.0.2) unstable; urgency=low
 
   * applied patch from Eric Preston. Code now complies on Feodora10 with newer sigc++22-devel headers
 
