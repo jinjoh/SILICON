@@ -1,0 +1,16 @@
+This is a list of known bugs:
+
+GUI:
+
+- Gnome theme may break toolbar's widget icons
+
+Logic modell:
+
+- combination of vertical and horizontal wires don't auto-join
+  
+
+Misc.
+
+- There is sth. strange, when exporting XPM images.
+- Template matching on transistor layer doesn't work.
+- Synchronisation between rendering and plugin thread needed

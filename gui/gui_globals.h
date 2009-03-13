@@ -1,0 +1,6 @@
+#ifndef __GUI_GLOBALS_H__
+#define __GUI_GLOBALS_H__
+
+enum TOOL { TOOL_SELECT, TOOL_MOVE, TOOL_WIRE, TOOL_VIA_UP, TOOL_VIA_DOWN };
+
+#endif

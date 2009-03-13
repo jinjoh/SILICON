@@ -1,0 +1,83 @@
+ObjectSetModule DEFINITIONS ::=
+BEGIN
+
+LogicModelConnection ::= SEQUENCE {
+	object-id INTEGER,
+	sub-id INTEGER
+}
+
+Wire ::= SEQUENCE {
+     	from-x INTEGER,
+	from-y INTEGER,
+	to-x INTEGER,
+	to-y INTEGER,
+	diameter INTEGER,
+	id INTEGER,
+	layer INTEGER,
+	name VisibleString,
+	connections SEQUENCE OF LogicModelConnection }
+
+GatePort ::= SEQUENCE {
+	port-id INTEGER,
+	connections SEQUENCE OF LogicModelConnection }
+
+TemplateOrientationType ::= ENUMERATED {
+	undefined (0),
+	normal(1),
+	flipped-up-down(2),
+	flipped-left-right(3),
+	flipped-both(4) }
+	
+Gate ::= SEQUENCE {
+     	min-x INTEGER,
+	min-y INTEGER,
+     	max-x INTEGER,
+	max-y INTEGER,
+	gate-id INTEGER,
+	id INTEGER,
+	layer INTEGER,
+	name VisibleString,
+	ports SEQUENCE OF GatePort,
+	master-orientation TemplateOrientationType }
+
+ViaDirection ::= ENUMERATED { up (0), down (1) }
+
+Via ::= SEQUENCE {
+     	x INTEGER,
+	y INTEGER,
+	diameter INTEGER,
+	direction ViaDirection,
+	id INTEGER,
+	layer INTEGER,
+	name VisibleString,
+	connections SEQUENCE OF LogicModelConnection }
+
+PortType ::= ENUMERATED { in(0), out(1) }
+
+GateTemplatePort ::= SEQUENCE {
+	id INTEGER,
+	port-name VisibleString,
+	port-type PortType,
+	relative-x-coord INTEGER,
+	relative-y-coord INTEGER,
+	diameter INTEGER}
+
+GateTemplate ::= SEQUENCE {
+	gate-id INTEGER,
+	master-image-min-x INTEGER,
+	master-image-min-y INTEGER,
+	master-image-max-x INTEGER,
+	master-image-max-y INTEGER,
+	short-name VisibleString,
+	description VisibleString,
+	ports SEQUENCE OF GateTemplatePort }
+
+Object ::= CHOICE {	
+	wire [1] Wire,
+	via [2] Via,
+	gate [3] Gate,
+	gate-template [4] GateTemplate }
+
+FileContent ::= SEQUENCE OF Object
+
+END
