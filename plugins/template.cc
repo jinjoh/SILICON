@@ -38,7 +38,7 @@ typedef struct {
   double threshold;
   unsigned int max_step_size_search;
   unsigned int max_step_size_xcorr;
-  gate_template_t * tmpl_ptr;
+  lmodel_gate_template_t * tmpl_ptr;
 } template_matching_params_t;
 
 ret_t init_template(plugin_params_t * pparams) {
@@ -73,7 +73,7 @@ ret_t imgalgo_run_template_matching(image_t * master,
 				    unsigned int max_x, unsigned int max_y,
 				    const char * const project_dir,
 				    logic_model_t * const lmodel, int layer, 
-				    gate_template_t * tmpl_ptr,
+				    lmodel_gate_template_t * tmpl_ptr,
 				    LM_TEMPLATE_ORIENTATION orientation,
 				    template_matching_params_t * matching_params);
 
@@ -225,7 +225,7 @@ ret_t template_matching(plugin_params_t * pparams) {
    * create a temp image from the template 
    *
    ************************************************************************************/
-  gate_template_t * gate_template = match_params->tmpl_ptr;
+  lmodel_gate_template_t * gate_template = match_params->tmpl_ptr;
   debug(TM, "selected template = %s", gate_template->short_name);
 
   image_t * _template = 
@@ -340,7 +340,7 @@ ret_t template_matching(plugin_params_t * pparams) {
 
 
 ret_t raise_dialog(Gtk::Window * parent, plugin_params_t * pparams) {
-  gate_template_t * tmpl = NULL;
+  lmodel_gate_template_t * tmpl = NULL;
   ret_t ret;
   assert(pparams);
   if(!pparams) return RET_INV_PTR;
@@ -474,7 +474,7 @@ ret_t imgalgo_run_template_matching(image_t * master,
 				    unsigned int max_x, unsigned int max_y,
 				    const char * const project_dir,
 				    logic_model_t * const lmodel, 
-				    int layer, gate_template_t * tmpl_ptr,
+				    int layer, lmodel_gate_template_t * tmpl_ptr,
 				    LM_TEMPLATE_ORIENTATION orientation,
 				    template_matching_params_t * matching_params) {
 

@@ -65,7 +65,7 @@ PortSelectWin::PortSelectWin(Gtk::Window *parent, lmodel_gate_t * gate) {
     }
     
 
-    gate_template_port_t * ptr = gate->gate_template->ports;
+    lmodel_gate_template_port_t * ptr = gate->gate_template->ports;
     while(ptr != NULL) {
 
       Gtk::TreeModel::Row row = *(refListStore->append()); 
@@ -83,7 +83,7 @@ PortSelectWin::~PortSelectWin() {
 }
 
 
-gate_template_port_t * PortSelectWin::run() {
+lmodel_gate_template_port_t * PortSelectWin::run() {
   pDialog->run();
   return template_port;
 }
@@ -99,7 +99,7 @@ void PortSelectWin::on_ok_button_clicked() {
       assert(gate->gate_template);
       assert(gate->gate_template->ports);
       
-      gate_template_port_t * ptr = gate->gate_template->ports;
+      lmodel_gate_template_port_t * ptr = gate->gate_template->ports;
       while(ptr != NULL) {
 	if(ptr->id == port_id) {
 	  template_port = ptr;

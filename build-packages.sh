@@ -1,7 +1,7 @@
 #!/bin/sh
 
 PACKAGE=degate
-VERSION=0.0.3
+VERSION=0.0.5
 ARCH=`dpkg-architecture -qDEB_BUILD_ARCH`
 
 make clean

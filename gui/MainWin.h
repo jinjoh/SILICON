@@ -6,6 +6,7 @@
 #include "InProgressWin.h"
 #include "GridConfigWin.h"
 #include "ObjectMatchingWin.h"
+#include "ConnectionInspectorWin.h"
 
 #include "lib/alignment_marker.h"
 #include "lib/project.h"
@@ -45,19 +46,29 @@ class MainWin : public Gtk::Window  {
 
   void zoom_in(unsigned int center_x, unsigned int center_y);
   void zoom_out(unsigned int center_x, unsigned int center_y);
+  void center_view(unsigned int center_x, unsigned int center_y, unsigned int layer);
+  void set_layer(unsigned int layer);
 
   virtual void on_menu_help_about();
   virtual void on_menu_others();
+
+  bool selected_objects_are_interconnectable();
+  bool selected_objects_are_removable();
 
   // Layer menu
   virtual void on_menu_layer_import_background();
   virtual void on_menu_layer_set_transistor();
   virtual void on_menu_layer_set_logic();
   virtual void on_menu_layer_set_metal();
-  virtual void on_menu_layer_clear_logic_model();
-  virtual void on_menu_layer_clear_logic_model_in_selection();
   virtual void on_menu_layer_clear_background_image();
   virtual void on_menu_layer_align();
+
+  // Logic menu
+  virtual void on_menu_logic_interconnect();
+  virtual void on_menu_logic_isolate();
+  virtual void on_menu_logic_clear_logic_model();
+  virtual void on_menu_logic_clear_logic_model_in_selection();
+  virtual void on_menu_logic_connection_inspector();
 
   // Gate menu
   virtual void on_menu_gate_create_by_selection();
@@ -82,6 +93,8 @@ class MainWin : public Gtk::Window  {
   virtual void on_mouse_scroll_up(unsigned int center_x, unsigned int center_y);
   virtual void on_mouse_scroll_down(unsigned int center_x, unsigned int center_y);
 
+  virtual void on_goto_object(LM_OBJECT_TYPE object_type, object_ptr_t * obj_ptr);
+
   bool on_key_press_event_received(GdkEventKey * event);
   bool on_key_release_event_received(GdkEventKey * event);
 
@@ -103,6 +116,7 @@ class MainWin : public Gtk::Window  {
   Gtk::Statusbar m_statusbar;
   ImageWin imgWin;
   InProgressWin * ipWin;
+  ConnectionInspectorWin * ciWin;
   Gtk::HBox m_displayBox;
   Gtk::Adjustment m_VAdjustment;
   Gtk::Adjustment m_HAdjustment;

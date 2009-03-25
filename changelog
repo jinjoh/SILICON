@@ -1,3 +1,14 @@
+degate (0.0.5) unstable; urgency=low
+
+  * select gate ports
+  * inspect connections
+  * join/ unjoin objects
+  * several Bugfixes, e.g.
+    * Write logic model to temp file first and rename it afterwars. This prevents
+      data loss, if writing fails.
+
+ -- Martin Schobert <martin@weltregierung.de>  Wed, 25 Mar 2009 15:07:10 +0100
+
 degate (0.0.4) unstable; urgency=low
 
   * Template matching improved

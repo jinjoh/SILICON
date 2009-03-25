@@ -12,7 +12,6 @@
 class ImageWin : public Gtk::DrawingArea {
  public:
   ImageWin();
-  //ImageWin(BaseObjectType * base_object, const Glib::RefPtr<Gnome)
   virtual ~ImageWin();
   
   void set_min_x(unsigned int val);
@@ -77,7 +76,6 @@ class ImageWin : public Gtk::DrawingArea {
   grid_t * get_grid();
   render_params_t * get_render_params();
 
-  //void set_object_matching_preview(bool state);
 
   sigc::signal<void>& signal_wire_tool_released();
   sigc::signal<void>& signal_selection_activated();
@@ -103,6 +101,7 @@ class ImageWin : public Gtk::DrawingArea {
   virtual bool on_scroll_event (GdkEventScroll* ev);
 
   virtual bool on_key_press_event(GdkEventKey * event);
+
  private:
 
   sigc::signal<void>  signal_wire_tool_released_;

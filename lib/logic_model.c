@@ -64,11 +64,6 @@ typedef struct {
   void * object;
 } lmodel_check_collision_t;
 
-typedef struct {
-  LM_TEMPLATE_ORIENTATION transformation;
-  lmodel_gate_t * except_for_gate;
-} lmodel_adjust_gate_orientation_t;
-
 ret_t cb_join_on_contact(quadtree_t * qtree, lmodel_check_collision_t * data);
 
 logic_model_t * lmodel_create(int num_layers, unsigned int max_x, unsigned int max_y) {
@@ -109,16 +104,17 @@ logic_model_t * lmodel_create(int num_layers, unsigned int max_x, unsigned int m
   }
 }
 
-/** Destroy data structure for connections for an object. It does not unconnect adjacent objects. 
- * Call lmodel_remove_all_connections_from_object(), to disconnect adjacent objects.
+/** 
+ * Destroy data structure for connections for an object.
  */
-ret_t lmodel_destroy_connections(lm_connection_t * connections) {
-  lm_connection_t * ptr, * ptr_next;
+ret_t lmodel_destroy_connections(lmodel_connection_t * connections) {
+  lmodel_connection_t * ptr, * ptr_next;
   assert(connections);
   if(!connections) return RET_INV_PTR;
   ptr = connections;
-  while(ptr) {
+  while(ptr != NULL) {
     ptr_next = ptr->next;
+    memset(ptr, 0, sizeof(lmodel_connection_t));
     free(ptr);
     ptr = ptr_next;
   }
@@ -126,8 +122,12 @@ ret_t lmodel_destroy_connections(lm_connection_t * connections) {
   return RET_OK;
 }
 
-ret_t lmodel_destroy_gate_ports(gate_port_t * gate_port) {
-  gate_port_t * ptr, * ptr_next;;
+/**
+ * Destroy all ports from a gate.
+ */
+
+ret_t lmodel_destroy_gate_ports(lmodel_gate_port_t * gate_port) {
+  lmodel_gate_port_t * ptr, * ptr_next;
   ret_t ret;
   assert(gate_port);
   if(!gate_port) return RET_INV_PTR;
@@ -146,6 +146,7 @@ ret_t lmodel_destroy_gate_ports(gate_port_t * gate_port) {
   return RET_OK;
 }
 
+
 ret_t lmodel_destroy_gate(lmodel_gate_t * gate) {
   ret_t ret;
   assert(gate);
@@ -153,6 +154,7 @@ ret_t lmodel_destroy_gate(lmodel_gate_t * gate) {
 
   if(gate->name) free(gate->name);
   if(gate->ports) if(RET_IS_NOT_OK(ret = lmodel_destroy_gate_ports(gate->ports))) return ret;
+  gate->ports = NULL;
 
   return RET_OK;
 }
@@ -185,7 +187,7 @@ ret_t lmodel_destroy_via(lmodel_via_t * via) {
 
 ret_t cb_destroy_objects(quadtree_t * qtree, void * ptr) {
 
-  quadtree_object_t * object, * next;;
+  quadtree_object_t * object, * next;
   ret_t ret;
 
   assert(qtree);
@@ -245,6 +247,9 @@ ret_t lmodel_destroy(logic_model_t * const lmodel) {
   if(lmodel->root) free(lmodel->root);
   if(lmodel->layer_type) free(lmodel->layer_type);
   
+  if(lmodel->gate_template_set &&
+     RET_IS_NOT_OK(ret = lmodel_destroy_gate_template_set(lmodel->gate_template_set))) return ret;
+
   if(lmodel->gate_set &&
      RET_IS_NOT_OK(ret = lmodel_destroy_gate_set(lmodel->gate_set))) return ret;
   free(lmodel);
@@ -252,24 +257,37 @@ ret_t lmodel_destroy(logic_model_t * const lmodel) {
   return RET_OK;
 }
 
-ret_t lmodel_destroy_gate_set(gate_set_t * gset) {
+ret_t lmodel_destroy_gate_template_set(lmodel_gate_template_set_t * gset) {
   ret_t ret;
-  gate_set_t * ptr = gset;
+  lmodel_gate_template_set_t * ptr = gset;
 
   assert(gset);
   if(!gset) return RET_INV_PTR;
   
   while(ptr) {
     if(RET_IS_NOT_OK(ret = lmodel_destroy_gate_template(ptr->gate))) return ret;
-    gate_set_t * ptr_next = ptr->next;
+    lmodel_gate_template_set_t * ptr_next = ptr->next;
     free(ptr);
     ptr = ptr_next;
   }
   return RET_OK;
 }
 
-ret_t lmodel_destroy_gate_template(gate_template_t * tmpl) {
-  gate_template_port_t * ptr, * ptr_next;;
+ret_t lmodel_destroy_gate_set(lmodel_gate_set_t * gset) {
+  lmodel_gate_set_t * ptr = gset;
+  assert(gset);
+  if(!gset) return RET_INV_PTR;
+  
+  while(ptr) {
+    lmodel_gate_set_t * ptr_next = ptr->next;
+    free(ptr);
+    ptr = ptr_next;
+  }
+  return RET_OK;
+}
+
+ret_t lmodel_destroy_gate_template(lmodel_gate_template_t * tmpl) {
+  lmodel_gate_template_port_t * ptr, * ptr_next;
 
   assert(tmpl);
   if(!tmpl) return RET_INV_PTR;
@@ -299,8 +317,8 @@ static int write_out(const void *buffer, size_t size, void *app_key) {
 }
 
 
-ret_t lmodel_serialize_connections(lm_connection_t * lm_connections, void * list_ptr) {
-  lm_connection_t * ptr;
+ret_t lmodel_serialize_connections(lmodel_connection_t * lm_connections, void * list_ptr) {
+  lmodel_connection_t * ptr;
   assert(lm_connections);
   assert(list_ptr);
   if(!lm_connections || !list_ptr) return RET_INV_PTR;
@@ -309,7 +327,7 @@ ret_t lmodel_serialize_connections(lm_connection_t * lm_connections, void * list
   while(ptr) {
     int id;
     int sub_id = 0;
-    gate_port_t * gport;
+    lmodel_gate_port_t * gport;
     assert(ptr->obj_ptr);
     if(!ptr->obj_ptr) return RET_INV_PTR;
     LogicModelConnection_t * conn = (LogicModelConnection_t *)calloc(1, sizeof(LogicModelConnection_t));
@@ -322,7 +340,7 @@ ret_t lmodel_serialize_connections(lm_connection_t * lm_connections, void * list
       id = ((lmodel_wire_t *)ptr->obj_ptr)->id; 
       break;
     case LM_TYPE_GATE_PORT:
-      gport = (gate_port_t *) ptr->obj_ptr;
+      gport = (lmodel_gate_port_t *) ptr->obj_ptr;
       id =  gport->gate->id;
       sub_id = gport->port_id;
       break;
@@ -338,8 +356,6 @@ ret_t lmodel_serialize_connections(lm_connection_t * lm_connections, void * list
 
     ptr = ptr->next;
   }
-  
-
 
   return RET_OK;
 }
@@ -348,6 +364,7 @@ ret_t lmodel_serialize_connections(lm_connection_t * lm_connections, void * list
 ret_t lmodel_serialize_gate_to_file(const lmodel_gate_t * const gate, lmodel_qtree_ser_data_t * ser_data) {
 
   Object_t *object; 
+  ret_t ret;
 
   object = (Object_t *)calloc(1, sizeof(Object_t)); /* not malloc! */
   if(!object) return RET_ERR;
@@ -384,10 +401,20 @@ ret_t lmodel_serialize_gate_to_file(const lmodel_gate_t * const gate, lmodel_qtr
   asn_long2INTEGER(&(object->choice.gate.layer), ser_data->layer);
 
   // serialize gate ports
-  gate_port_t * ptr = gate->ports;
+  lmodel_gate_port_t * ptr = gate->ports;
   while(ptr) {
+    assert(ptr->gate != NULL);
+    assert(ptr->gate->gate_template != NULL);
+    assert(ptr->tmpl_port != NULL);
     GatePort_t * p = (GatePort_t *) calloc(1, sizeof(GatePort_t));
     asn_long2INTEGER(&p->port_id, ptr->port_id);
+
+    if(ptr->connections &&
+     RET_IS_NOT_OK(ret = lmodel_serialize_connections(ptr->connections, 
+						      &p->connections.list)))
+    return ret;
+
+
     ASN_SEQUENCE_ADD(&object->choice.gate.ports.list, p);
     ptr = ptr->next;
   }
@@ -463,10 +490,10 @@ ret_t lmodel_serialize_via_to_file(const lmodel_via_t * const via, lmodel_qtree_
   return RET_OK;
 }
 
-ret_t lmodel_serialize_gate_template_to_file(const gate_template_t * const tmpl, FileContent_t * file_content) {
+ret_t lmodel_serialize_gate_template_to_file(const lmodel_gate_template_t * const tmpl, FileContent_t * file_content) {
 
   Object_t *object;
-  gate_template_port_t * gport_list;
+  lmodel_gate_template_port_t * gport_list;
   assert(tmpl);
   assert(file_content);
   if(!tmpl || !file_content) return RET_INV_PTR;
@@ -487,8 +514,6 @@ ret_t lmodel_serialize_gate_template_to_file(const gate_template_t * const tmpl,
 
   gport_list = tmpl->ports;
   while(gport_list != NULL) {
-
-    debug(TM, "port name : %s", gport_list->port_name);    
 
     GateTemplatePort_t * gport = (GateTemplatePort_t *) calloc(1, sizeof(GateTemplatePort_t));
     asn_long2INTEGER(&gport->id, gport_list->id); 
@@ -547,10 +572,11 @@ ret_t cb_serialize_objects(quadtree_t * qtree, lmodel_qtree_ser_data_t * ser_dat
 
 ret_t lmodel_serialize_to_file(const logic_model_t * const lmodel, const char * const project_dir) {
   int layer;
-  gate_set_t * gset;
+  lmodel_gate_template_set_t * gset;
   quadtree_traverse_func_t cb_func = (quadtree_traverse_func_t) &cb_serialize_objects;  
   FILE * fh = NULL;
   char fq_filename[PATH_MAX];
+  char fq_filename_tmp[PATH_MAX];
   FileContent_t * file_content;
   asn_enc_rval_t ec;      /* Encoder return value  */
   ret_t ret;
@@ -558,11 +584,12 @@ ret_t lmodel_serialize_to_file(const logic_model_t * const lmodel, const char * 
   assert(lmodel != NULL);
   if(lmodel == NULL) return RET_INV_PTR;
 
+  snprintf(fq_filename_tmp, PATH_MAX, "%s/lmodel.tmp", project_dir);
   snprintf(fq_filename, PATH_MAX, "%s/lmodel", project_dir);
 
-  debug(TM, "writing logic model data to %s", fq_filename);
-  if((fh = fopen(fq_filename, "w+")) == NULL) {
-    debug(TM, "Can't write file %s", fq_filename);
+  debug(TM, "writing logic model data to %s", fq_filename_tmp);
+  if((fh = fopen(fq_filename_tmp, "w+")) == NULL) {
+    debug(TM, "Can't write file %s", fq_filename_tmp);
     return RET_ERR;
   }
 
@@ -573,7 +600,7 @@ ret_t lmodel_serialize_to_file(const logic_model_t * const lmodel, const char * 
     return RET_ERR;
   }
 
-  gset = lmodel->gate_set;
+  gset = lmodel->gate_template_set;
   while(gset != NULL) {
     if(RET_IS_NOT_OK(ret = lmodel_serialize_gate_template_to_file(gset->gate, file_content))) {
       asn_DEF_FileContent.free_struct(&asn_DEF_FileContent, file_content, 0);
@@ -600,27 +627,36 @@ ret_t lmodel_serialize_to_file(const logic_model_t * const lmodel, const char * 
   asn_DEF_FileContent.free_struct(&asn_DEF_FileContent, file_content, 0);
   
   fclose(fh);
+
+  if(rename(fq_filename_tmp, fq_filename) == -1) return RET_ERR;
+
   return RET_OK;
 }
 
-ret_t lmodel_gate_template_add_port(gate_template_t * const tmpl, gate_template_port_t * port) {
+ret_t lmodel_gate_template_add_port(logic_model_t * lmodel,
+				    lmodel_gate_template_t * const tmpl, lmodel_gate_template_port_t * port) {
+  ret_t ret;
   assert(tmpl);
   assert(port);
   if(!tmpl || !port) return RET_INV_PTR;
 
   if(!tmpl->ports)  tmpl->ports = port;
   else {
-    gate_template_port_t * ptr = tmpl->ports;
+    lmodel_gate_template_port_t * ptr = tmpl->ports;
     while(ptr->next) ptr = ptr->next;
     ptr->next = port;
   }
+
+  if(RET_IS_NOT_OK(ret = lmodel_update_all_gate_ports(lmodel, tmpl))) return ret;
+
   return RET_OK;
 }
 
-ret_t lmodel_gate_template_set_port(gate_template_t * const tmpl, 
+ret_t lmodel_gate_template_set_port(logic_model_t * lmodel,
+				    lmodel_gate_template_t * const tmpl, 
 				    unsigned int id, const char * const port_name, 
 				    LM_PORT_TYPE port_type) {
-  gate_template_port_t * ptr;
+  lmodel_gate_template_port_t * ptr;
   assert(tmpl);
   if(!tmpl) return RET_INV_PTR;
   ptr = tmpl->ports;
@@ -638,7 +674,7 @@ ret_t lmodel_gate_template_set_port(gate_template_t * const tmpl,
   ptr->id = id;
   ptr->port_name = strdup(port_name);
   ptr->port_type = port_type;
-  return lmodel_gate_template_add_port(tmpl, ptr);
+  return lmodel_gate_template_add_port(lmodel, tmpl, ptr);
 }
 
 
@@ -802,28 +838,151 @@ ret_t lmodel_import_via(logic_model_t * lmodel, Via_t * via) {
   return RET_OK;
 }
 
-gate_port_t * lmodel_create_gate_port(lmodel_gate_t * gate, unsigned int port_id) {
-  gate_port_t * port;
+lmodel_gate_port_t * lmodel_create_gate_port(lmodel_gate_t * gate, unsigned int port_id) {
+  lmodel_gate_port_t * port;
   assert(gate);
   if(!gate) return NULL;
 
-  if((port = (gate_port_t * )malloc(sizeof(gate_port_t))) == NULL) return NULL;
-  memset(port, 0, sizeof(gate_port_t));
+  if((port = (lmodel_gate_port_t * )malloc(sizeof(lmodel_gate_port_t))) == NULL) return NULL;
+  memset(port, 0, sizeof(lmodel_gate_port_t));
   port->port_id = port_id;
   port->gate = gate;
+
+  if(RET_IS_NOT_OK(lmodel_update_gate_ports(gate))) {
+    free(port);
+    return NULL;
+  }
 
   return port;
 }
 
-ret_t lmodel_add_gate_port(lmodel_gate_t * gate, gate_port_t * port) {
-  assert(gate);
-  assert(port);
-  if(!gate || !port) return RET_INV_PTR;
+/**
+ * Add an existing gate port to a gate.
+ */
+
+ret_t lmodel_add_gate_port_to_gate(lmodel_gate_t * gate, lmodel_gate_port_t * port) {
+  assert(gate != NULL);
+  assert(port != NULL);
+  if(gate == NULL || port == NULL) return RET_INV_PTR;
 
   port->next = gate->ports;
   gate->ports = port;
 
   return RET_OK;
+}
+
+
+/** 
+ * Update data structures for all gates from logic model with the type referrenced by parameter tmpl.
+ */
+ret_t lmodel_update_all_gate_ports(logic_model_t * lmodel, lmodel_gate_template_t * tmpl) {
+  ret_t ret;
+  assert(lmodel != NULL);
+  assert(tmpl != NULL);
+
+  if(lmodel == NULL || tmpl == NULL) return RET_INV_PTR;
+
+  //debug(TM, "port update on %s", tmpl->short_name);
+
+  lmodel_gate_set_t * gset = lmodel->gate_set;
+  while(gset != NULL) {
+    //debug(TM, "iterating over gate set");
+    if(gset->gate != NULL && gset->gate->gate_template != NULL &&
+       gset->gate->gate_template == tmpl) {
+      //debug(TM, "there is a gate with a template");
+      if(RET_IS_NOT_OK(ret = lmodel_update_gate_ports(gset->gate))) return ret;
+    }
+    /*else
+      debug(TM, "can't update gate"); */
+
+    gset = gset->next;
+  }
+  return RET_OK;
+}
+
+
+/**
+ * Update data structures for gate ports.
+ *
+ * Gate templates have template ports. Template ports define attributes, that are common to
+ * all real ports (of that port type and for all instances of that gate type). If you make
+ * changes to template ports, e.g. add a port to a template, it is
+ * necessary to update data structure from gates.
+ */
+ret_t lmodel_update_gate_ports(lmodel_gate_t * gate) {
+  ret_t ret;
+
+  assert(gate != NULL);
+  if(gate == NULL) return RET_INV_PTR;
+  
+  lmodel_gate_template_t * gate_tmpl = gate->gate_template;
+  lmodel_gate_port_t * port_ptr = gate->ports;
+
+  if(gate_tmpl == NULL) {
+    // no template, but defined ports -> destroy ports
+    if(port_ptr != NULL) {
+      if(RET_IS_NOT_OK(ret = lmodel_destroy_gate_ports(gate->ports))) return ret;
+      gate->ports = NULL;
+    }
+  }
+  else { // template is defined
+    
+    // ports defined
+    if(port_ptr != NULL) {
+
+      lmodel_gate_template_port_t * tmpl_port_ptr = gate_tmpl->ports;
+      while(tmpl_port_ptr != NULL) { // iterate over template's ports
+	// check if there is a corresponding port in our gate
+	lmodel_gate_port_t * present_gport = lmodel_get_port_from_gate_by_id(gate, tmpl_port_ptr->id);
+	if(present_gport == NULL) {
+	  // create a new gate port
+	  lmodel_gate_port_t * new_gate_port = lmodel_create_gate_port(gate, tmpl_port_ptr);
+	  assert(new_gate_port);
+	  if(new_gate_port == NULL) return RET_MALLOC_FAILED;
+	  if(RET_IS_NOT_OK(ret = lmodel_add_gate_port_to_gate(gate, new_gate_port))) return ret;
+	}
+	else {
+	  // port available in gate
+	  present_gport->tmpl_port = tmpl_port_ptr;
+	  //assert(present_gport->tmpl_port != NULL);
+	}
+	tmpl_port_ptr = tmpl_port_ptr->next;
+      }
+
+    }
+    else {
+      // ports undefined
+      lmodel_gate_template_port_t * tmpl_port_ptr = gate_tmpl->ports;
+      while(tmpl_port_ptr != NULL) {
+	lmodel_gate_port_t * new_gate_port = lmodel_create_gate_port(gate, tmpl_port_ptr);
+	assert(new_gate_port);
+	if(new_gate_port == NULL) return RET_MALLOC_FAILED;
+	if(RET_IS_NOT_OK(ret = lmodel_add_gate_port_to_gate(gate, new_gate_port))) return ret;
+	tmpl_port_ptr = tmpl_port_ptr->next;
+      }
+    }
+  }
+  
+  return RET_OK;
+}
+
+
+/**
+ * Create a gate port. The port is not added to the gate!
+ * @see lmodel_add_gate_port()
+ */
+lmodel_gate_port_t * lmodel_create_gate_port(lmodel_gate_t * gate, lmodel_gate_template_port_t * tmpl_port) {
+  lmodel_gate_port_t * gport = NULL;
+  if((gport = (lmodel_gate_port_t *) malloc(sizeof(lmodel_gate_port_t))) == NULL)
+    return NULL;
+  
+  memset(gport, 0, sizeof(lmodel_gate_port_t));
+
+  gport->port_id = tmpl_port->id;
+  gport->gate = gate;
+  gport->tmpl_port = tmpl_port;
+  
+  return gport;
 }
 
 ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate) {
@@ -844,7 +1003,7 @@ ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate) {
      asn_INTEGER2long(&gate->master_orientation, &master_orientation) != -1
      ) {
     
-    gate_template_t * tmpl = lmodel_get_gate_template_by_id(lmodel, gate_id);
+    lmodel_gate_template_t * tmpl = lmodel_get_gate_template_by_id(lmodel, gate_id);
 
     LM_TEMPLATE_ORIENTATION template_orientation;
 
@@ -881,8 +1040,8 @@ ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate) {
       GatePort_t * gport = gate->ports.list.array[port_i];
       asn_INTEGER2long(&gport->port_id, &port_id);
 
-      gate_port_t * new_gate_port = lmodel_create_gate_port(new_gate, port_id);
-      lmodel_add_gate_port(new_gate, new_gate_port);
+      lmodel_gate_port_t * new_gate_port = lmodel_create_gate_port(new_gate, port_id);
+      if(RET_IS_NOT_OK(ret = lmodel_add_gate_port_to_gate(new_gate, new_gate_port))) return ret;
 
       connection_build_helper_t * bh = lmodel_create_connection_build_helper(LM_TYPE_GATE_PORT, 
 									     new_gate_port, 
@@ -891,6 +1050,8 @@ ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate) {
 					 gport->connections.list.count);
       lmodel_add_connection_build_helper(lmodel, bh);
     }
+    if(RET_IS_NOT_OK(ret = lmodel_update_all_gate_ports(lmodel, tmpl))) return ret;
+
 
   }
   else {
@@ -916,7 +1077,7 @@ ret_t lmodel_import_gate_template(logic_model_t * lmodel, GateTemplate_t * gate_
      asn_INTEGER2long(&gate_template->gate_id, &gate_id) != -1) {
     
     int j;
-    gate_template_t * tmpl = lmodel_create_gate_template();
+    lmodel_gate_template_t * tmpl = lmodel_create_gate_template();
     assert(tmpl);
     if(!tmpl) return RET_ERR;
     
@@ -935,7 +1096,7 @@ ret_t lmodel_import_gate_template(logic_model_t * lmodel, GateTemplate_t * gate_
       GateTemplatePort_t * encoded_port = gate_template->ports.list.array[j];
       if(!encoded_port) return RET_ERR;
       
-      gate_template_port_t * gport = lmodel_create_gate_template_port();
+      lmodel_gate_template_port_t * gport = lmodel_create_gate_template_port();
       asn_INTEGER2long(&encoded_port->id, &id);
       asn_INTEGER2long(&encoded_port->relative_x_coord, &x_coord);
       asn_INTEGER2long(&encoded_port->relative_y_coord, &y_coord);
@@ -950,8 +1111,8 @@ ret_t lmodel_import_gate_template(logic_model_t * lmodel, GateTemplate_t * gate_
       gport->port_name = strdup((char *)encoded_port->port_name.buf);
       gport->port_type =  port_type == PortType_in ? LM_PT_IN : LM_PT_OUT;
       
-      debug(TM, "port name : %s", gport->port_name);
-      if(RET_IS_NOT_OK(ret = lmodel_gate_template_add_port(tmpl, gport))) {
+      //debug(TM, "port name : %s", gport->port_name);
+      if(RET_IS_NOT_OK(ret = lmodel_gate_template_add_port(lmodel, tmpl, gport))) {
 	debug(TM, "gate_template_add_inport()");
 	return ret;
       }
@@ -1129,80 +1290,129 @@ bool lmodel_check_collision(LM_OBJECT_TYPE type1, void * obj1,
 
 ret_t lmodel_connect_objects(LM_OBJECT_TYPE type1, void * obj1,
 			     LM_OBJECT_TYPE type2, void * obj2) {
-  assert(obj1);
-  assert(obj2);
-  assert(obj1 != obj2);
+  assert(obj1 != NULL);
+  assert(obj2 != NULL);
   assert(type1 != LM_TYPE_UNDEF);
   assert(type2 != LM_TYPE_UNDEF);
+  assert(type1 != LM_TYPE_GATE);
+  assert(type2 != LM_TYPE_GATE);
+  ret_t ret;
 
-  lm_connection_t * a, *b, ** src_conn_ptr, ** dst_conn_ptr;
+  debug(TM, "\tconnect object %p and %p", obj1, obj2);
+  if(obj1 == obj2) return RET_OK;
+
+  lmodel_connection_t * list1_ptr = lmodel_get_connections_from_object(type1, obj1);
+  lmodel_connection_t * list2_ptr = lmodel_get_connections_from_object(type2, obj2);
+
+  lmodel_connection_t * new_list = NULL;
+  lmodel_connection_t * ptr = NULL;
+
+  if(RET_IS_NOT_OK(ret = lmodel_connect_object(&new_list, type1, (object_ptr_t *)obj1))) return ret;
+  if(RET_IS_NOT_OK(ret = lmodel_connect_object(&new_list, type2, (object_ptr_t *)obj2))) return ret;
+
+  /* merge lists */
+  ptr = list1_ptr;
+  while(ptr != NULL) {
+    assert(ptr->obj_ptr != NULL);
+    if(RET_IS_NOT_OK(ret = lmodel_connect_object(&new_list, ptr->object_type, (object_ptr_t *)ptr->obj_ptr))) return ret;
+    ptr = ptr->next;
+  }
+
+  ptr = list2_ptr;
+  while(ptr != NULL) {
+    assert(ptr->obj_ptr != NULL);
+    if(RET_IS_NOT_OK(ret = lmodel_connect_object(&new_list, ptr->object_type, (object_ptr_t *)ptr->obj_ptr))) return ret;
+    ptr = ptr->next;
+  }
   
+  /* update object from list*/
+  ptr = new_list;
+  while(ptr != NULL) {
 
-  switch(type1) {
-    case LM_TYPE_WIRE:
-      src_conn_ptr = &((lmodel_wire_t *) obj1)->connections;
-      break;
-    case LM_TYPE_VIA:
-      src_conn_ptr = &((lmodel_via_t *) obj1)->connections;
-      break;
-    case LM_TYPE_GATE_PORT:
-      src_conn_ptr = &((gate_port_t *) obj1)->connections;
-      break;
-    default:
-      debug(TM, "connection from unknown type");
-      return RET_ERR;
-  }
-  switch(type2) {
-    case LM_TYPE_WIRE:
-      dst_conn_ptr = &((lmodel_wire_t *) obj2)->connections;
-      break;
-    case LM_TYPE_VIA:
-      dst_conn_ptr = &((lmodel_via_t *) obj2)->connections;
-      break;
-    case LM_TYPE_GATE_PORT:
-      dst_conn_ptr = &((gate_port_t *) obj2)->connections;
-      break;
-    default:
-      debug(TM, "connection to unknown type");
-      return RET_ERR;
-  }
+    assert(ptr->obj_ptr != NULL);
     
+    lmodel_connection_t * old_list = lmodel_get_connections_from_object(ptr->object_type, ptr->obj_ptr);
+    if(old_list != NULL) {
 
-  a = (lm_connection_t *)malloc(sizeof(lm_connection_t));
-  assert(a);
-  if(!a) return RET_ERR;
-
-  b = (lm_connection_t *)malloc(sizeof(lm_connection_t));
-  assert(b);
-  if(!b) {
-    free(a);
-    return RET_ERR;
-  }
-
-  memset(a, 0, sizeof(lm_connection_t));
-  memset(b, 0, sizeof(lm_connection_t));
-
-  b->obj_ptr = obj2;
-  b->object_type = type2;
-
-  a->obj_ptr = obj1;
-  a->object_type = type1;
-
-  a->next = *dst_conn_ptr;
-  *dst_conn_ptr = a;
-
-  b->next = *src_conn_ptr;
-  *src_conn_ptr = b;
+      if(RET_IS_NOT_OK(ret = lmodel_destroy_connections(old_list))) {
+	debug(TM, "\tcan't destroy connections");
+	return ret;
+      }
+      // prevent double-free: find objects with same commnection list and set there a NULL
+      lmodel_connection_t * ptr2 = ptr->next;
+      while(ptr2 != NULL) {
+	lmodel_connection_t * old_list2 = lmodel_get_connections_from_object(ptr->object_type, ptr->obj_ptr);
+	if(old_list2 == old_list) {
+	  if(RET_IS_NOT_OK(ret = lmodel_set_connections_for_object(ptr2->object_type, ptr2->obj_ptr, NULL))) {
+	    debug(TM, "error: can't set connections");
+	    return ret;
+	  }
+	}
+	ptr2 = ptr2->next;
+      }
+    }
     
+    if(RET_IS_NOT_OK(ret = lmodel_set_connections_for_object(ptr->object_type, ptr->obj_ptr, new_list))) {
+      debug(TM, "error: can't set connections");
+      return ret;
+    }
+    ptr = ptr->next;
+  }
+  
   return RET_OK;
 }
 
+/**
+ * Create and add a new connection entry to a connection list. The function checks, if object obj
+ * is already connected.
+ * @returns It returns RET_OK, if obj is already connected or if it was sucessfully connected.
+ */
+ret_t lmodel_connect_object(lmodel_connection_t ** conn_list, LM_OBJECT_TYPE object_type, object_ptr_t * obj) {
+  lmodel_connection_t * ptr;
 
+  assert(conn_list != NULL);
+  assert(obj != NULL);
+  if(conn_list == NULL || obj == NULL) return RET_INV_PTR;
 
-gate_port_t * lmodel_get_port_from_gate_by_id(lmodel_gate_t * gate, unsigned int port_id) {
+  if(lmodel_find_connection_to_object(*conn_list, obj) == NULL) {
+
+    if((ptr = (lmodel_connection_t *)malloc(sizeof(lmodel_connection_t))) == NULL)
+      return RET_MALLOC_FAILED;
+    
+    memset(ptr, 0, sizeof(lmodel_connection_t));
+
+    ptr->obj_ptr = obj;
+    ptr->object_type = object_type;
+    ptr->next = *conn_list;
+
+    *conn_list = ptr;    
+  }
+
+  return RET_OK;
+}
+
+/**
+ * Check if there is a monodirectional connection from from_conn to object obj.
+ * @returns Function returns NULL if there is no connection or if a parameter is an invalid pointer.
+ *          Else the connection object is returned.
+ */
+lmodel_connection_t * lmodel_find_connection_to_object(lmodel_connection_t * from_conn, object_ptr_t * obj) {
+  assert(obj);
+  if(from_conn == NULL || obj == NULL) return NULL;
+
+  lmodel_connection_t * i = from_conn;
+  while(i != NULL) {
+    if(i->obj_ptr == obj) return i;
+    i = i->next;
+  }
+
+  return NULL;
+}
+
+lmodel_gate_port_t * lmodel_get_port_from_gate_by_id(lmodel_gate_t * gate, unsigned int port_id) {
   assert(gate);
   if(!gate || !gate->ports) return NULL;
-  gate_port_t * ptr = gate->ports;
+  lmodel_gate_port_t * ptr = gate->ports;
   while(ptr) {
     if(ptr->port_id == port_id) return ptr;
     ptr = ptr->next;
@@ -1219,9 +1429,9 @@ int cb_check_object_id(quadtree_object_t * qobj, lmodel_lookup_object_t * data_p
     lmodel_gate_t * gate = (lmodel_gate_t *)(qobj->object);
     if(gate->id == data_ptr->object_id) {
 
-      gate_port_t * port_ptr = lmodel_get_port_from_gate_by_id(gate, data_ptr->sub_id);
+      lmodel_gate_port_t * port_ptr = lmodel_get_port_from_gate_by_id(gate, data_ptr->sub_id);
       if(port_ptr) {
-	data_ptr->object = port_ptr;;
+	data_ptr->object = port_ptr;
 	data_ptr->object_type = LM_TYPE_GATE_PORT;
 	return 1;
       }
@@ -1251,9 +1461,9 @@ int cb_check_object_id(quadtree_object_t * qobj, lmodel_lookup_object_t * data_p
  * in case of gates where 'sub objects' are present, by its sub id.
  * It does not use an index. So it might be slow for large object sets.
  */
-ret_t lmodel_get_object_by_id(logic_model_t * const lmodel,
+ret_t lmodel_get_object_by_id(const logic_model_t * const lmodel,
 			      unsigned int object_id, unsigned int sub_id,
-			      void ** o_ptr_out, LM_OBJECT_TYPE * obj_type_out) {
+			      void ** o_ptr_out, LM_OBJECT_TYPE * obj_type_out, unsigned int * layer_out) {
 
   int i;
   quadtree_object_t * optr;
@@ -1264,9 +1474,9 @@ ret_t lmodel_get_object_by_id(logic_model_t * const lmodel,
   for(i=0; i < lmodel->num_layers; i++) {
     if((optr = quadtree_find_object(lmodel->root[i],
 				    (quadobject_traverse_func_t) &cb_check_object_id, &data))) {
-      *obj_type_out = data.object_type;
-      *o_ptr_out = data.object;
-      
+      if(obj_type_out) *obj_type_out = data.object_type;
+      if(o_ptr_out) *o_ptr_out = data.object;
+      if(layer_out != NULL) *layer_out = i;
       return RET_OK;
     }
   }
@@ -1287,9 +1497,10 @@ int cb_check_object_by_ptr(quadtree_object_t * qobj, lmodel_lookup_object_t * da
 }
   
 
-
-lm_connection_t * lmodel_get_connections_from_object(LM_OBJECT_TYPE object_type, void * obj) {
+lmodel_connection_t * lmodel_get_connections_from_object(LM_OBJECT_TYPE object_type, void * obj) {
   assert(obj);
+  assert(object_type != LM_TYPE_GATE);
+  assert(object_type != LM_TYPE_UNDEF);
   if(!obj) return NULL;
 
   switch(object_type) {
@@ -1300,15 +1511,47 @@ lm_connection_t * lmodel_get_connections_from_object(LM_OBJECT_TYPE object_type,
       return ((lmodel_via_t *) obj)->connections;
       break;
     case LM_TYPE_GATE_PORT:
-      return ((gate_port_t *) obj)->connections;
+      return ((lmodel_gate_port_t *) obj)->connections;
+      break;
+    case LM_TYPE_GATE:
+      debug(TM, "connection from unknown type: gate");
+      return NULL;
       break;
     default:
-      debug(TM, "connection from unknown type");
+      debug(TM, "lmodel_get_connections_from_object(): connection from unknown type");
       return NULL;
   }
 }
 
-ret_t lmodel_set_connections_for_object(LM_OBJECT_TYPE object_type, void * obj, lm_connection_t * conn) {
+lmodel_connection_t ** lmodel_get_connection_head_from_object(LM_OBJECT_TYPE object_type, void * obj) {
+  assert(obj != NULL);
+  assert(object_type != LM_TYPE_GATE);
+  assert(object_type != LM_TYPE_UNDEF);
+
+  if(obj == NULL) return NULL;
+
+  switch(object_type) {
+    case LM_TYPE_WIRE:
+      return &((lmodel_wire_t *) obj)->connections;
+      break;
+    case LM_TYPE_VIA:
+      return &((lmodel_via_t *) obj)->connections;
+      break;
+    case LM_TYPE_GATE_PORT:
+      return &((lmodel_gate_port_t *) obj)->connections;
+      break;
+    case LM_TYPE_GATE:
+      debug(TM, "lmodel_get_connection_head_from_object(): connection from unknown type: gate");
+      return NULL;
+      break;
+    default:
+      debug(TM, "lmodel_get_connection_head_from_object(): connection from unknown type %d", object_type);
+      assert( 1 == 0);
+      return NULL;
+  }
+}
+
+ret_t lmodel_set_connections_for_object(LM_OBJECT_TYPE object_type, void * obj, lmodel_connection_t * conn) {
   assert(obj);
   if(!obj) return RET_INV_PTR;
 
@@ -1320,7 +1563,7 @@ ret_t lmodel_set_connections_for_object(LM_OBJECT_TYPE object_type, void * obj, 
       ((lmodel_via_t *) obj)->connections = conn;
       break;
     case LM_TYPE_GATE_PORT:
-      ((gate_port_t *) obj)->connections = conn;
+      ((lmodel_gate_port_t *) obj)->connections = conn;
       break;
     default:
       debug(TM, "connection from unknown type");
@@ -1330,52 +1573,66 @@ ret_t lmodel_set_connections_for_object(LM_OBJECT_TYPE object_type, void * obj, 
   return RET_OK;
 }
 
-/** Remove connecttions from obj to dst_obj
+/** 
+ * Remove connections from obj.
  */
-ret_t lmodel_remove_connection(LM_OBJECT_TYPE object_type, void * obj, void * dst_obj) {
-  assert(obj);
-  assert(dst_obj);
-  if(!obj || !dst_obj) return RET_INV_PTR;
 
-  lm_connection_t *ptr_next, * ptr = lmodel_get_connections_from_object(object_type, obj);
-  if(!ptr) return RET_OK;
+ret_t lmodel_remove_all_connections_from_object(LM_OBJECT_TYPE object_type, void * obj) {
+  assert(obj != NULL);
+  if(obj == NULL) return RET_INV_PTR;
 
-  if(ptr->obj_ptr == dst_obj) {
+
+  lmodel_connection_t 
+    * i = NULL, 
+    * ptr_next = NULL, 
+    * ptr = lmodel_get_connections_from_object(object_type, obj);
+
+  lmodel_connection_t * container_found = NULL;
+
+  if(ptr == NULL) return RET_OK;
+
+  debug(TM, "isolate object %p", obj);
+
+  // is it the first?
+  if(ptr->obj_ptr == obj) {
+
     ptr_next = ptr->next;
+
+    i = ptr_next;
+    while(i != NULL) {
+      if(lmodel_get_connections_from_object(i->object_type, i->obj_ptr) == ptr) {
+	debug(TM, "there is a node that references ptr");
+	lmodel_set_connections_for_object(i->object_type, i->obj_ptr, ptr->next);
+      }
+      i = i->next;
+    }
+
+    memset(ptr, 0, sizeof(lmodel_connection_t));
     free(ptr);
-    return lmodel_set_connections_for_object(object_type, obj, ptr_next);
+
+    lmodel_set_connections_for_object(object_type, obj, NULL);
+
+    return RET_OK;
   }
 
+
   while(ptr && ptr->next) {
-    if(ptr->next->obj_ptr == dst_obj) {
+    if(ptr->next->obj_ptr == obj) {
       ptr_next = ptr->next->next;
       free(ptr->next);
+      memset(ptr->next, 0, sizeof(lmodel_connection_t));
       ptr->next = ptr_next;
+      lmodel_set_connections_for_object(object_type, obj, NULL);
+
       return RET_OK;
     }
     ptr = ptr->next;
   }
 
+  assert(1 == 0);
+  debug(TM, "ERROR");
   return RET_OK;
-}
-
-ret_t lmodel_remove_all_connections_from_object(LM_OBJECT_TYPE object_type, void * obj) {
-  assert(obj);
-  if(!obj) return RET_INV_PTR;
-
-  lm_connection_t *ptr_next, * ptr = lmodel_get_connections_from_object(object_type, obj);
-
-  if(!ptr) return RET_OK;
-
-  while(ptr) {
-    lmodel_remove_connection(ptr->object_type, ptr->obj_ptr, obj);
-   
-    ptr_next = ptr->next;
-    free(ptr);
-    ptr = ptr_next;
-  }
-
-  return lmodel_set_connections_for_object(object_type, obj, NULL);
+  
 }
 
 ret_t lmodel_remove_object_by_ptr(logic_model_t * const lmodel, int layer, void * ptr, LM_OBJECT_TYPE object_type) {
@@ -1398,6 +1655,7 @@ ret_t lmodel_remove_object_by_ptr(logic_model_t * const lmodel, int layer, void 
     break;
   case LM_TYPE_GATE:
     if(RET_IS_NOT_OK(ret = lmodel_destroy_gate((lmodel_gate_t *)ptr))) return ret;
+    if(RET_IS_NOT_OK(ret = lmodel_remove_gate_from_gate_set(lmodel, (lmodel_gate_t *)ptr))) return ret;
     break;
   default:
     return RET_ERR;
@@ -1426,7 +1684,7 @@ ret_t lmodel_build_object_connections_from_helper_structs(logic_model_t * const 
       LM_OBJECT_TYPE obj_type_out;
 
       if(RET_IS_NOT_OK(ret = lmodel_get_object_by_id(lmodel, dst_list_ptr->id, dst_list_ptr->sub_id, 
-						     &dst_ptr, &obj_type_out)))
+						     &dst_ptr, &obj_type_out, NULL)))
 	return ret;
       
       if(RET_IS_NOT_OK(ret = lmodel_connect_objects(ptr->object_type, ptr->obj_ptr, 
@@ -1457,7 +1715,6 @@ ret_t lmodel_decode_file(logic_model_t * const lmodel, FileContent_t * file_cont
 
   for(i = 0 ; i < file_content->list.count; i++) {
     if(file_content->list.array[i]) {
-      debug(TM, "object %d", i);
       
       Object_t * obj = file_content->list.array[i];
       assert(obj);
@@ -1482,10 +1739,11 @@ ret_t lmodel_decode_file(logic_model_t * const lmodel, FileContent_t * file_cont
   return RET_OK;
 }
 
-gate_template_port_t * lmodel_create_gate_template_port() {
-  gate_template_port_t * port = (gate_template_port_t *) malloc(sizeof(gate_template_port_t));
+lmodel_gate_template_port_t * lmodel_create_gate_template_port() {
+  lmodel_gate_template_port_t * port = (lmodel_gate_template_port_t *) malloc(sizeof(lmodel_gate_template_port_t));
+  assert(port);
   if(port) {
-    memset(port, 0, sizeof(gate_template_port_t));
+    memset(port, 0, sizeof(lmodel_gate_template_port_t));
   }
   return port;
 }
@@ -1496,7 +1754,7 @@ ret_t lmodel_load_files(logic_model_t * const lmodel, const char * const project
   FILE * fh;
   FileContent_t * file_content;
   asn_dec_rval_t rval;
-  char buf[900]; 
+  char buf[1024 * 100]; 
   size_t size;
   int running = 1;
   char *ptr = buf;
@@ -1559,7 +1817,7 @@ ret_t lmodel_load_files(logic_model_t * const lmodel, const char * const project
 	ptr = buf;
       }
       else if(rval.code == RC_WMORE) {
-	int remaining = size + (ptr - buf) -rval.consumed;
+	int remaining = size + (ptr - buf) - rval.consumed;
 	debug(TM, "need more data, remaining data in buffer = %d", remaining);
 	memcpy(buf, buf + rval.consumed, remaining);
 	ptr = buf + remaining;
@@ -1866,7 +2124,7 @@ ret_t lmodel_add_wire(logic_model_t * const lmodel, int layer,
 lmodel_gate_t * lmodel_create_gate(logic_model_t * const lmodel,
 				   unsigned int min_x, unsigned int min_y, 
 				   unsigned int max_x, unsigned int max_y,
-				   gate_template_t * gate_template,
+				   lmodel_gate_template_t * gate_template,
 				   char * name,
 				   unsigned int obj_id) {
 
@@ -1918,12 +2176,14 @@ ret_t lmodel_add_gate(logic_model_t * const lmodel, int layer,
     return RET_ERR;
   }
   
-  return RET_OK;
+  // add to gate list
+  return lmodel_add_gate_to_gate_set(lmodel, gate);
+
 }
 
 
 
-ret_t cb_remove_refs(quadtree_t * qtree, gate_template_t * const tmpl) {
+ret_t cb_remove_refs(quadtree_t * qtree, lmodel_gate_template_t * const tmpl) {
 
   quadtree_object_t * object;
   ret_t ret;
@@ -1942,6 +2202,7 @@ ret_t cb_remove_refs(quadtree_t * qtree, gate_template_t * const tmpl) {
 	gate->gate_template = NULL;
 	
 	if(gate->ports) if(RET_IS_NOT_OK(ret = lmodel_destroy_gate_ports(gate->ports))) return ret;
+	gate->ports = NULL;
       }
 
     }
@@ -1954,8 +2215,10 @@ ret_t cb_remove_refs(quadtree_t * qtree, gate_template_t * const tmpl) {
  * If one removes gate templates, it is possible that
  * there are still references to the template. There references
  * must be removed.
+ *
+ * TODO: reimplement it
  */
-ret_t lmodel_remove_refs_to_gate_template(logic_model_t * const lmodel, gate_template_t * const tmpl) {
+ret_t lmodel_remove_refs_to_gate_template(logic_model_t * const lmodel, lmodel_gate_template_t * const tmpl) {
   int layer;
   quadtree_traverse_func_t cb_func = (quadtree_traverse_func_t) &cb_remove_refs;  
   assert(lmodel);
@@ -1968,20 +2231,21 @@ ret_t lmodel_remove_refs_to_gate_template(logic_model_t * const lmodel, gate_tem
     quadtree_traverse_complete(lmodel->root[layer], cb_func, tmpl);
   }
 
+
   return RET_OK;
 }
 
 
-gate_template_t * lmodel_create_gate_template() {
-  gate_template_t * tmpl;
+lmodel_gate_template_t * lmodel_create_gate_template() {
+  lmodel_gate_template_t * tmpl;
 
-  if((tmpl = (gate_template_t *)malloc(sizeof(gate_template_t))) == NULL) return NULL;
+  if((tmpl = (lmodel_gate_template_t *)malloc(sizeof(lmodel_gate_template_t))) == NULL) return NULL;
 
-  memset(tmpl, 0, sizeof(gate_template_t));
+  memset(tmpl, 0, sizeof(lmodel_gate_template_t));
   return tmpl;
 }
 
-ret_t lmodel_gate_template_set_master_region(gate_template_t * const tmpl,
+ret_t lmodel_gate_template_set_master_region(lmodel_gate_template_t * const tmpl,
 					     unsigned int min_x, unsigned int min_y, 
 					     unsigned int max_x, unsigned int max_y) {
 
@@ -1989,15 +2253,15 @@ ret_t lmodel_gate_template_set_master_region(gate_template_t * const tmpl,
   assert(tmpl);
   if(!tmpl) return RET_INV_PTR;
 
-  tmpl->master_image_min_x = min_x;
-  tmpl->master_image_min_y = min_y;
-  tmpl->master_image_max_x = max_x;
-  tmpl->master_image_max_y = max_y;
+  tmpl->master_image_min_x = MIN(min_x, max_x);
+  tmpl->master_image_min_y = MIN(min_y, max_y);
+  tmpl->master_image_max_x = MAX(min_x, max_x);
+  tmpl->master_image_max_y = MAX(min_y, max_y);
   
   return RET_OK;
 }
 
-ret_t lmodel_gate_template_set_text(gate_template_t * const tmpl, 
+ret_t lmodel_gate_template_set_text(lmodel_gate_template_t * const tmpl, 
 				    const char * const short_name,
 				    const char * const description) {
 
@@ -2015,21 +2279,60 @@ ret_t lmodel_gate_template_set_text(gate_template_t * const tmpl,
   return RET_OK;
 }
 				    
-
-ret_t lmodel_add_gate_template_to_gate_set(gate_set_t * const gate_set, 
-					   gate_template_t * const tmpl, 
-					   unsigned int obj_id) {
+ret_t lmodel_add_gate_to_gate_set(logic_model_t * const lmodel, 
+				  lmodel_gate_t * const gate) {
   
-  gate_set_t * gset;
-  gate_set_t * ptr = gate_set;
+  lmodel_gate_set_t * gset;
+  assert(lmodel != NULL);
+  assert(gate != NULL);
+  if(lmodel == NULL || gate == NULL) return RET_INV_PTR;
+  
+  if((gset = (lmodel_gate_set_t *) malloc(sizeof(lmodel_gate_set_t))) == NULL) 
+    return RET_MALLOC_FAILED;
+  memset(gset, 0, sizeof(lmodel_gate_set_t));
+
+  gset->next = lmodel->gate_set;
+  gset->gate = gate;
+  lmodel->gate_set = gset;
+  return RET_OK;
+}
+
+ret_t lmodel_remove_gate_from_gate_set(logic_model_t * const lmodel, lmodel_gate_t * const gate) {
+  assert(lmodel != NULL);
+  assert(gate != NULL);
+  if(lmodel == NULL || gate == NULL) return RET_INV_PTR;
+  lmodel_gate_set_t * ptr = lmodel->gate_set;
+  lmodel_gate_set_t * ptr_last = NULL;
+  while(ptr != NULL) {
+    if(ptr->gate == gate) {
+      if(ptr_last != NULL) ptr_last->next = ptr->next;
+      else lmodel->gate_set = ptr->next;
+      free(ptr);
+      return RET_OK;
+    }
+    ptr_last = ptr;
+    ptr = ptr->next;
+  }
+  return RET_OK;
+}
+
+/** Add a gate template to a gate template set. 
+ * @see lmodel_add_gate_template()
+ */
+ret_t lmodel_add_gate_template_to_gate_template_set(lmodel_gate_template_set_t * const gate_template_set, 
+						    lmodel_gate_template_t * const tmpl, 
+						    unsigned int obj_id) {
+  
+  lmodel_gate_template_set_t * gset;
+  lmodel_gate_template_set_t * ptr = gate_template_set;
   unsigned int max_id = 0;
   assert(tmpl);
-  assert(gate_set);
-  if(!gate_set || !tmpl) return RET_INV_PTR;
+  assert(gate_template_set);
+  if(!gate_template_set || !tmpl) return RET_INV_PTR;
   
-  if((gset = (gate_set_t *) malloc(sizeof(gate_set_t))) == NULL) 
+  if((gset = (lmodel_gate_template_set_t *) malloc(sizeof(lmodel_gate_template_set_t))) == NULL) 
     return RET_MALLOC_FAILED;
-  memset(gset, 0, sizeof(gate_set_t));
+  memset(gset, 0, sizeof(lmodel_gate_template_set_t));
 
   gset->gate = tmpl;
 
@@ -2049,41 +2352,43 @@ ret_t lmodel_add_gate_template_to_gate_set(gate_set_t * const gate_set,
 
 }
 
-gate_template_t * lmodel_get_gate_template_by_id(logic_model_t * const lmodel, unsigned int obj_id) {
+lmodel_gate_template_t * lmodel_get_gate_template_by_id(logic_model_t * const lmodel, unsigned int obj_id) {
 
-  gate_set_t * gset;
+  lmodel_gate_template_set_t * gtmpl_set;
   assert(lmodel);
   if(!lmodel) return NULL;
 
-  gset = lmodel->gate_set;
-  while(gset != NULL) {
-    if(gset->gate && gset->gate->id == obj_id) return gset->gate;
-    gset = gset->next;
+  gtmpl_set = lmodel->gate_template_set;
+  while(gtmpl_set != NULL) {
+    if(gtmpl_set->gate && gtmpl_set->gate->id == obj_id) return gtmpl_set->gate;
+    gtmpl_set = gtmpl_set->next;
   }
   return NULL;
 }
 
-/** XXX: calrify in documentation what the difference to lmodel_add_gate_template_to_gate_set() is */
+/** Add a gate template to the logic model. 
+ * @see lmodel_add_gate_template_to_gate_template_set()
+ */
 ret_t lmodel_add_gate_template(logic_model_t * const lmodel, 
-			       gate_template_t * const tmpl, 
+			       lmodel_gate_template_t * const tmpl, 
 			       unsigned int obj_id) {
 
-  gate_set_t * gset;
+  lmodel_gate_template_set_t * gset;
 
   assert(lmodel);
   assert(tmpl);
   if(!lmodel || !tmpl) return RET_INV_PTR;
   
-  if(lmodel->gate_set == NULL) {
-    if((gset = (gate_set_t *) malloc(sizeof(gate_set_t))) == NULL) 
+  if(lmodel->gate_template_set == NULL) {
+    if((gset = (lmodel_gate_template_set_t *) malloc(sizeof(lmodel_gate_template_set_t))) == NULL) 
       return RET_MALLOC_FAILED;
-    memset(gset, 0, sizeof(gate_set_t));
+    memset(gset, 0, sizeof(lmodel_gate_template_set_t));
 
-    lmodel->gate_set = gset;
+    lmodel->gate_template_set = gset;
     gset->gate = tmpl;
     return RET_OK;
   }
-  else return lmodel_add_gate_template_to_gate_set(lmodel->gate_set, tmpl, obj_id);
+  else return lmodel_add_gate_template_to_gate_template_set(lmodel->gate_template_set, tmpl, obj_id);
 }
 
 
@@ -2114,14 +2419,87 @@ ret_t get_line_function_for_wire(lmodel_wire_t * wire, double * m, double * n) {
   return RET_OK;
 }
 
+/**
+ * Check, if at (x,y) is a gate port.
+ * @returns The function returns a pointer to the gate port. If there are invalid params or no gate or no gate port, the function returns NULL.
+ * @param gate A gate with an assigned master template. The gate is somewhere placed on a layer.
+ * @param x,y The x coordinate relative to the layer origin. If values are larger than layer's width or height, nothing will be found.
+ */
+lmodel_gate_port_t * get_gate_port_at(const lmodel_gate_t * const gate, unsigned int x, unsigned int y) {
+  assert(gate);
+  if(gate == NULL) return NULL;
+
+  if(x >= gate->min_x && x < gate->max_x &&
+     y >= gate->min_y && y < gate->max_y) {
+
+    unsigned int x_rel_to_gate = x - gate->min_x;
+    unsigned int y_rel_to_gate = y - gate->min_y;
+
+    unsigned int height = gate->max_y - gate->min_y;
+    unsigned int width = gate->max_x - gate->min_x;
+
+    //debug(TM, "there is a gate. is there a gate port?");
+    switch(gate->template_orientation) {
+    case LM_TEMPLATE_ORIENTATION_UNDEFINED:
+      return NULL;
+    case LM_TEMPLATE_ORIENTATION_NORMAL:
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
+      y_rel_to_gate = height - y_rel_to_gate;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
+      x_rel_to_gate = width - x_rel_to_gate;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
+      x_rel_to_gate = width - x_rel_to_gate;
+      y_rel_to_gate = height - y_rel_to_gate;
+      break;
+    }
+
+    lmodel_gate_port_t * ports = gate->ports;
+    while(ports != NULL) {
+    
+      lmodel_gate_template_port_t * tmpl_port = ports->tmpl_port;
+      if(tmpl_port != NULL) {
+	unsigned int 
+	  _x = tmpl_port->relative_x_coord, 
+	  _y = tmpl_port->relative_y_coord;
+      
+	//debug(TM, "check port %s", ports->tmpl_port->port_name);
+	
+	double delta_x = (double)x_rel_to_gate - (double)_x; 
+	double delta_y = (double)y_rel_to_gate - (double)_y; 
+	
+	if(sqrt( delta_x * delta_x + delta_y * delta_y) < (tmpl_port->diameter << 1) ) {
+	  assert(ports->tmpl_port != NULL);
+	  
+	  //debug(TM, "port clicked %s", ports->tmpl_port->port_name);
+	  return ports;
+	}
+      }
+      ports = ports->next;
+    }
+
+  }
+  return NULL;
+}
+
 int cb_is_object_at_point(quadtree_object_t * qobj, lmodel_is_object_at_t * data_ptr) {
-  debug(TM, "checking");
+  //debug(TM, "checking");
   assert(qobj);
   assert(qobj->object);
   assert(data_ptr);
   if(qobj->object_type == LM_TYPE_GATE) {
-    data_ptr->object = qobj->object;
-    data_ptr->object_type = LM_TYPE_GATE;
+
+    lmodel_gate_port_t * port = get_gate_port_at((const lmodel_gate_t * const)qobj->object, data_ptr->x, data_ptr->y);
+    if(port == NULL) {
+      data_ptr->object = qobj->object;
+      data_ptr->object_type = LM_TYPE_GATE;
+    }
+    else {
+      data_ptr->object = port;
+      data_ptr->object_type = LM_TYPE_GATE_PORT;
+    }
     return 1;
   }
   else if(qobj->object_type == LM_TYPE_WIRE) {
@@ -2209,7 +2587,7 @@ ret_t cb_is_gate_in_region(quadtree_t * qtree, lmodel_is_gate_in_region_t * data
 	   gate->max_x <= params->from_x ||
 	   gate->min_y >= params->to_y ||
 	   gate->max_y <= params->from_y)) {
-	debug(TM, "There is a gate!");
+	//debug(TM, "There is a gate!");
 
 	data_ptr->object = gate;
 	return RET_OK;
@@ -2249,43 +2627,82 @@ ret_t lmodel_object_to_string(const logic_model_t * const lmodel, int layer,
 
   void * ptr = NULL;
   ret_t ret;
-  lmodel_gate_t * g;
-  lmodel_wire_t * w;
-  lmodel_via_t * v;
   CHECK(lmodel, layer);
   LM_OBJECT_TYPE object_type;
-  
+
+  if(len == 0) return RET_ERR;
+  else msg[0] = '\0';
+
   if(RET_IS_NOT_OK(ret = lmodel_get_object(lmodel, layer, real_x, real_y, &object_type, &ptr)))
     return ret;
 
-  //if(*ptr == NULL) return RET_OK;
+  if(ptr != NULL)
+    return lmodel_get_printable_string_for_obj(object_type, ptr, msg, len);
+  else
+    return RET_OK;
+}
+
+ret_t lmodel_get_printable_string_for_obj(LM_OBJECT_TYPE object_type, void * obj_ptr, char * const msg, unsigned int len) {
+  lmodel_gate_t * g;
+  lmodel_gate_port_t * gp;
+  lmodel_wire_t * w;
+  lmodel_via_t * v;
+
+  assert(obj_ptr != NULL);
+  assert(msg != NULL);
+  if(obj_ptr == NULL || msg == NULL) return RET_INV_PTR;
 
   switch(object_type) {
   case LM_TYPE_GATE:
-    g = (lmodel_gate_t *) ptr;
-    snprintf(msg, len, "Gate: id=%d name=%s", g->id, g->name ? g->name : "");
+    g = (lmodel_gate_t *) obj_ptr;
+    if(g->gate_template == NULL || g->gate_template->short_name == NULL) {
+      if(g->name == NULL || !strcmp(g->name, "")) snprintf(msg, len, "gate (%d)", g->id);
+      else snprintf(msg, len, "gate %s (%d)", g->name, g->id);
+    }
+    else {
+      if(g->name == NULL || !strcmp(g->name, "")) snprintf(msg, len, "%s (%d)", g->gate_template->short_name, g->id);
+      else snprintf(msg, len, "%s/%s (%d)", g->gate_template->short_name, g->name, g->id);
+    }
     break;
+  case LM_TYPE_GATE_PORT:
+    gp = (lmodel_gate_port_t *) obj_ptr;
+
+    if(gp->tmpl_port) {
+      g = gp->gate;
+      if(g->name == NULL || !strcmp(g->name, "")) 
+	snprintf(msg, len, "%s (%d)/%s", g->gate_template->short_name, g->id, gp->tmpl_port->port_name);
+      else snprintf(msg, len, "%s/%s (%d)/%s", g->gate_template->short_name, g->name, g->id, gp->tmpl_port->port_name);
+    }
+    
+    break;
+
   case LM_TYPE_WIRE:
-    w = (lmodel_wire_t *) ptr;
-    snprintf(msg, len, "Wire: id=%d name=%s", w->id, w->name ? w->name : "");
+    w = (lmodel_wire_t *) obj_ptr;
+    if(w->name == NULL) snprintf(msg, len, "wire (%d)", w->id);
+    else snprintf(msg, len, "%s (%d)", w->name, w->id);
     break;
+
   case LM_TYPE_VIA:
-    v = (lmodel_via_t *) ptr;
-    snprintf(msg, len, "Via: id=%d name=%s", v->id, v->name ? v->name : "");
+    v = (lmodel_via_t *) obj_ptr;
+    if(v->name == NULL) snprintf(msg, len, "via (%d)", v->id);
+    else snprintf(msg, len, "%s (%d)", v->name, v->id);
+
     break;
   case LM_TYPE_UNDEF:
   default:
-    msg[0] = '\0';
+    snprintf(msg, len, "undefined object");
   }
     
   return RET_OK;
 }
 
-
 int lmodel_get_select_state(LM_OBJECT_TYPE object_type, void * obj_ptr) {
   switch(object_type) {
   case LM_TYPE_GATE:
     return ((lmodel_gate_t *) obj_ptr)->is_selected;
+    break;
+  case LM_TYPE_GATE_PORT:
+    return ((lmodel_gate_port_t *) obj_ptr)->is_selected;
     break;
   case LM_TYPE_WIRE:
     return ((lmodel_wire_t *) obj_ptr)->is_selected;
@@ -2302,12 +2719,16 @@ ret_t lmodel_set_select_state(LM_OBJECT_TYPE object_type, void * obj_ptr, int st
   assert(obj_ptr);
   if(!obj_ptr) return RET_INV_PTR;
 
-  lm_connection_t * adj_objects = NULL;
+  lmodel_connection_t * adj_objects = NULL;
 
   switch(object_type) {
   case LM_TYPE_GATE:
     ((lmodel_gate_t *) obj_ptr)->is_selected = state;
-    //adj_objects = ((lmodel_gate_t *) obj_ptr)->connections;
+    adj_objects = NULL;
+    break;
+  case LM_TYPE_GATE_PORT:
+    ((lmodel_gate_port_t *) obj_ptr)->is_selected = state;
+    adj_objects = ((lmodel_gate_port_t *) obj_ptr)->connections;
     break;
   case LM_TYPE_WIRE:
     ((lmodel_wire_t *) obj_ptr)->is_selected = state;
@@ -2421,12 +2842,13 @@ ret_t lmodel_reset_gate_shape(lmodel_gate_t * gate) {
   return RET_OK;
 }
 
-ret_t lmodel_set_template_for_gate(logic_model_t * lmodel, lmodel_gate_t * gate, gate_template_t * tmpl) {
+ret_t lmodel_set_template_for_gate(logic_model_t * lmodel, lmodel_gate_t * gate, lmodel_gate_template_t * tmpl) {
   assert(lmodel);
   assert(gate);
   assert(tmpl);
   if(!lmodel || !gate || !tmpl) return RET_INV_PTR;
 
+  /*
   if(gate->gate_template &&
      gate->min_x == gate->gate_template->master_image_min_x &&
      gate->min_y == gate->gate_template->master_image_min_y &&
@@ -2439,14 +2861,14 @@ ret_t lmodel_set_template_for_gate(logic_model_t * lmodel, lmodel_gate_t * gate,
     gate->gate_template->master_image_max_x = 0;
     gate->gate_template->master_image_max_y = 0;
   }
-
+  */
   gate->gate_template = tmpl;
-
-  return RET_OK;
+  
+  return lmodel_update_gate_ports(gate);
 }
 
 /** Get the template for a gate */
-gate_template_t * lmodel_get_template_for_gate(lmodel_gate_t * gate) {
+lmodel_gate_template_t * lmodel_get_template_for_gate(lmodel_gate_t * gate) {
   assert(gate);
 
   if(!gate) return NULL;
@@ -2468,7 +2890,11 @@ ret_t lmodel_set_gate_orientation(lmodel_gate_t * gate, LM_TEMPLATE_ORIENTATION 
      gate->max_y == gate->gate_template->master_image_max_y) {
 
     // gate defines a template
-    return RET_ERR;
+    if(gate->template_orientation == LM_TEMPLATE_ORIENTATION_UNDEFINED) {
+      gate->template_orientation = orientation;
+    }
+    else
+      return RET_ERR;
   }
   else { 
     gate->template_orientation = orientation;
@@ -2477,38 +2903,52 @@ ret_t lmodel_set_gate_orientation(lmodel_gate_t * gate, LM_TEMPLATE_ORIENTATION 
 }
 
 LM_TEMPLATE_ORIENTATION lmodel_get_gate_orientation(lmodel_gate_t * gate) {
+  assert(gate != NULL);
+  if(gate == NULL) return LM_TEMPLATE_ORIENTATION_UNDEFINED;
   return gate->template_orientation;
 }
 
 
-ret_t cb_adjust_gate_orientation(quadtree_t * qtree, void * ptr) {
+/**
+ * Each gate "instance" is oriented relative to the master. If you set another gate instance
+ * as master and this instance is, let's say flipped up-down relative to the old master, every
+ * gate's orientation must be readjusted.
+ * @param lmodel The logic model.
+ * @param except_for_gate The new master gate. It's orientation is untouched.
+ * @param transformation Transformation, that is applied to every gates orientation.
+ */
+ret_t lmodel_adjust_gate_orientation_for_all_gates(logic_model_t * lmodel, lmodel_gate_t * except_for_gate, 
+						   LM_TEMPLATE_ORIENTATION transformation) {
 
-  quadtree_object_t * object;
+  int layer = -1;
+  assert(lmodel);
+  assert(except_for_gate);
+  assert(lmodel->gate_set);
 
-  assert(qtree);
-  if(!qtree) return RET_INV_PTR;
-  lmodel_adjust_gate_orientation_t * data =  (lmodel_adjust_gate_orientation_t *) ptr;
+  if(lmodel == NULL || except_for_gate == NULL || lmodel->gate_set == NULL) return RET_INV_PTR;
+  layer = lmodel_get_layer_num_by_type(lmodel, LM_LAYER_TYPE_LOGIC);
+  if(layer == -1) return RET_ERR;
 
-  object = qtree->objects;
-  
-  while(object != NULL) {
-    if(object->object_type == LM_TYPE_GATE &&
-       object->object != data->except_for_gate) {
+  lmodel_gate_set_t * gset_ptr = lmodel->gate_set;
+  while(gset_ptr != NULL) {
 
-      lmodel_gate_t * gate = (lmodel_gate_t *) object->object;
+    lmodel_gate_t * gate = gset_ptr->gate;
+
+    if(gate != except_for_gate) {
+
       if(gate->gate_template) {
 	switch(gate->template_orientation) {
-
+	  
 	case LM_TEMPLATE_ORIENTATION_UNDEFINED:
 	  break;
-
+	  
 	case LM_TEMPLATE_ORIENTATION_NORMAL:
-	  gate->template_orientation = data->transformation;
+	  gate->template_orientation = transformation;
 	  break;
-
+	  
 	case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
 
-	  switch(data->transformation) {
+	  switch(transformation) {
 	  case LM_TEMPLATE_ORIENTATION_UNDEFINED:
 	  case LM_TEMPLATE_ORIENTATION_NORMAL: break;
 	  case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
@@ -2524,7 +2964,7 @@ ret_t cb_adjust_gate_orientation(quadtree_t * qtree, void * ptr) {
 	  break;
 
 	case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
-	  switch(data->transformation) {
+	  switch(transformation) {
 	  case LM_TEMPLATE_ORIENTATION_UNDEFINED:
 	  case LM_TEMPLATE_ORIENTATION_NORMAL: break;
 	  case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
@@ -2540,7 +2980,7 @@ ret_t cb_adjust_gate_orientation(quadtree_t * qtree, void * ptr) {
 	  break;
 
 	case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
-	  switch(data->transformation) {
+	  switch(transformation) {
 	  case LM_TEMPLATE_ORIENTATION_UNDEFINED:
 	  case LM_TEMPLATE_ORIENTATION_NORMAL: break;
 	  case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
@@ -2559,41 +2999,28 @@ ret_t cb_adjust_gate_orientation(quadtree_t * qtree, void * ptr) {
 	}
       }
     }
-
-    object = object->next;
+    
+    gset_ptr = gset_ptr->next;
   }
-  return RET_OK;
-}
-
-ret_t lmodel_adjust_gate_orientation_for_all_gates(logic_model_t * lmodel, lmodel_gate_t * except_for_gate, 
-						   LM_TEMPLATE_ORIENTATION transformation) {
-
-  assert(lmodel);
-  assert(except_for_gate);
-
-  int layer = lmodel_get_layer_num_by_type(lmodel, LM_LAYER_TYPE_LOGIC);
-  if(layer == -1) return RET_ERR;
-
-  lmodel_adjust_gate_orientation_t data = {transformation, except_for_gate};
-  quadtree_traverse_complete(lmodel->root[layer], (quadtree_traverse_func_t) &cb_adjust_gate_orientation, &data);
 
   return RET_OK;
 }
 
-ret_t lmodel_remove_gate_template(logic_model_t * const lmodel, gate_template_t * const tmpl) {
+
+ret_t lmodel_remove_gate_template(logic_model_t * const lmodel, lmodel_gate_template_t * const tmpl) {
   ret_t ret;
   assert(lmodel);
   assert(tmpl);
-  assert(lmodel->gate_set);
-  if(!lmodel || !tmpl || !lmodel->gate_set) return RET_INV_PTR;
+  assert(lmodel->gate_template_set);
+  if(!lmodel || !tmpl || !lmodel->gate_template_set) return RET_INV_PTR;
 
   if(RET_IS_NOT_OK(ret = lmodel_remove_refs_to_gate_template(lmodel, tmpl))) return ret;
   
-  gate_set_t * ptr = lmodel->gate_set, * ptr_next;
+  lmodel_gate_template_set_t * ptr = lmodel->gate_template_set, * ptr_next;
   
   if(ptr->gate == tmpl) {
     // successor?
-    lmodel->gate_set = ptr->next ? ptr->next : NULL;
+    lmodel->gate_template_set = ptr->next ? ptr->next : NULL;
 
     if(RET_IS_NOT_OK(ret = lmodel_destroy_gate_template(ptr->gate))) return ret;
     free(ptr);
@@ -2617,3 +3044,129 @@ ret_t lmodel_remove_gate_template(logic_model_t * const lmodel, gate_template_t 
   }
   return RET_OK;
 }
+
+
+ret_t lmodel_get_view_for_object(const logic_model_t * const lmodel, 
+				 LM_OBJECT_TYPE object_type, 
+				 const object_ptr_t * const obj_ptr,
+				 unsigned int * center_x, 
+				 unsigned int * center_y, 
+				 unsigned int * layer) {
+
+  assert(lmodel != NULL);
+  assert(obj_ptr != NULL);
+  assert(center_x != NULL);
+  assert(center_y != NULL);
+  assert(layer != NULL);
+
+  unsigned int object_id, sub_id = 0;
+
+  switch(object_type) {
+  case LM_TYPE_GATE:
+    object_id = ((lmodel_gate_t *) obj_ptr)->id;
+    break;
+  case LM_TYPE_GATE_PORT:
+    object_id = ((lmodel_gate_port_t *) obj_ptr)->gate->id;
+    sub_id = ((lmodel_gate_port_t *) obj_ptr)->port_id;
+    break;
+  case LM_TYPE_WIRE:
+    object_id = ((lmodel_wire_t *) obj_ptr)->id;
+    break;
+  case LM_TYPE_VIA:
+    object_id = ((lmodel_via_t *) obj_ptr)->id;
+    break;
+  case LM_TYPE_UNDEF:
+  default:
+    return RET_ERR;
+  }
+
+
+  if(RET_IS_OK(lmodel_get_object_by_id(lmodel,
+				       object_id, sub_id,
+				       NULL, NULL, layer))) {
+
+    lmodel_gate_t * g;
+    lmodel_gate_port_t * gp;
+    lmodel_wire_t * w;
+    lmodel_via_t * v;
+
+    switch(object_type) {
+    case LM_TYPE_GATE:
+      g = (lmodel_gate_t *) obj_ptr;
+      *center_x = g->min_x + (g->max_x - g->min_x) / 2;
+      *center_y = g->min_y + (g->max_y - g->min_y) / 2;
+      break;
+    case LM_TYPE_GATE_PORT:
+      gp = (lmodel_gate_port_t *) obj_ptr;
+      g = gp->gate;
+      *center_x = g->min_x + (g->max_x - g->min_x) / 2;
+      *center_y = g->min_y + (g->max_y - g->min_y) / 2;
+      break;
+    case LM_TYPE_WIRE:
+      w = (lmodel_wire_t *) obj_ptr;
+      *center_x = MIN(w->from_x, w->to_x) + (MAX(w->from_x, w->to_x) - MIN(w->from_x, w->to_x)) / 2;
+      *center_y = MIN(w->from_y, w->to_y) + (MAX(w->from_y, w->to_y) - MIN(w->from_y, w->to_y)) / 2;
+      break;
+    case LM_TYPE_VIA:
+      v = (lmodel_via_t *) obj_ptr;
+      *center_x = v->x;
+      *center_y = v->y;
+      break;
+    case LM_TYPE_UNDEF:
+    default:
+      return RET_ERR;
+    }
+    return RET_OK;
+    
+  }
+
+  return RET_ERR;
+}
+
+/*
+ret_t lmodel_get_all_connected_objects_bfs(lmodel_connection_t ** closed_list, lmodel_connection_t ** open_list) {
+
+  while((*open_list) != NULL) {
+    lmodel_connection_t * curr = *open_list;
+    *open_list = (*open_list)->next;
+
+    lmodel_connect_object(closed_list, curr->object_type, (object_ptr_t *)curr->obj_ptr);
+
+    lmodel_connection_t * succ = lmodel_get_connections_from_object(curr->object_type, curr->obj_ptr);
+    while(succ != NULL) {
+      if((lmodel_find_connection_to_object(*closed_list, (object_ptr_t *)succ->obj_ptr) == NULL) &&
+	 (lmodel_find_connection_to_object(*open_list, (object_ptr_t *)succ->obj_ptr) == NULL) ) {
+
+	lmodel_connect_object(open_list, succ->object_type, (object_ptr_t *)succ->obj_ptr);
+      }
+      succ = succ->next;
+    }
+
+  }
+
+  return RET_OK;
+}
+
+lmodel_connection_t * lmodel_get_all_connected_objects(const lmodel_connection_t * const connections) {
+
+  lmodel_connection_t * closed_list = NULL;
+  lmodel_connection_t * open_list = NULL;
+
+  const lmodel_connection_t * ptr = connections;
+
+  while(ptr != NULL) {
+    debug(TM, "ADDDDDDDDD %p", ptr->obj_ptr);
+    lmodel_connect_object(&open_list, ptr->object_type, (object_ptr_t *)ptr->obj_ptr);  
+    ptr = ptr->next;
+  }
+
+  if(RET_IS_NOT_OK(lmodel_get_all_connected_objects_bfs(&closed_list, &open_list))) {
+    lmodel_destroy_connections(closed_list);
+    lmodel_destroy_connections(open_list);
+    return NULL;
+  }
+  
+  return closed_list;
+}
+
+*/

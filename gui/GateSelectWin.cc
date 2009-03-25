@@ -65,7 +65,7 @@ GateSelectWin::GateSelectWin(Gtk::Window *parent, logic_model_t * const lmodel) 
       pTreeView->append_column("Description", m_Columns.m_col_description);
     }
     
-    gate_set_t * ptr = lmodel->gate_set;
+    lmodel_gate_template_set_t * ptr = lmodel->gate_template_set;
     while(ptr != NULL) {
       if(ptr->gate) {
 	Gtk::TreeModel::Row row = *(refListStore->append()); 
@@ -85,7 +85,7 @@ GateSelectWin::~GateSelectWin() {
 }
 
 
-gate_template_t * GateSelectWin::run() {
+lmodel_gate_template_t * GateSelectWin::run() {
   pDialog->run();
   return result;
 }

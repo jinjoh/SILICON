@@ -18,14 +18,14 @@ quadtree_t * quadtree_create(unsigned int min_x, unsigned int min_y,
 
   quadtree_t * ptr;
 
-  debug(TM, "\tcreate qt %d,%d -- %d,%d\n", min_x, min_y, max_x, max_y);
+  //debug(TM, "\tcreate qt %d,%d -- %d,%d\n", min_x, min_y, max_x, max_y);
   assert(min_x < max_x);
   assert(min_y < max_y);
 
   if((ptr = (quadtree_t *) malloc(sizeof(struct quadtree))) == NULL) return NULL;
   memset(ptr, 0, sizeof(quadtree_t));
 
-  debug(TM, "\t-> done, got = %p\n", ptr);
+  //debug(TM, "\t-> done, got = %p\n", ptr);
 
   ptr->min_x = min_x;
   ptr->min_y = min_y;
@@ -352,7 +352,7 @@ quadtree_t * quadtree_insert(quadtree_t * qtree, quadtree_object * object) {
 
   assert(qtree != NULL);
   assert(object != NULL);
-  debug(TM, "insert");
+  //debug(TM, "insert");
 
   quadtree_t * found = quadtree_traverse_downto_bbox(qtree, 
 						     object->min_x, object->min_y,
@@ -371,7 +371,7 @@ quadtree_t * quadtree_insert(quadtree_t * qtree, quadtree_object * object) {
     return quadtree_insert(found, object);
   }
   else {
-    debug(TM, "added");
+    //debug(TM, "added");
     // add object on list head
     object->parent = found;
     object->next = found->objects;

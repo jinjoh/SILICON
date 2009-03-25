@@ -57,6 +57,7 @@ GUI_OBJS=gui/SplashWin.o \
 	gui/SetOrientationWin.o \
 	gui/ProjectSettingsWin.o \
 	gui/TemplateMatchingParamsWin.o \
+	gui/ConnectionInspectorWin.o \
 	gui/MainWin.o \
 	gui/main.o
 
@@ -129,3 +130,6 @@ run:
 
 stats:
 	wc -l lib/*.[ch] gui/*.cc gui/*.h plugins/*.cc
+
+opt:
+	make OPTIMIZATION_FLAGS="-O3 -finline-functions -finline-functions-called-once -fearly-inlining"

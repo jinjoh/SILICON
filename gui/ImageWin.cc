@@ -485,7 +485,6 @@ bool ImageWin::on_button_release_event(GdkEventButton * event) {
     coord_screen_to_real(event_x, event_y, &x, &y);
     
     if(selection_active() == true) {
-      std::cout << "__selection active" << std::endl;
 
       if(drag_mode == false) reset_selection();
       else {
@@ -500,7 +499,6 @@ bool ImageWin::on_button_release_event(GdkEventButton * event) {
     }
     else {
       // XXX eventuell ins hauptfenster verlagern
-      std::cout << "intern: object selection" << std::endl;
       if(object_selection_x == x && object_selection_y == y) {
 	object_selection_x = 0;
 	object_selection_y = 0;

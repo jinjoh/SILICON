@@ -25,12 +25,12 @@ class PortSelectWin  {
 
   virtual ~PortSelectWin();
   
-  gate_template_port_t * run();
+  lmodel_gate_template_port_t * run();
 
  private:
   Gtk::Window *parent;
   lmodel_gate_t * gate;
-  gate_template_port_t * template_port;
+  lmodel_gate_template_port_t * template_port;
   Gtk::Dialog* pDialog;
 
   PortListModelColumns m_Columns;

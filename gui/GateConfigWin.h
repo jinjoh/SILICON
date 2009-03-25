@@ -21,14 +21,17 @@ class GateConfigWin  {
   };
 
  public:
-  GateConfigWin(Gtk::Window *parent, gate_template_t * const gate_template);
+  GateConfigWin(Gtk::Window *parent, 
+		logic_model_t * const lmodel, 
+		lmodel_gate_template_t * const gate_template);
 
   virtual ~GateConfigWin();
         
   bool run();
 
   private:
-  gate_template_t * gate_template;
+  logic_model_t * lmodel;
+  lmodel_gate_template_t * gate_template;
   unsigned int port_counter;
   
   Gtk::Dialog* pDialog;

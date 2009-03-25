@@ -10,11 +10,14 @@
 
 #define TM "GateConfigWin.cc"
 
-GateConfigWin::GateConfigWin(Gtk::Window *parent, gate_template_t * const gate_template) {
+GateConfigWin::GateConfigWin(Gtk::Window *parent, 
+			     logic_model_t * const lmodel,
+			     lmodel_gate_template_t * const gate_template) {
   char file[PATH_MAX];
   snprintf(file, PATH_MAX, "%s/glade/gate_create.glade", getenv("DEGATE_HOME"));
   port_counter = 0;
   
+  this->lmodel = lmodel;
   this->gate_template = gate_template;
 
     //Load the Glade file and instiate its widgets:
@@ -84,7 +87,7 @@ GateConfigWin::GateConfigWin(Gtk::Window *parent, gate_template_t * const gate_t
 	pTreeView_in_ports->append_column_editable("Port Name", m_Columns.m_col_text);
       }
 
-      gate_template_port_t * ptr = gate_template->ports;
+      lmodel_gate_template_port_t * ptr = gate_template->ports;
       while(ptr) {
 	Gtk::TreeModel::Row row;
 
@@ -140,7 +143,7 @@ void GateConfigWin::on_ok_button_clicked() {
     Gtk::TreeModel::Row row = *iter;
     str = row[m_Columns.m_col_text];
     id = row[m_Columns.m_col_id];
-    lmodel_gate_template_set_port(gate_template, id, str.c_str(), LM_PT_IN);
+    lmodel_gate_template_set_port(lmodel, gate_template, id, str.c_str(), LM_PT_IN);
   }
 
   children = refListStore_out_ports->children();
@@ -148,7 +151,7 @@ void GateConfigWin::on_ok_button_clicked() {
     Gtk::TreeModel::Row row = *iter;
     str = row[m_Columns.m_col_text];
     id = row[m_Columns.m_col_id];
-    lmodel_gate_template_set_port(gate_template, id, str.c_str(), LM_PT_OUT);
+    lmodel_gate_template_set_port(lmodel, gate_template, id, str.c_str(), LM_PT_OUT);
   }
 
   pDialog->hide();

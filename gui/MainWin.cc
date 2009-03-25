@@ -21,6 +21,7 @@
 #include "SetNameWin.h"
 #include "SetOrientationWin.h"
 #include "ProjectSettingsWin.h"
+#include "ConnectionInspectorWin.h"
 #include "gui_globals.h"
 
 #include "lib/project.h"
@@ -198,9 +199,10 @@ void MainWin::initialize_menu() {
 			Gtk::AccelKey("<control>1"),
 			sigc::mem_fun(*this, &MainWin::on_menu_view_prev_layer));
 
-  m_refActionGroup->add(Gtk::Action::create("ViewGridConfig", "Grid configuration", "Grid configuration"),
+  m_refActionGroup->add(Gtk::Action::create("ViewGridConfiguration", "Grid configuration", "Grid configuration"),
 			Gtk::AccelKey("<control>G"),
 			sigc::mem_fun(*this, &MainWin::on_menu_view_grid_config));
+
 
   /*  m_refActionGroup->add(Gtk::Action::create("ViewDistanceToColor", "Define color for similarity filter", 
 					    "Define color for similarity filter"),
@@ -241,16 +243,6 @@ void MainWin::initialize_menu() {
 					    "Clear background image for current layer"),
 			sigc::mem_fun(*this, &MainWin::on_menu_layer_clear_background_image));
 
-  m_refActionGroup->add(Gtk::Action::create("LayerClearLogicModel",
-					    Gtk::Stock::CLEAR, "Clear logic model", 
-					    "Clear logic model for current layer"),
-			sigc::mem_fun(*this, &MainWin::on_menu_layer_clear_logic_model));
-
-  m_refActionGroup->add(Gtk::Action::create("LayerClearLogicModelInSelection",
-					    Gtk::Stock::CLEAR, "Remove selected objects", 
-					    "Remove selected Object"),
-			Gtk::AccelKey("<control>C"),
-			sigc::mem_fun(*this, &MainWin::on_menu_layer_clear_logic_model_in_selection));
 
   m_refActionGroup->add(Gtk::Action::create("LayerAlignment",
 					    "Align layers", 
@@ -273,6 +265,36 @@ void MainWin::initialize_menu() {
   //m_refActionGroup->add(m_refChoice_MetalLayer, sigc::mem_fun(*this, &MainWin::on_menu_layer_set_metal));
   m_refActionGroup->add(m_refChoice_MetalLayer);
   sig_conn_rbg_metal = m_refChoice_MetalLayer->signal_activate().connect(sigc::mem_fun(*this, &MainWin::on_menu_layer_set_metal));
+
+  // Logic menu
+  m_refActionGroup->add( Gtk::Action::create("LogicMenu", "Logic"));
+
+  m_refActionGroup->add(Gtk::Action::create("LogicInterconnect",
+					    Gtk::Stock::CONNECT, "Interconnect objects", 
+					    "Interconnect objects"),
+			Gtk::AccelKey("<control>J"),
+			sigc::mem_fun(*this, &MainWin::on_menu_logic_interconnect));
+
+  m_refActionGroup->add(Gtk::Action::create("LogicIsolate",
+					    Gtk::Stock::DISCONNECT, "Isolate object(s)", 
+					    "Isolate object(s)"),
+			Gtk::AccelKey("<control>U"),
+			sigc::mem_fun(*this, &MainWin::on_menu_logic_isolate));
+
+  m_refActionGroup->add(Gtk::Action::create("LogicClearLogicModel",
+					    Gtk::Stock::CLEAR, "Clear logic model", 
+					    "Clear logic model for current layer"),
+			sigc::mem_fun(*this, &MainWin::on_menu_logic_clear_logic_model));
+
+  m_refActionGroup->add(Gtk::Action::create("LogicClearLogicModelInSelection",
+					    Gtk::Stock::CLEAR, "Remove selected objects", 
+					    "Remove selected objects"),
+			Gtk::AccelKey("<control>C"),
+			sigc::mem_fun(*this, &MainWin::on_menu_logic_clear_logic_model_in_selection));
+
+  m_refActionGroup->add(Gtk::Action::create("LogicConnectionInspector", "Connection inspector", "Connection inspector"),
+			Gtk::AccelKey("<control>I"),
+			sigc::mem_fun(*this, &MainWin::on_menu_logic_connection_inspector));
 
   // Gate menu
   m_refActionGroup->add( Gtk::Action::create("GateMenu", "Gate"));
@@ -340,7 +362,7 @@ void MainWin::initialize_menu() {
         "      <menuitem action='ViewNextLayer'/>"
         "      <menuitem action='ViewPrevLayer'/>"
         "      <separator/>"
-        "      <menuitem action='ViewGridConfig'/>"  
+        "      <menuitem action='ViewGridConfiguration'/>"  
         "    </menu>"
         "    <menu action='ToolsMenu'>"
         "      <menuitem action='ToolSelect'/>"
@@ -354,9 +376,6 @@ void MainWin::initialize_menu() {
         "      <menuitem action='LayerImportBackground'/>"
         "      <menuitem action='LayerClearBackgroundImage'/>"
         "      <separator/>"
-        "      <menuitem action='LayerClearLogicModel'/>"
-        "      <menuitem action='LayerClearLogicModelInSelection'/>"
-        "      <separator/>"
         "      <menuitem action='LayerAlignment'/>"
         "      <separator/>"
         "      <menu action='LayerType'>"
@@ -364,6 +383,15 @@ void MainWin::initialize_menu() {
         "        <menuitem action='LayerTypeLogic'/>"
         "        <menuitem action='LayerTypeMetal'/>"
         "      </menu>"
+        "    </menu>"
+        "    <menu action='LogicMenu'>"
+        "      <menuitem action='LogicInterconnect'/>"
+        "      <menuitem action='LogicIsolate'/>"
+        "      <separator/>"
+        "      <menuitem action='LogicClearLogicModel'/>"
+        "      <menuitem action='LogicClearLogicModelInSelection'/>"
+        "      <separator/>"
+        "      <menuitem action='LogicConnectionInspector'/>"  
         "    </menu>"
         "    <menu action='GateMenu'>"
         "      <menuitem action='GateCreateBySelection'/>"
@@ -449,8 +477,9 @@ void MainWin::initialize_menu() {
     // m_refActionGroup->add(m_refChoice_Wire, sigc::mem_fun(*this, &MainWin::on_menu_tools_wire) );
   }
 
-  set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerClearLogicModelInSelection", false);
   set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerAlignment", false);
+
+  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", false);
 
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateCreateBySelection", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", false);
@@ -583,6 +612,7 @@ void MainWin::set_widget_sensitivity(bool state) {
   set_menu_item_sensitivity("/MenuBar/ViewMenu/ViewZoomOut", state);
   set_menu_item_sensitivity("/MenuBar/ViewMenu/ViewNextLayer", state);
   set_menu_item_sensitivity("/MenuBar/ViewMenu/ViewPrevLayer", state);
+  set_menu_item_sensitivity("/MenuBar/ViewMenu/ViewGridConfiguration", state);
 
   set_menu_item_sensitivity("/MenuBar/ToolsMenu/ToolSelect", state);
   set_menu_item_sensitivity("/MenuBar/ToolsMenu/ToolMove", state);
@@ -592,7 +622,6 @@ void MainWin::set_widget_sensitivity(bool state) {
 
   set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerImportBackground", state);
   set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerClearBackgroundImage", state);
-  set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerClearLogicModel", state);
   set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerType", state);
 
 
@@ -602,6 +631,14 @@ void MainWin::set_widget_sensitivity(bool state) {
     if(main_project)
       set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerAlignment", 
 				amset_complete(main_project->alignment_marker_set) ? true : false);
+
+  if(state == false) {
+    set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicInterconnect", state);
+    set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicIsolate", state);
+  }
+
+  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModel", state);
+  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicConnectionInspector", state);
 
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", state);
 }
@@ -707,6 +744,8 @@ void MainWin::on_menu_project_close() {
     imgWin.update_screen();    
 
     update_title();
+    delete ciWin;
+    ciWin = NULL;
     set_widget_sensitivity(false);
   }
 }
@@ -937,6 +976,9 @@ void MainWin::update_gui_for_loaded_project() {
 
     adjust_scrollbars();
 
+    ciWin = new ConnectionInspectorWin(this, main_project->lmodel);
+    ciWin->signal_goto_button_clicked().connect(sigc::mem_fun(*this, &MainWin::on_goto_object));
+    
     render_params_t * render_params = imgWin.get_render_params();
     render_params->alignment_marker_set = main_project->alignment_marker_set;
 
@@ -944,41 +986,56 @@ void MainWin::update_gui_for_loaded_project() {
   }
 }
 
-
-void MainWin::on_menu_view_next_layer() {
+void MainWin::set_layer(unsigned int layer) {
   if(main_project->num_layers == 0) return;
 
-  if(main_project->current_layer < main_project->num_layers - 1)
-    main_project->current_layer++;
-  else 
-    main_project->current_layer = 0;
+  main_project->current_layer = layer;
 
   imgWin.set_current_layer(main_project->current_layer);
   
   set_layer_type_in_menu(lmodel_get_layer_type(main_project->lmodel, main_project->current_layer));
 
   selected_objects.erase(selected_objects.begin(), selected_objects.end());
-  set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerClearLogicModelInSelection", false);
+  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", false);
 
   update_title();
   imgWin.update_screen();
+}
+
+void MainWin::on_goto_object(LM_OBJECT_TYPE object_type, object_ptr_t * obj_ptr) {
+  assert(obj_ptr != NULL);
+  if(main_project != NULL && obj_ptr != NULL) {
+    unsigned int center_x, center_y, layer;
+
+    if(RET_IS_OK(lmodel_get_view_for_object(main_project->lmodel, object_type, obj_ptr,
+					    &center_x, &center_y, &layer))) {
+
+      int old_state = lmodel_get_select_state(object_type, obj_ptr);
+      lmodel_set_select_state(object_type, obj_ptr, SELECT_STATE_DIRECT);
+      center_view(center_x, center_y, layer);
+      lmodel_set_select_state(object_type, obj_ptr, old_state);
+    }
+    
+  }
+}
+
+void MainWin::on_menu_view_next_layer() {
+  if(main_project->num_layers == 0) return;
+
+  if(main_project->current_layer < main_project->num_layers - 1)
+    set_layer(main_project->current_layer + 1);
+  else 
+    set_layer(0);
+
 }
 
 void MainWin::on_menu_view_prev_layer() {
   if(main_project->num_layers == 0) return;
 
   if(main_project->current_layer == 0)
-    main_project->current_layer = main_project->num_layers - 1;
+    set_layer(main_project->num_layers - 1);
   else 
-    main_project->current_layer--;
-  imgWin.set_current_layer(main_project->current_layer);
-  set_layer_type_in_menu(lmodel_get_layer_type(main_project->lmodel, main_project->current_layer));
-
-  selected_objects.erase(selected_objects.begin(), selected_objects.end());
-  set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerClearLogicModelInSelection", false);
-
-  update_title();
-  imgWin.update_screen();
+    set_layer(main_project->current_layer - 1);
 }
 
 void MainWin::on_menu_view_zoom_in() {
@@ -1055,6 +1112,21 @@ void MainWin::zoom_out(unsigned int center_x, unsigned int center_y) {
    
     imgWin.update_screen();
   }
+}
+
+void MainWin::center_view(unsigned int center_x, unsigned int center_y, unsigned int layer) {
+
+  if(!main_project) return;
+
+  unsigned int width_half = (imgWin.get_max_x() - imgWin.get_min_x()) / 2;
+  unsigned int height_half = (imgWin.get_max_y() - imgWin.get_min_y()) / 2;
+
+  unsigned int min_x = center_x > width_half ? center_x - width_half : 0;
+  unsigned int min_y = center_y > height_half ? center_y - height_half : 0;
+  imgWin.set_view(min_x, min_y, min_x + (width_half << 1), min_y + (height_half << 1));
+  adjust_scrollbars();
+  
+  set_layer(layer);
 }
 
 void MainWin::adjust_scrollbars() {
@@ -1252,7 +1324,7 @@ void MainWin::on_menu_gate_set_as_master() {
     if(object_type != LM_TYPE_GATE) return;
     
     lmodel_gate_t * gate = (lmodel_gate_t *) (*it).first;
-    gate_template_t * tmpl = lmodel_get_template_for_gate(gate);
+    lmodel_gate_template_t * tmpl = lmodel_get_template_for_gate(gate);
 
     if(!tmpl) {
       error_dialog("Error", "The gate should be the master template, but you have not defined of which type. "
@@ -1282,7 +1354,7 @@ void MainWin::on_menu_gate_set_as_master() {
 }
 
 void MainWin::on_menu_gate_set() {
-  gate_template_t * tmpl = NULL;
+  lmodel_gate_template_t * tmpl = NULL;
   if(!main_project) return;
 
   if(imgWin.selection_active()) {
@@ -1347,14 +1419,19 @@ void MainWin::on_menu_gate_set() {
 void MainWin::on_menu_gate_create_by_selection() {
   if(imgWin.selection_active() && main_project) {
 
-    gate_template_t * tmpl = lmodel_create_gate_template();
-    
-    lmodel_gate_template_set_master_region(tmpl,
-					   imgWin.get_selection_min_x(), 
-					   imgWin.get_selection_min_y(), 
-					   imgWin.get_selection_max_x(), 
-					   imgWin.get_selection_max_y());
-    GateConfigWin gcWin(this, tmpl);
+    lmodel_gate_template_t * tmpl = lmodel_create_gate_template();
+    assert(tmpl);
+
+    if(RET_IS_NOT_OK(lmodel_gate_template_set_master_region(tmpl,
+							    imgWin.get_selection_min_x(), 
+							    imgWin.get_selection_min_y(), 
+							    imgWin.get_selection_max_x(), 
+							    imgWin.get_selection_max_y()))) {
+      error_dialog("Error", "Can't set master region.");
+      return;
+    }
+
+    GateConfigWin gcWin(this, main_project->lmodel, tmpl);
     if(gcWin.run() == true) {
       if(RET_IS_NOT_OK(lmodel_add_gate_template(main_project->lmodel, tmpl, 0))) {
 	error_dialog("Error", "Can't add gate template to logic model.");
@@ -1433,7 +1510,7 @@ void MainWin::on_selection_activated() {
   if(main_project) {
 
     set_menu_item_sensitivity("/MenuBar/GateMenu/GateCreateBySelection", true);
-    set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", selected_objects.size() == 1 || imgWin.selection_active() ? true : false);
+    set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", true);
   }
 }
 
@@ -1441,7 +1518,7 @@ void MainWin::on_selection_revoked() {
   if(main_project) {
 
     set_menu_item_sensitivity("/MenuBar/GateMenu/GateCreateBySelection", false);
-    set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", selected_objects.size() == 1 || imgWin.selection_active() ? true : false);
+    set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", false);
   }
 }
 
@@ -1533,7 +1610,7 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
 
   // try to remove a single object
   if(obj_ptr && shift_key_pressed) {
-    debug(TM, "remove single object from selection");      
+    //debug(TM, "remove single object from selection");      
     it = selected_objects.find(std::pair<void *, LM_OBJECT_TYPE>(obj_ptr, object_type));
     if(it != selected_objects.end()) {
       if(RET_IS_OK(lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT))) {
@@ -1544,7 +1621,7 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
   }
 
   if(shift_key_pressed == false){
-    debug(TM, "remove complete selection");
+    //debug(TM, "remove complete selection");
       
     for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
       if(RET_IS_OK(lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT))) {
@@ -1565,10 +1642,67 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
  
   imgWin.update_screen();
 
-  set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerClearLogicModelInSelection",selected_objects.size() > 0 ? true : false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", selected_objects.size() == 1 || imgWin.selection_active() ? true : false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateOrientation", selected_objects.size() == 1 ? true : false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", selected_objects.size() == 1 ? true : false);
+  
+  if(selected_objects.size() == 1) {
+    it = selected_objects.begin();
+    if( (*it).second == LM_TYPE_GATE_PORT) {
+      if(ciWin != NULL) ciWin->set_gate_port( (lmodel_gate_port_t *)((*it).first));
+    }
+    else if( (*it).second == LM_TYPE_WIRE) {
+      if(ciWin != NULL) ciWin->set_wire( (lmodel_wire_t *)((*it).first));
+    }
+    else if( (*it).second == LM_TYPE_VIA) {
+      if(ciWin != NULL) ciWin->set_via( (lmodel_via_t *)((*it).first));
+    }
+    else if( (*it).second == LM_TYPE_GATE) {
+
+      set_menu_item_sensitivity("/MenuBar/GateMenu/GateOrientation", true);
+      set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", true);
+      set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", true);
+
+      if(ciWin != NULL) ciWin->disable_inspection();
+    }
+    else {
+      set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", imgWin.selection_active() ? true : false);
+      if(ciWin != NULL) ciWin->disable_inspection();
+    }
+  }
+  else {
+    set_menu_item_sensitivity("/MenuBar/GateMenu/GateOrientation", false);
+    set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", false);
+    set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", imgWin.selection_active() ? true : false);
+
+    if(ciWin != NULL) ciWin->disable_inspection();
+  }
+
+  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", selected_objects_are_removable() ? true : false);
+  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicInterconnect", 
+			    selected_objects.size() >= 2 && selected_objects_are_interconnectable() ? true : false);
+  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicIsolate", 
+			    selected_objects.size() >= 1 && selected_objects_are_interconnectable() ? true : false);
+
+}
+
+bool MainWin::selected_objects_are_interconnectable() {
+  std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
+
+  for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
+    if( (*it).second == LM_TYPE_GATE) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool MainWin::selected_objects_are_removable() {
+  std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
+  if(selected_objects.size() == 0) return false;
+  for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
+    if( (*it).second == LM_TYPE_GATE_PORT) {
+      return false;
+    }
+  }
+  return true;
 }
 
 void MainWin::on_popup_menu_lock_region() {
@@ -1576,8 +1710,8 @@ void MainWin::on_popup_menu_lock_region() {
 
 void MainWin::on_popup_menu_set_port() {
   if(main_project) {
-    LM_OBJECT_TYPE object_type;
-    void * obj_ptr;
+    LM_OBJECT_TYPE object_type = LM_TYPE_UNDEF;
+    void * obj_ptr = NULL;
     unsigned int x, y;
 
     if(RET_IS_NOT_OK(lmodel_get_object(main_project->lmodel, main_project->current_layer, 
@@ -1586,13 +1720,14 @@ void MainWin::on_popup_menu_set_port() {
       error_dialog("Error", "Unknown error.");
       return;
     }
-    if(!obj_ptr || object_type != LM_TYPE_GATE) {
+    if(obj_ptr == NULL || object_type != LM_TYPE_GATE) {
       error_dialog("Error", "There is no gate");
       return;
     }
-    
+    assert(obj_ptr);
+
     lmodel_gate_t * gate = (lmodel_gate_t *) obj_ptr;
-    if(!gate->gate_template) {
+    if(gate->gate_template == NULL) {
       error_dialog("Error", "Please define a template type for that gate.");
       return;
     }
@@ -1633,7 +1768,7 @@ void MainWin::on_popup_menu_set_port() {
     }
     
     PortSelectWin psWin(this, gate);
-    gate_template_port_t * template_port = psWin.run();
+    lmodel_gate_template_port_t * template_port = psWin.run();
     if(template_port) {
       debug(TM, "x=%d y=%d", x, y);
       template_port->relative_x_coord = x; 
@@ -1713,6 +1848,54 @@ void MainWin::on_popup_menu_set_alignment_marker(MARKER_TYPE marker_type) {
   }
 }
 
+
+void MainWin::on_menu_logic_interconnect() {
+  std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it1, it2;
+  if(selected_objects.size() >= 2) {
+
+    for(it1 = selected_objects.begin(); it1 != selected_objects.end(); it1++)
+      lmodel_set_select_state((*it1).second, (*it1).first, SELECT_STATE_NOT);
+
+    it1 = selected_objects.begin();
+
+    for(it2 = selected_objects.begin(); it2 != selected_objects.end(); it2++) {
+
+      if(RET_IS_NOT_OK(lmodel_connect_objects((*it1).second, (*it1).first,
+					      (*it2).second, (*it2).first))) {
+	error_dialog("Error", "Can't connect objects.");
+	  
+      }
+    }
+
+    for(it1 = selected_objects.begin(); it1 != selected_objects.end(); it1++)
+      lmodel_set_select_state((*it1).second, (*it1).first, SELECT_STATE_DIRECT);
+
+    project_changed();
+    imgWin.update_screen();
+  }
+}
+
+void MainWin::on_menu_logic_isolate() {
+  std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
+  if(selected_objects.size() >= 1) {
+
+    for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
+  
+      lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT);
+      if(RET_IS_NOT_OK(lmodel_remove_all_connections_from_object((*it).second, (*it).first))) {
+	error_dialog("Error", "Can't isolate object.");
+      }
+      lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_DIRECT);
+    }
+    project_changed();
+    imgWin.update_screen();
+  }
+
+}
+
+void MainWin::on_menu_logic_connection_inspector() {
+  if(main_project != NULL && ciWin != NULL) ciWin->show();
+}
 
 void MainWin::on_menu_view_grid_config() {
   GridConfigWin gcWin(this, 
@@ -1894,7 +2077,7 @@ void MainWin::set_layer_type_in_menu(LAYER_TYPE layer_type) {
 }
 
 
-void MainWin::on_menu_layer_clear_logic_model() {
+void MainWin::on_menu_logic_clear_logic_model() {
   Gtk::MessageDialog dialog(*this, "Clear logic model",
 			    false, Gtk::MESSAGE_QUESTION,
 			    Gtk::BUTTONS_OK_CANCEL);
@@ -1916,7 +2099,7 @@ void MainWin::on_menu_layer_clear_logic_model() {
 
 }
 
-void MainWin::on_menu_layer_clear_logic_model_in_selection() {
+void MainWin::on_menu_logic_clear_logic_model_in_selection() {
 
   std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
 
@@ -1928,7 +2111,7 @@ void MainWin::on_menu_layer_clear_logic_model_in_selection() {
   }
 
   selected_objects.erase(selected_objects.begin(), selected_objects.end());
-  set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerClearLogicModelInSelection", false);
+  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", false);
   imgWin.update_screen(); 
 
   /*

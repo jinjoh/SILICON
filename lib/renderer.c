@@ -23,7 +23,7 @@
 #define TM "renderer.c"
 
 #ifdef DEBUG
-#define RENDERER_MEASURE_TIME
+//#define RENDERER_MEASURE_TIME
 #endif
 
 typedef struct {
@@ -479,53 +479,59 @@ ret_t render_gate(renderer_t * renderer, render_params_t * render_params, image_
       
     unsigned int width  = gate->gate_template->master_image_max_x - gate->gate_template->master_image_min_x;
     unsigned int height = gate->gate_template->master_image_max_y - gate->gate_template->master_image_min_y;
-    gate_template_port_t * ptr = gate->gate_template->ports;
 
-    while(ptr != NULL) {
-      unsigned int 
-	x = ptr->relative_x_coord, 
-	y = ptr->relative_y_coord;
+    lmodel_gate_port_t * ports = gate->ports;
 
-      switch(gate->template_orientation) {
-      case LM_TEMPLATE_ORIENTATION_UNDEFINED:
-	break;
-      case LM_TEMPLATE_ORIENTATION_NORMAL:
-	break;
-      case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
-	y = height - y;
-	break;
-      case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
-	x = width - x;
-	break;
-      case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
-	x = width - x;
-	y = height - y;
-	break;
-      }
+    while(ports != NULL) {
+      lmodel_gate_template_port_t * tmpl_port = ports->tmpl_port;
 
-      x += gate->min_x;
-      y += gate->min_y;
-
-      if(gate->template_orientation != LM_TEMPLATE_ORIENTATION_UNDEFINED && 
-	 x >= min_x && x < max_x && y >= min_y && y < max_y) {
-	x -= min_x;
-	y -= min_y;
-	x = (double)x / scaling_x;
-	y = (double)y / scaling_y;
-
-	if(RET_IS_NOT_OK(ret = draw_circle(dst_img, 
-					   x, 
-					   y, 
-					   (double)ptr->diameter / scaling_x, 
-					   render_params->il_down_color)))
-	  return ret;
-     
-	if(ptr->port_name && x + strlen(ptr->port_name) * FONT_SIZE < screen_max_x) {
-	  draw_string(renderer, render_params, dst_img, ptr->port_name, x + 5, y + 5 );
+      if(tmpl_port && tmpl_port->relative_x_coord != 0 && tmpl_port->relative_y_coord != 0) {
+	unsigned int 
+	  x = tmpl_port->relative_x_coord, 
+	  y = tmpl_port->relative_y_coord;
+	
+	switch(gate->template_orientation) {
+	case LM_TEMPLATE_ORIENTATION_UNDEFINED:
+	  break;
+	case LM_TEMPLATE_ORIENTATION_NORMAL:
+	  break;
+	case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
+	  y = height - y;
+	  break;
+	case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
+	  x = width - x;
+	  break;
+	case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
+	  x = width - x;
+	  y = height - y;
+	  break;
+	}
+	
+	x += gate->min_x;
+	y += gate->min_y;
+	
+	if(gate->template_orientation != LM_TEMPLATE_ORIENTATION_UNDEFINED && 
+	   x >= min_x && x < max_x && y >= min_y && y < max_y) {
+	  x -= min_x;
+	  y -= min_y;
+	  x = (double)x / scaling_x;
+	  y = (double)y / scaling_y;
+	  
+	  unsigned int port_size = (double)tmpl_port->diameter / scaling_x;
+	  
+	  if(RET_IS_NOT_OK(ret = draw_circle(dst_img, 
+					     x, 
+					     y, 
+					     ports->is_selected ? (port_size << 2) : port_size,
+					     highlight_color_by_state(render_params->il_down_color, ports->is_selected))))
+	    return ret;
+	  
+	  if(tmpl_port->port_name && x + strlen(tmpl_port->port_name) * FONT_SIZE < screen_max_x) {
+	    draw_string(renderer, render_params, dst_img, tmpl_port->port_name, x + 5, y + 5 );
+	  }
 	}
       }
-
-      ptr = ptr->next;
+      ports = ports->next;
     }
   }
 

@@ -72,7 +72,7 @@ GateListWin::GateListWin(Gtk::Window *parent, logic_model_t * lmodel) {
 	pTreeView->append_column("Description", m_Columns.m_col_description);
       }
 
-      gate_set_t * ptr = lmodel->gate_set;
+      lmodel_gate_template_set_t * ptr = lmodel->gate_template_set;
       while(ptr != NULL) {
 
 	if(ptr->gate) {
@@ -108,9 +108,9 @@ void GateListWin::on_close_button_clicked() {
 
 void GateListWin::on_add_button_clicked() {
 
-  gate_template_t * tmpl = lmodel_create_gate_template();
+  lmodel_gate_template_t * tmpl = lmodel_create_gate_template();
 
-  GateConfigWin gcWin(parent, tmpl);
+  GateConfigWin gcWin(parent, lmodel, tmpl);
   if(gcWin.run() == true) {
     if(RET_IS_OK(lmodel_add_gate_template(lmodel, tmpl, 0))) {
       Gtk::TreeModel::Row row = *(refListStore->append()); 
@@ -145,7 +145,7 @@ void GateListWin::on_remove_button_clicked() {
       dialog.set_title("Warning");      
       if(dialog.run() == Gtk::RESPONSE_YES) {
 	
-	gate_template_t * tmpl = lmodel_get_gate_template_by_id(lmodel, obj_id);
+	lmodel_gate_template_t * tmpl = lmodel_get_gate_template_by_id(lmodel, obj_id);
 	if(tmpl) {
 
 	  if(RET_IS_NOT_OK(lmodel_remove_gate_template(lmodel, tmpl))) {
@@ -171,9 +171,9 @@ void GateListWin::on_edit_button_clicked() {
     if(iter) {
       Gtk::TreeModel::Row row = *iter; 
       int obj_id = row[m_Columns.m_col_id];
-      gate_template_t * tmpl = lmodel_get_gate_template_by_id(lmodel, obj_id);
+      lmodel_gate_template_t * tmpl = lmodel_get_gate_template_by_id(lmodel, obj_id);
 
-      GateConfigWin gcWin(parent, tmpl);
+      GateConfigWin gcWin(parent, lmodel, tmpl);
       if(gcWin.run() == true) {
 	row[m_Columns.m_col_id] = tmpl->id;
 	row[m_Columns.m_col_short_name] = tmpl->short_name;

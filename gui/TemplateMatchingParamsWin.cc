@@ -109,6 +109,7 @@ ret_t TemplateMatchingParamsWin::run(double * threshold,
     else return RET_CANCEL;
   }
 
+  return RET_CANCEL;
 }
 
 void TemplateMatchingParamsWin::on_ok_button_clicked() {

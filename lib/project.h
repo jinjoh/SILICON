@@ -17,7 +17,7 @@ struct project {
   
   logic_model_t * lmodel;
   
-  gate_set_t * gset; // set of templates
+  //  gate_template_set_t * gset; // set of templates
 
   int current_layer;
 

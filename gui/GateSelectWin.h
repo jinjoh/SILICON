@@ -28,13 +28,13 @@ class GateSelectWin  {
 
   virtual ~GateSelectWin();
         
-  gate_template_t * run();
+  lmodel_gate_template_t * run();
 
  private:
   Gtk::Window *parent;
   logic_model_t * lmodel;
   Gtk::Dialog* pDialog;
-  gate_template_t * result;
+  lmodel_gate_template_t * result;
 
   GateListModelColumns m_Columns;
   Glib::RefPtr<Gtk::ListStore> refListStore;
