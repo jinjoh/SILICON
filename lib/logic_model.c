@@ -1587,8 +1587,6 @@ ret_t lmodel_remove_all_connections_from_object(LM_OBJECT_TYPE object_type, void
     * ptr_next = NULL, 
     * ptr = lmodel_get_connections_from_object(object_type, obj);
 
-  lmodel_connection_t * container_found = NULL;
-
   if(ptr == NULL) return RET_OK;
 
   debug(TM, "isolate object %p", obj);

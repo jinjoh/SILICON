@@ -5,6 +5,7 @@
 #include "graphics.h"
 #include "renderer.h"
 #include "alignment_marker.h"
+#include "grid.h"
 
 struct project {
 
@@ -24,6 +25,8 @@ struct project {
   unsigned int pin_diameter;
   unsigned int wire_diameter;
   unsigned int lambda;
+
+  grid_t grid;
 
   alignment_marker_set_t * alignment_marker_set;
 };

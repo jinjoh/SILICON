@@ -6,6 +6,9 @@ struct grid {
   unsigned int offset_y;
   double dist_x;
   double dist_y;
+
+  int horizontal_lines_enabled;
+  int vertical_lines_enabled;
 };
 
 typedef struct grid grid_t;

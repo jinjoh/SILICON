@@ -229,11 +229,12 @@ void renderer_initialize_params(render_params_t * rend) {
   rend->distance_to_color = 0xff52a25c;
   */
 
-  rend->grid.offset_x = 0;
-  rend->grid.offset_y = 0;
-  rend->grid.dist_x = 1;
-  rend->grid.dist_y = 1;
-
+  if(rend->grid != NULL) {
+    rend->grid->offset_x = 0;
+    rend->grid->offset_y = 0;
+    rend->grid->dist_x = 1;
+    rend->grid->dist_y = 1;
+  }
 }
 
 ret_t render_background(RENDERER_FUNC_PARAMS) {
@@ -805,11 +806,12 @@ ret_t render_alignment_markers(RENDERER_FUNC_PARAMS) {
 ret_t render_grid(RENDERER_FUNC_PARAMS) {
   unsigned int dst_x = 0, dst_y = 0;
   double dbl_dst_x, dbl_dst_y;
-			
+
+  grid_t * grid = data_ptr->grid;
+  if(grid == NULL) return RET_OK;
+
   double scaling_x =  (max_x - min_x) / (double)dst_img->width;
   double scaling_y =  (max_y - min_y) / (double)dst_img->height;
-
-  grid_t * grid = &(data_ptr->grid);
 
   if(grid->dist_x < 1 || grid->dist_y < 1) return RET_OK;
 
@@ -830,14 +832,14 @@ ret_t render_grid(RENDERER_FUNC_PARAMS) {
     screen_offs_x = (unsigned int) ((grid->dist_x - (min_x - grid->offset_x - n * grid->dist_x))/ scaling_x);
   }
 
-  if(scaling_x > 0 && grid->dist_x / scaling_x >= 2) {
+  if(grid->vertical_lines_enabled && scaling_x > 0 && grid->dist_x / scaling_x >= 2) {
     for(dbl_dst_x = screen_offs_x; dbl_dst_x < dst_img->width - 1; dbl_dst_x += (grid->dist_x / scaling_x)) {
       dst_x =  lrint(dbl_dst_x);
       vline(dst_img, dst_x, 0, data_ptr->grid_color);
     }
   }
   
-  if(scaling_y > 0 && grid->dist_y / scaling_y >= 2) {
+  if(grid->horizontal_lines_enabled && scaling_y > 0 && grid->dist_y / scaling_y >= 2) {
     for(dbl_dst_y = screen_offs_y; dbl_dst_y < dst_img->height - 1; dbl_dst_y += (grid->dist_y / scaling_y)) {
       dst_y =  lrint(dbl_dst_y);
       hline(dst_img, 0, dst_y, data_ptr->grid_color);

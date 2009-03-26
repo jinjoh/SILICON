@@ -14,6 +14,7 @@ void ImageWin::setup_renderer() {
   rendering_buffer = NULL;
   rendering_buffer_backup = NULL;
   renderer = renderer_create();;
+  set_grid(NULL);
   renderer_initialize_params(&render_params);
 
   renderer_add_layer(renderer, (render_func_t) &render_background, &render_params, 1, "Background");
@@ -655,40 +656,13 @@ bool ImageWin::get_renderer_func_enabled(int slot_pos) {
 }
 
 
-unsigned int ImageWin::get_grid_offset_x() {
-  return render_params.grid.offset_x;
-}
-
-unsigned int ImageWin::get_grid_offset_y() {
-  return render_params.grid.offset_y;
-}
-
-double ImageWin::get_grid_dist_x() {
-  return render_params.grid.dist_x;
-}
-
-double ImageWin::get_grid_dist_y() {
-  return render_params.grid.dist_y;
-}
-
-void ImageWin::set_grid_offset_x(unsigned int val) {
-  render_params.grid.offset_x = val;
-}
-
-void ImageWin::set_grid_offset_y(unsigned int val) {
-  render_params.grid.offset_y = val;
-}
-
-void ImageWin::set_grid_dist_x(double val) {
-  render_params.grid.dist_x = val;
-}
-
-void ImageWin::set_grid_dist_y(double val) {
-  render_params.grid.dist_y = val;
-}
 
 grid_t * ImageWin::get_grid() {
-  return &(render_params.grid);
+  return render_params.grid;
+}
+
+void ImageWin::set_grid(grid_t * grid) {
+  render_params.grid = grid;
 }
 
 render_params_t * ImageWin::get_render_params() {

@@ -2,66 +2,63 @@
 #define __GRIDCONFIGWIN_H__
 
 #include <gtkmm.h>
-
 #include "lib/project.h"
 
-class GridConfigWin : public Gtk::Window {
+class GridConfigWin {
+
+
  public:
-  GridConfigWin(Gtk::Window *parent,
-		unsigned int grid_offset_x, unsigned int grid_offset_y,
-		double grid_dist_x, double grid_dist_y);
+
+  GridConfigWin(Gtk::Window *parent, grid_t * grid);
   virtual ~GridConfigWin();
         
   sigc::signal<void>& signal_changed();
 
-  unsigned int get_grid_offset_x();
-  unsigned int get_grid_offset_y();
-  double get_grid_dist_x();
-  double get_grid_dist_y();
-  
-  private:
+  void show();
+
+
+ private:
+  Gtk::Window *parent;
+  grid_t orig_grid;
+  grid_t * grid;
 
   sigc::signal<void>  signal_changed_;
 
-  // Child widgets
+  Gtk::Dialog * pDialog;
 
-  Gtk::VBox m_Box;
+  Gtk::Button* p_ok_button;
+  Gtk::Button* p_cancel_button;
+  Gtk::CheckButton * p_horizontal_checkbutton;
+  Gtk::CheckButton * p_vertical_checkbutton;
 
-  Gtk::Frame m_Frame_Offset;
-  Gtk::VBox  m_Box_Offset;
-  Gtk::Adjustment m_Adjustment_OffsetX;
-  Gtk::HScale m_Scale_OffsetX;
-  Gtk::Label m_Label_OffsetX;
-  Gtk::HBox m_Box_OffsetX;
+  
+  Gtk::HScale * p_scale_offset_x;
+  Gtk::Adjustment * p_adj_offset_x;
+  Gtk::HScale * p_scale_offset_y;
+  Gtk::Adjustment * p_adj_offset_y;
 
-  Gtk::Adjustment m_Adjustment_OffsetY;
-  Gtk::HScale m_Scale_OffsetY;
-  Gtk::Label m_Label_OffsetY;
-  Gtk::HBox m_Box_OffsetY;
+  Gtk::HScale * p_scale_dist_x;
+  Gtk::Adjustment * p_adj_dist_x;
+  Gtk::HScale * p_scale_dist_y;
+  Gtk::Adjustment * p_adj_dist_y;
 
-  Gtk::Frame m_Frame_Dist;
-  Gtk::VBox  m_Box_Dist;
-  Gtk::Entry m_Entry_DistX;
-  //Gtk::Adjustment m_Adjustment_DistX;
-  //Gtk::HScale m_Scale_DistX;
-  Gtk::Label m_Label_DistX;
-  Gtk::HBox m_Box_DistX;
-
-  //Gtk::Adjustment m_Adjustment_DistY;
-  //Gtk::HScale m_Scale_DistY;
-  Gtk::Entry m_Entry_DistY;
-  Gtk::Label m_Label_DistY;
-  Gtk::HBox m_Box_DistY;
-
-  Gtk::Button m_Button_Ok;
+  Gtk::Entry * p_entry_dist_x;
+  Gtk::Entry * p_entry_dist_y;
 
   // Signal handlers:
+
   virtual void on_offset_x_changed();
   virtual void on_offset_y_changed();
   virtual void on_dist_x_changed();
   virtual void on_dist_y_changed();
+  virtual void on_entry_dist_x_changed();
+  virtual void on_entry_dist_y_changed();
 
   virtual void on_ok_button_clicked();
+  virtual void on_cancel_button_clicked();
+
+  virtual void on_horz_checkb_clicked();
+  virtual void on_vert_checkb_clicked();
 };
 
 #endif

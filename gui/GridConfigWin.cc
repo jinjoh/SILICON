@@ -4,135 +4,245 @@
 #include <gdkmm/window.h>
 #include <iostream>
 #include <gtkmm/stock.h>
+#include <libglademm.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+#include <set>
 
-GridConfigWin::GridConfigWin(Gtk::Window *parent,
-			     unsigned int grid_offset_x, unsigned int grid_offset_y,
-			     double grid_dist_x, double grid_dist_y) : 
-  m_Frame_Offset("Offset"),
+#define TM "GridConfigWin.cc"
 
-  // value, lower, upper, step_increment
-  m_Adjustment_OffsetX(grid_offset_x, 0.0, 512.0, 1),
-  m_Scale_OffsetX(m_Adjustment_OffsetX),
-  m_Label_OffsetX("X"),
+GridConfigWin::GridConfigWin(Gtk::Window *parent, grid_t * grid) {
 
-  m_Adjustment_OffsetY(grid_offset_y, 0.0, 512.0, 1),
-  m_Scale_OffsetY(m_Adjustment_OffsetY),
-  m_Label_OffsetY("Y"),
+  this->parent = parent;
+  this->grid = grid;
 
-  m_Frame_Dist("Distance"),
+  memcpy(&orig_grid, grid, sizeof(grid_t));
 
-  //m_Adjustment_DistX(grid_dist_x, 10.0, 11.0, 0.01, 1, 0),
-  //m_Scale_DistX(m_Adjustment_DistX),
-  m_Label_DistX("X"),
+  char tmp[50];
+  char file[PATH_MAX];
+  snprintf(file, PATH_MAX, "%s/glade/grid_config.glade", getenv("DEGATE_HOME"));
 
-  //m_Adjustment_DistY(grid_dist_y, 1.0, 50.0, 0.01),
-  //m_Scale_DistY(m_Adjustment_DistY),
-  m_Label_DistY("Y"),
 
-  m_Button_Ok("Ok") {
+  //Load the Glade file and instiate its widgets:
+  Glib::RefPtr<Gnome::Glade::Xml> refXml;
+#ifdef GLIBMM_EXCEPTIONS_ENABLED
+  try {
+    refXml = Gnome::Glade::Xml::create(file);
+  }
+  catch(const Gnome::Glade::XmlError& ex) {
+    std::cerr << ex.what() << std::endl;
+    return;
+  }
+#else
+  std::auto_ptr<Gnome::Glade::XmlError> error;
+  refXml = Gnome::Glade::Xml::create(file, "", "", error);
+  if(error.get()) {
+    std::cerr << error->what() << std::endl;
+    return ;
+  }
+#endif
+  
+  //Get the Glade-instantiated Dialog:
+  refXml->get_widget("grid_config_dialog", pDialog);
+  assert(pDialog);
+  if(pDialog) {
 
-  set_title("Grid configuration");
-  set_default_size(400, 200);
-  set_border_width(5);
-  set_transient_for(*parent);
+    pDialog->set_transient_for(*parent);
 
-  add(m_Box);
+    // connect signals
+    refXml->get_widget("cancel_button", p_cancel_button);
+    assert(p_cancel_button != NULL);
+    if(p_cancel_button != NULL) 
+      p_cancel_button->signal_clicked().connect(sigc::mem_fun(*this, &GridConfigWin::on_cancel_button_clicked));
+    
+    refXml->get_widget("ok_button", p_ok_button);
+    assert(p_ok_button != NULL);
+    if(p_ok_button != NULL) 
+      p_ok_button->signal_clicked().connect(sigc::mem_fun(*this, &GridConfigWin::on_ok_button_clicked) );
 
-  m_Box.pack_start(m_Frame_Offset, Gtk::PACK_EXPAND_WIDGET);
-  m_Frame_Offset.add(m_Box_Offset);
-  m_Box_Offset.add(m_Box_OffsetX);
-  m_Box_Offset.add(m_Box_OffsetY);
-  m_Box_OffsetX.pack_start(m_Label_OffsetX, Gtk::PACK_SHRINK, 20);
-  m_Box_OffsetX.pack_start(m_Scale_OffsetX, Gtk::PACK_EXPAND_WIDGET);
-  m_Box_OffsetY.pack_start(m_Label_OffsetY, Gtk::PACK_SHRINK, 20);
-  m_Box_OffsetY.pack_start(m_Scale_OffsetY, Gtk::PACK_EXPAND_WIDGET);
+    refXml->get_widget("horizontal_checkbutton", p_horizontal_checkbutton);
+    assert(p_horizontal_checkbutton != NULL);
+    if(p_horizontal_checkbutton != NULL) {
+      p_horizontal_checkbutton->set_active(grid->horizontal_lines_enabled ? true : false);
+      p_horizontal_checkbutton->signal_clicked().connect(sigc::mem_fun(*this, &GridConfigWin::on_horz_checkb_clicked) );
+    }
 
-  m_Box.pack_start(m_Frame_Dist, Gtk::PACK_EXPAND_WIDGET);
-  m_Frame_Dist.add(m_Box_Dist);
-  m_Box_Dist.add(m_Box_DistX);
-  m_Box_Dist.add(m_Box_DistY);
-  m_Box_DistX.pack_start(m_Label_DistX, Gtk::PACK_SHRINK, 20);
-  //m_Box_DistX.pack_start(m_Scale_DistX, Gtk::PACK_EXPAND_WIDGET);
-  m_Box_DistX.pack_start(m_Entry_DistX, Gtk::PACK_EXPAND_WIDGET);
-  m_Box_DistY.pack_start(m_Label_DistY, Gtk::PACK_SHRINK, 20);
-  //m_Box_DistY.pack_start(m_Scale_DistY, Gtk::PACK_EXPAND_WIDGET);
-  m_Box_DistY.pack_start(m_Entry_DistY, Gtk::PACK_EXPAND_WIDGET);
+    refXml->get_widget("vertical_checkbutton", p_vertical_checkbutton);
+    assert(p_vertical_checkbutton != NULL);
+    if(p_vertical_checkbutton != NULL) {
+      p_vertical_checkbutton->set_active(grid->vertical_lines_enabled ? true : false);
+      p_vertical_checkbutton->signal_clicked().connect(sigc::mem_fun(*this, &GridConfigWin::on_vert_checkb_clicked) );
+    }
 
-  m_Adjustment_OffsetX.signal_value_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_offset_x_changed));
-  m_Adjustment_OffsetY.signal_value_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_offset_y_changed));
-  //m_Adjustment_DistX.signal_value_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_dist_x_changed));
-  //m_Adjustment_DistY.signal_value_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_dist_y_changed));
-  m_Entry_DistX.signal_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_dist_x_changed));
-  m_Entry_DistY.signal_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_dist_y_changed));
+    refXml->get_widget("hscale_offset_x", p_scale_offset_x);
+    assert(p_scale_offset_x != NULL);
+    if(p_scale_offset_x != NULL) {
+      p_adj_offset_x = new Gtk::Adjustment(grid->offset_x, 0.0, 512.0, 1);
+      p_scale_offset_x->set_adjustment(*p_adj_offset_x);
+      p_adj_offset_x->signal_value_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_offset_x_changed));
+    }
 
-  char * tmp = (char *)alloca(50);
-  snprintf(tmp, 50, "%f", grid_dist_x);
-  m_Entry_DistX.set_text(tmp);
+    refXml->get_widget("hscale_offset_y", p_scale_offset_y);
+    assert(p_scale_offset_y != NULL);
+    if(p_scale_offset_y != NULL) {
+      p_adj_offset_y = new Gtk::Adjustment(grid->offset_y, 0.0, 512.0, 1);
+      p_scale_offset_y->set_adjustment(*p_adj_offset_y);
+      p_adj_offset_y->signal_value_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_offset_y_changed));
+    }
 
-  snprintf(tmp, 50, "%f", grid_dist_y);
-  m_Entry_DistY.set_text(tmp);
+    refXml->get_widget("hscale_distance_x", p_scale_dist_x);
+    assert(p_scale_dist_x != NULL);
+    if(p_scale_dist_x != NULL) {
+      p_adj_dist_x = new Gtk::Adjustment(grid->dist_x, 0.0, 512.0, 1);
+      p_scale_dist_x->set_adjustment(*p_adj_dist_x);
+      p_adj_dist_x->signal_value_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_dist_x_changed));
+    }
 
-  m_Button_Ok.signal_clicked().connect( sigc::mem_fun(*this, &GridConfigWin::on_ok_button_clicked) );
-  m_Button_Ok.set_label("Ok");
-  m_Button_Ok.set_use_stock(true);
-  m_Button_Ok.set_relief(Gtk::RELIEF_NORMAL);
-  m_Box.pack_start(m_Button_Ok, Gtk::PACK_SHRINK);
+    refXml->get_widget("hscale_distance_y", p_scale_dist_y);
+    assert(p_scale_dist_y != NULL);
+    if(p_scale_dist_y != NULL) {
+      p_adj_dist_y = new Gtk::Adjustment(grid->dist_y, 0.0, 512.0, 1);
+      p_scale_dist_y->set_adjustment(*p_adj_dist_y);
+      p_adj_dist_y->signal_value_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_dist_y_changed));
+    }
 
-  show_all_children();
+    refXml->get_widget("entry_distance_x", p_entry_dist_x);
+    assert(p_entry_dist_x != NULL);
+    if(p_entry_dist_x != NULL) {
+      snprintf(tmp, sizeof(tmp), "%f", grid->dist_x);
+      p_entry_dist_x->set_text(tmp);
+      p_entry_dist_x->signal_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_entry_dist_x_changed));
+    }
+
+    refXml->get_widget("entry_distance_y", p_entry_dist_y);
+    assert(p_entry_dist_y != NULL);
+    if(p_entry_dist_y != NULL) {
+      snprintf(tmp, sizeof(tmp), "%f", grid->dist_y);
+      p_entry_dist_y->set_text(tmp);
+      p_entry_dist_y->signal_changed().connect(sigc::mem_fun(*this, &GridConfigWin::on_entry_dist_y_changed));
+    }
+
+    on_horz_checkb_clicked();
+    on_vert_checkb_clicked();
+  }
+
 }
 
 GridConfigWin::~GridConfigWin() {
+
+  delete p_adj_offset_x;
+  delete p_adj_offset_y;
+  delete p_adj_dist_x;
+  delete p_adj_dist_y;
+
+  delete pDialog;
+}
+
+void GridConfigWin::show() {
+  pDialog->show();
+}
+
+
+void GridConfigWin::on_cancel_button_clicked() {
+  pDialog->hide();
+  memcpy(grid, &orig_grid, sizeof(grid_t));
+  signal_changed_();
+
+}
+
+void GridConfigWin::on_ok_button_clicked() {
+  pDialog->hide();
+  signal_changed_();
+}
+
+
+void GridConfigWin::on_horz_checkb_clicked() {
+  grid->horizontal_lines_enabled = p_horizontal_checkbutton->get_active() == true ? 1 : 0;
+
+  if(grid->horizontal_lines_enabled) {
+    p_scale_offset_y->set_sensitive(true);
+    p_scale_dist_y->set_sensitive(true);
+    p_entry_dist_y->set_sensitive(true);
+  }
+  else {
+    p_scale_offset_y->set_sensitive(false);
+    p_scale_dist_y->set_sensitive(false);
+    p_entry_dist_y->set_sensitive(false);
+  }
+  signal_changed_();
+}
+
+void GridConfigWin::on_vert_checkb_clicked() {
+  grid->vertical_lines_enabled = p_vertical_checkbutton->get_active() == true ? 1 : 0;
+
+  if(grid->vertical_lines_enabled) {
+    p_scale_offset_x->set_sensitive(true);
+    p_scale_dist_x->set_sensitive(true);
+    p_entry_dist_x->set_sensitive(true);
+  }
+  else {
+    p_scale_offset_x->set_sensitive(false);
+    p_scale_dist_x->set_sensitive(false);
+    p_entry_dist_x->set_sensitive(false);
+  }
+  signal_changed_();
 }
 
 
 void GridConfigWin::on_offset_x_changed() {
+  grid->offset_x = p_adj_offset_x->get_value();
   signal_changed_();
 }
 
 void GridConfigWin::on_offset_y_changed() {
+  grid->offset_y = p_adj_offset_y->get_value();
   signal_changed_();
 }
 
 void GridConfigWin::on_dist_x_changed() {
+  char tmp[50];
+  grid->dist_x = p_adj_dist_x->get_value();
+  snprintf(tmp, sizeof(tmp), "%f", grid->dist_x);
+  p_entry_dist_x->set_text(tmp);
   signal_changed_();
 }
 
 void GridConfigWin::on_dist_y_changed() {
+  char tmp[50];
+  grid->dist_y = p_adj_dist_y->get_value();
+  snprintf(tmp, sizeof(tmp), "%f", grid->dist_y);
+  p_entry_dist_y->set_text(tmp);
   signal_changed_();
 }
 
-void GridConfigWin::on_ok_button_clicked() {
-  hide();
-}
 
-
-unsigned int GridConfigWin::get_grid_offset_x() {
-  return (unsigned int) m_Adjustment_OffsetX.get_value();
-}
-
-unsigned int GridConfigWin::get_grid_offset_y() {
-  return (unsigned int) m_Adjustment_OffsetY.get_value();
-}
-
-double GridConfigWin::get_grid_dist_x() {
-  double v = atof(m_Entry_DistX.get_text().c_str());
+void GridConfigWin::on_entry_dist_x_changed() {
+  double v = atof(p_entry_dist_x->get_text().c_str());
   if(v < 0 || v == HUGE_VAL) {
-    m_Entry_DistX.set_text("0");
+    p_entry_dist_x->set_text("0");
     v = 0;
   }
-  return v;
-  //return m_Adjustment_DistX.get_value();
+
+  grid->dist_x = v;
+  p_adj_dist_x->set_value(v);
+  signal_changed_();
 }
 
-double GridConfigWin::get_grid_dist_y() {
-  double v = atof(m_Entry_DistY.get_text().c_str());
+void GridConfigWin::on_entry_dist_y_changed() {
+  double v = atof(p_entry_dist_y->get_text().c_str());
   if(v < 0 || v == HUGE_VAL) {
-    m_Entry_DistY.set_text("0");
+    p_entry_dist_y->set_text("0");
     v = 0;
   }
-  return v;
-  //return m_Adjustment_DistY.get_value();
+
+  grid->dist_y = v;
+  p_adj_dist_y->set_value(v);
+
+  signal_changed_();
 }
+
+
 
 sigc::signal<void>& GridConfigWin::signal_changed() {
   return signal_changed_;

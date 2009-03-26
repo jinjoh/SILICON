@@ -65,17 +65,9 @@ class ImageWin : public Gtk::DrawingArea {
   bool get_renderer_func_enabled(int slot_pos);
   std::list<Glib::ustring> get_render_func_names();
 
-  unsigned int get_grid_offset_x();
-  unsigned int get_grid_offset_y();
-  double get_grid_dist_x();
-  double get_grid_dist_y();
-  void set_grid_offset_x(unsigned int val);
-  void set_grid_offset_y(unsigned int val);
-  void set_grid_dist_x(double val);
-  void set_grid_dist_y(double val);
   grid_t * get_grid();
+  void set_grid(grid_t * grid);
   render_params_t * get_render_params();
-
 
   sigc::signal<void>& signal_wire_tool_released();
   sigc::signal<void>& signal_selection_activated();

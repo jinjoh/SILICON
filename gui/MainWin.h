@@ -117,6 +117,8 @@ class MainWin : public Gtk::Window  {
   ImageWin imgWin;
   InProgressWin * ipWin;
   ConnectionInspectorWin * ciWin;
+  GridConfigWin * gcWin;
+
   Gtk::HBox m_displayBox;
   Gtk::Adjustment m_VAdjustment;
   Gtk::Adjustment m_HAdjustment;
@@ -180,7 +182,7 @@ class MainWin : public Gtk::Window  {
   void on_algorithms_func_clicked(int pos);
 
   void on_view_info_layer_toggled(int slot_pos);
-  void on_grid_config_changed(GridConfigWin * gcWin);
+  void on_grid_config_changed();
 
   void set_layer_type_in_menu(LAYER_TYPE layer_type);
 

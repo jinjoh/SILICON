@@ -16,7 +16,7 @@ typedef struct renderer renderer_t;
 struct render_params {
   image_t ** bg_images;
   logic_model_t * lmodel;
-  grid_t grid;
+  grid_t * grid;
   alignment_marker_set_t * alignment_marker_set;
 
   // color switches

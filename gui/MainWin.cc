@@ -738,14 +738,20 @@ void MainWin::on_menu_project_close() {
     imgWin.set_render_logic_model(NULL);
     imgWin.set_render_background_images(NULL);
     imgWin.set_current_layer(-1);
-    
+    imgWin.set_grid(NULL);
+
     project_destroy(main_project);
     main_project = NULL;
     imgWin.update_screen();    
 
     update_title();
-    delete ciWin;
+    
+    delete ciWin; 
     ciWin = NULL;
+
+    delete gcWin;
+    gcWin = NULL;
+
     set_widget_sensitivity(false);
   }
 }
@@ -970,6 +976,7 @@ void MainWin::update_gui_for_loaded_project() {
     imgWin.set_render_background_images(main_project->bg_images);
     imgWin.reset_selection();
     imgWin.set_current_layer(0);
+    imgWin.set_grid(&main_project->grid);
     
     set_widget_sensitivity(true);
     update_title();
@@ -979,6 +986,10 @@ void MainWin::update_gui_for_loaded_project() {
     ciWin = new ConnectionInspectorWin(this, main_project->lmodel);
     ciWin->signal_goto_button_clicked().connect(sigc::mem_fun(*this, &MainWin::on_goto_object));
     
+    gcWin = new GridConfigWin(this, &main_project->grid);
+    gcWin->signal_changed().connect(sigc::mem_fun(*this, &MainWin::on_grid_config_changed));
+
+
     render_params_t * render_params = imgWin.get_render_params();
     render_params->alignment_marker_set = main_project->alignment_marker_set;
 
@@ -1898,22 +1909,21 @@ void MainWin::on_menu_logic_connection_inspector() {
 }
 
 void MainWin::on_menu_view_grid_config() {
-  GridConfigWin gcWin(this, 
-		      imgWin.get_grid_offset_x(), imgWin.get_grid_offset_y(),
-		      imgWin.get_grid_dist_x(), imgWin.get_grid_dist_y());
 
-  gcWin.signal_changed().connect(sigc::bind<GridConfigWin *>(sigc::mem_fun(*this, &MainWin::on_grid_config_changed), &gcWin));
-
-  Gtk::Main::run(gcWin);
+  if(main_project != NULL && gcWin != NULL) {
+    gcWin->show();
+  }
  
 }
 
-void MainWin::on_grid_config_changed(GridConfigWin * gcWin) {
+void MainWin::on_grid_config_changed() {
   if(gcWin) {
-    imgWin.set_grid_offset_x(gcWin->get_grid_offset_x());
-    imgWin.set_grid_offset_y(gcWin->get_grid_offset_y());
-    imgWin.set_grid_dist_x(gcWin->get_grid_dist_x());
-    imgWin.set_grid_dist_y(gcWin->get_grid_dist_y());
+    /*
+      imgWin.set_grid_offset_x(gcWin->get_grid_offset_x());
+      imgWin.set_grid_offset_y(gcWin->get_grid_offset_y());
+      imgWin.set_grid_dist_x(gcWin->get_grid_dist_x());
+      imgWin.set_grid_dist_y(gcWin->get_grid_dist_y());
+    */
     project_changed();
     imgWin.update_screen();
   }

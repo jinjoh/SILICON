@@ -179,12 +179,12 @@ project_t * project_load(const char * const project_dir, render_params_t * const
   PROJECT_READ_INT("wire_diameter", project->wire_diameter);
   PROJECT_READ_INT("object_id_counter", project->lmodel->object_id_counter);
 
-  if(render_params) {
-    PROJECT_READ_INT("grid.offset_x", render_params->grid.offset_x);
-    PROJECT_READ_INT("grid.offset_y", render_params->grid.offset_y);
-    PROJECT_READ_FLOAT("grid.dist_x", render_params->grid.dist_x);
-    PROJECT_READ_FLOAT("grid.dist_y", render_params->grid.dist_y);
-  }
+  PROJECT_READ_INT("grid.offset_x", project->grid.offset_x);
+  PROJECT_READ_INT("grid.offset_y", project->grid.offset_y);
+  PROJECT_READ_FLOAT("grid.dist_x", project->grid.dist_x);
+  PROJECT_READ_FLOAT("grid.dist_y", project->grid.dist_y);
+  PROJECT_READ_INT("grid.horizontal_lines_enabled", project->grid.horizontal_lines_enabled);
+  PROJECT_READ_INT("grid.vertical_lines_enabled", project->grid.vertical_lines_enabled);
 
   // load layer types
   if((setting = config_lookup(&cfg, "layer_type")) == NULL) {
@@ -285,19 +285,18 @@ int project_save(const project_t * const project, const render_params_t * const 
   PROJECT_STORE_INT(cfg.root, "wire_diameter", project->wire_diameter);
   PROJECT_STORE_INT(cfg.root, "object_id_counter", project->lmodel->object_id_counter);
 
-  if(render_params) {
-
-    // store grid
-    if((group = config_setting_add(cfg.root, "grid", CONFIG_TYPE_GROUP)) == NULL) {
-      config_destroy(&cfg);
-      return 0;    
-    }
-    PROJECT_STORE_INT(group, "offset_x", render_params->grid.offset_x);
-    PROJECT_STORE_INT(group, "offset_y", render_params->grid.offset_y);
-    PROJECT_STORE_FLOAT(group, "dist_x", render_params->grid.dist_x);
-    PROJECT_STORE_FLOAT(group, "dist_y", render_params->grid.dist_y);
-
+  // store grid
+  if((group = config_setting_add(cfg.root, "grid", CONFIG_TYPE_GROUP)) == NULL) {
+    config_destroy(&cfg);
+    return 0;    
   }
+  PROJECT_STORE_INT(group, "offset_x", project->grid.offset_x);
+  PROJECT_STORE_INT(group, "offset_y", project->grid.offset_y);
+  PROJECT_STORE_FLOAT(group, "dist_x", project->grid.dist_x);
+  PROJECT_STORE_FLOAT(group, "dist_y", project->grid.dist_y);
+  PROJECT_STORE_INT(group, "horizontal_lines_enabled", project->grid.horizontal_lines_enabled);
+  PROJECT_STORE_INT(group, "vertical_lines_enabled", project->grid.vertical_lines_enabled);
+
 
   // store layer types
   if(render_params && render_params->lmodel && render_params->lmodel->layer_type) {
