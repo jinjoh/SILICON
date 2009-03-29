@@ -143,7 +143,9 @@ ret_t mm_clear_area(memory_map_t * map, unsigned int min_x, unsigned int min_y,
  */
 ret_t mm_map_temp_file(memory_map_t * map, const char * const project_dir) {
 
-  if(!map) return RET_INV_PTR;  
+  assert(map != NULL);
+  assert(project_dir != NULL);
+  if(map == NULL || project_dir == NULL) return RET_INV_PTR;  
   static const char template_str[] = "temp.XXXXXX";
   int fd;
 
@@ -230,11 +232,15 @@ ret_t mm_map_file(memory_map_t * map, const char * const project_dir, const char
  * Use storage in opend file as storage for memory map
  */
 ret_t mm_map_file_by_fd(memory_map_t * map, const char * const project_dir, int fd, const char * const filename) {
-	
-  if(!map) return RET_INV_PTR;
+
+  assert(map != NULL);
+  assert(project_dir != NULL);
+  assert(filename != NULL);
+  assert(fd > 0);
+  if(map == NULL || project_dir == NULL || filename == NULL) return RET_INV_PTR;
 	
   // reset existing resources
-  if(map->mem && (munmap(map->mem, map->width * map->height * map->bytes_per_elem) == -1)) {
+  if(map->mem != NULL && (munmap(map->mem, map->width * map->height * map->bytes_per_elem) == -1)) {
     puts("munmap failed");
     return RET_ERR;
   }

@@ -92,7 +92,8 @@ ret_t template_matching_along_grid_rows(plugin_params_t * foo);
 ret_t template_matching_normal(plugin_params_t * foo);
 ret_t template_matching(plugin_params_t * foo);
 
-ret_t raise_dialog(Gtk::Window *parent, plugin_params_t * foo);
+ret_t raise_dialog_before(Gtk::Window *parent, plugin_params_t * foo);
+ret_t raise_dialog_after(Gtk::Window *parent, plugin_params_t * foo);
 ret_t imgalgo_run_template_matching(image_t * master,
 				    image_t * _template,
 				    unsigned int min_x, unsigned int min_y,
@@ -127,22 +128,22 @@ double calc_mean_for_img_area(image_t * img, unsigned int min_x, unsigned int mi
 plugin_func_descr_t plugin_func_descriptions[] = {
   { "Template matching",     // name will be displayed in menu
     &template_matching_normal, // a function that perfoms the calculation
-    (plugin_raise_dialog_func_t) &raise_dialog, // a gui dialog to call before
-    NULL,         // a gui dialog to call after calculation
+    (plugin_raise_dialog_func_t) &raise_dialog_before, // a gui dialog to call before
+    (plugin_raise_dialog_func_t) &raise_dialog_after,  // a gui dialog to call after calculation
     &init_template,
     &shutdown_template},
 
   { "Template matching along grid columns",     // name will be displayed in menu
     &template_matching_along_grid_cols, // a function that perfoms the calculation
-    (plugin_raise_dialog_func_t) &raise_dialog, // a gui dialog to call before
-    NULL,         // a gui dialog to call after calculation
+    (plugin_raise_dialog_func_t) &raise_dialog_before, // a gui dialog to call before
+    (plugin_raise_dialog_func_t) &raise_dialog_after,  // a gui dialog to call after calculation
     &init_template,
     &shutdown_template},
 
   { "Template matching along grid rows",     // name will be displayed in menu
     &template_matching_along_grid_rows, // a function that perfoms the calculation
-    (plugin_raise_dialog_func_t) &raise_dialog, // a gui dialog to call before
-    NULL,         // a gui dialog to call after calculation
+    (plugin_raise_dialog_func_t) &raise_dialog_before, // a gui dialog to call before
+    (plugin_raise_dialog_func_t) &raise_dialog_after,  // a gui dialog to call after calculation
     &init_template,
     &shutdown_template},
 
@@ -378,13 +379,32 @@ ret_t template_matching(plugin_params_t * pparams) {
   if(match_params->summation_table_single != NULL) mm_destroy(match_params->summation_table_single);
   if(match_params->summation_table_squared != NULL) mm_destroy(match_params->summation_table_squared);
 
-  if(RET_IS_NOT_OK(ret)) debug(TM, "There was an error");
+  if(RET_IS_NOT_OK(ret)) debug(TM, "There was an error.");
   
   return ret;
 }
 
+ret_t raise_dialog_after(Gtk::Window * parent, plugin_params_t * pparams) {
+  char str[1000];
+  assert(pparams != NULL);
+  if(pparams == NULL) return RET_INV_PTR;
 
-ret_t raise_dialog(Gtk::Window * parent, plugin_params_t * pparams) {
+  template_matching_params_t * matching_params = (template_matching_params_t *) pparams->data_ptr;
+
+  if(matching_params->objects_added > 0) {
+    snprintf(str, sizeof(str), "I found %d objects and added %d objects into the logic model.", 
+	     matching_params->objects_added, matching_params->objects_added);
+  }
+  else {
+    snprintf(str, sizeof(str), "No objects added.");
+  }
+
+  Gtk::MessageDialog dialog(*parent, str, true, Gtk::MESSAGE_INFO, Gtk::BUTTONS_OK);
+  dialog.set_title("Info");      
+  dialog.run();
+}
+
+ret_t raise_dialog_before(Gtk::Window * parent, plugin_params_t * pparams) {
   lmodel_gate_template_t * tmpl = NULL;
   ret_t ret;
   assert(pparams);
@@ -562,6 +582,7 @@ ret_t hill_climbing(unsigned int start_x, unsigned int start_y, double xcorr_val
   return RET_OK;
 }
 
+/** x,y are absolute coordinates */
 ret_t add_gate(template_matching_params_t * matching_params,
 	      lmodel_gate_template_t * tmpl_ptr,
 	      LM_TEMPLATE_ORIENTATION orientation,
@@ -572,14 +593,17 @@ ret_t add_gate(template_matching_params_t * matching_params,
   unsigned int w = (tmpl_ptr->master_image_max_x - tmpl_ptr->master_image_min_x);
   unsigned int h = (tmpl_ptr->master_image_max_y - tmpl_ptr->master_image_min_y);
   logic_model_t * lmodel = matching_params->project->lmodel;
-	  
+  
+  debug(TM, "IN ADD_GATE(%d,%d)", x, y);
   matching_params->objects_found++;
 
   lmodel_gate_t * gate;
+  debug(TM, "check if there is already a gate");
   if(RET_IS_NOT_OK(lmodel_get_gate_in_region(lmodel, matching_params->placement_layer, 
-					     x, y, x+w, x+h, &gate))) return RET_ERR;
+					     x, y, x+w, y+h, &gate))) return RET_ERR;
 	  
   if(gate == NULL) {
+    debug(TM, "GATE NOT FOUND - ADDING A NEW check in %d..%d and %d..%d", x, x+w, y, y+h);
     // create gate
     lmodel_gate_t * new_gate = lmodel_create_gate(lmodel, x, y, x+w, y+h, tmpl_ptr, NULL, 0);
     assert(new_gate != NULL);
@@ -587,6 +611,9 @@ ret_t add_gate(template_matching_params_t * matching_params,
     if(RET_IS_NOT_OK(ret = lmodel_set_gate_orientation(new_gate, orientation))) return ret;
     if(RET_IS_NOT_OK(ret = lmodel_add_gate(lmodel, matching_params->placement_layer, new_gate))) return ret;
     matching_params->objects_added++;
+  }
+  else {
+    debug(TM, "gate found. don't add a new gate");
   }
   return RET_OK;
 }

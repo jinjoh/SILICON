@@ -1785,7 +1785,7 @@ ret_t lmodel_decode_file(logic_model_t * const lmodel, FileContent_t * file_cont
     }
   }
 
-  lmodel->object_id_counter = highest_object_id;
+  lmodel->object_id_counter = highest_object_id + 1;
   return RET_OK;
 }
 
@@ -2679,20 +2679,30 @@ ret_t cb_is_gate_in_region(quadtree_t * qtree, lmodel_is_gate_in_region_t * data
   while(ptr) {
     //debug(TM, "there is an object. check for collision");
 
-    if(data_ptr->object == NULL && ptr->object_type == LM_TYPE_GATE) {
+    if(ptr->object_type == LM_TYPE_GATE) {
       lmodel_gate_t * gate = (lmodel_gate_t *)ptr->object;
       
-      if( (gate->min_x == params->from_x && gate->min_y == params->from_y)
-	 ||
-	 !(gate->min_x > params->to_x ||
-	   gate->max_x < params->from_x ||
-	   gate->min_y > params->to_y ||
-	   gate->max_y < params->from_y)) {
-	//debug(TM, "There is a gate!");
+      //debug(TM, "it's a gate with id=%d", gate->id); //(390,4489)
 
-	data_ptr->object = gate;
-	return RET_OK;
-      }    
+      if(data_ptr->object == NULL) { // not found
+	/*	if(gate->id == 268) {
+	  debug(TM, "check qt obj 268 %d, %d | %d, %d", gate->min_x, gate->max_x, gate->min_y, gate->max_y);
+	  debug(TM, "  agains region  %d, %d | %d, %d", params->from_x, params->to_x, params->from_y, params->to_y);
+	  } */
+	if( //(gate->min_x == params->from_x && gate->min_y == params->from_y)
+	    //||
+	    !(gate->min_x > params->to_x ||
+	      gate->max_x < params->from_x ||
+	      gate->min_y > params->to_y ||
+	      gate->max_y < params->from_y)) {
+	  //debug(TM, "Gate with id = %d found!", gate->id);
+	  
+	  data_ptr->object = gate;
+	  return RET_OK;
+	}
+	//else debug(TM, "No");
+      }
+      //else debug(TM, "already found object with id = %d", data_ptr->object->id);
     }
 
     ptr = ptr->next;
