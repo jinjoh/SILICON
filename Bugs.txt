@@ -2,7 +2,10 @@ This is a list of known bugs:
 
 GUI:
 
-- Gnome theme may break toolbar's widget icons
+
+Template: matching:
+
+- overlapping matches
 
 Logic modell:
 

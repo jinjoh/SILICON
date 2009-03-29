@@ -417,6 +417,9 @@ ret_t raise_dialog(Gtk::Window * parent, plugin_params_t * pparams) {
     pparams->max_y = pparams->project->bg_images[layer]->height -1;
   }
 
+  assert(pparams->max_x > pparams->min_x);
+  assert(pparams->max_y > pparams->min_y);
+
   /* This will show a dialog window wit a list of available gate types. */
   GateSelectWin gsWin(parent, pparams->project->lmodel);
   tmpl = gsWin.get_single();
@@ -450,7 +453,7 @@ ret_t raise_dialog(Gtk::Window * parent, plugin_params_t * pparams) {
 
       matching_params->tmpl_ptr = tmpl;
 
-      TemplateMatchingParamsWin paramsWin(parent, 0.5, 0.6, 
+      TemplateMatchingParamsWin paramsWin(parent, 0.45, 0.6, 
 					  MAX(1, pparams->project->lambda), 
 					  MAX(1, (pparams->project->lambda >> 1)));
       
@@ -485,7 +488,9 @@ ret_t clear_area_in_map(memory_map_t * temp,
 			unsigned int radius) {
 
   unsigned int x, y;
-
+  assert(temp != NULL);
+  if(temp == NULL) return RET_INV_PTR;
+  
   for(y = start_y > radius ? start_y - radius : 0; 
       y < MIN(start_y + radius, temp->height); y++) {
     for(x = start_x > radius ? start_x - radius : 0; 
@@ -602,6 +607,14 @@ void adjust_step_size( unsigned int * step_size_search, unsigned int * step_size
 
 }
 
+/**
+ * @param x Position relative to search area
+ * @param y Position relative to search area
+ * @param min_x Position within complete background image.
+ * @param min_y Position within complete background image.
+ * @param max_x Position within complete background image.
+ * @param max_y Position within complete background image.
+ */
 TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y, 
 				     unsigned int step_size_search,
 				     image_t * _template,
@@ -630,14 +643,15 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
 
     if(grid->vertical_lines_enabled) {
 
-      assert(grid->dist_x < width);
-      if(grid->dist_x >= width) return TEMPLATE_MATCHING_ERROR;
+      //debug(TM, "d=%f w=%d        max_x=%d min_x=%d", grid->dist_x, width, max_x, min_x);
+      //assert(grid->dist_x < width);
+      //if(grid->dist_x >= width) return TEMPLATE_MATCHING_ERROR;
 
       if(*x == 0) { // start condition
 	debug(TM, "start conditions");
 	if(RET_IS_OK(snap_to_grid(grid, *x + min_x, 0, &x_out, NULL))) {
-	  if(x_out < min_x) *x = x_out + grid->dist_x;
-	  else *x = x_out;
+	  if(x_out < min_x) *x = x_out + grid->dist_x - min_x;
+	  else *x = x_out - min_x;
 	}
 	debug(TM, "\t-> x = %d", *x);
       }
@@ -649,7 +663,7 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
 	  *x += grid->dist_x;
 	  debug(TM, "\tcolumn done, next x = %d", *x);
 	  if(RET_IS_OK(snap_to_grid(grid, *x + min_x, 0, &x_out, NULL))) {
-	    *x = x_out;
+	    *x = x_out - min_x;
 	    debug(TM, "\tadjusted to x = %d", *x);
 	  }
 	}
@@ -678,14 +692,15 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
 
     if(grid->horizontal_lines_enabled) {
 
-      assert(grid->dist_y < height);
-      if(grid->dist_y >= height) return TEMPLATE_MATCHING_ERROR;
+      //debug(TM, "d=%d h=%d", grid->dist_y, height);
+      //assert(grid->dist_y < height);
+      //if(grid->dist_y >= height) return TEMPLATE_MATCHING_ERROR;
 
       if(*y == 0) { // start condition
 	debug(TM, "start conditions");
 	if(RET_IS_OK(snap_to_grid(grid, 0, *y + min_y, NULL, &y_out))) {
-	  if(y_out < min_y) *y = y_out + grid->dist_y;
-	  else *y = y_out;
+	  if(y_out < min_y) *y = y_out + grid->dist_y - min_y;
+	  else *y = y_out - min_y;
 	}
 	debug(TM, "\t-> y = %d", *y);
       }
@@ -697,7 +712,7 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
 	  *y += grid->dist_y;
 	  debug(TM, "\tcolumn done, next y = %d", *y);
 	  if(RET_IS_OK(snap_to_grid(grid, 0, *y + min_y, NULL, &y_out))) {
-	    *y = y_out;
+	    *y = y_out - min_y;
 	    debug(TM, "\tadjusted to y = %d", *y);
 	  }
 	}

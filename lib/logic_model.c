@@ -2682,12 +2682,12 @@ ret_t cb_is_gate_in_region(quadtree_t * qtree, lmodel_is_gate_in_region_t * data
     if(data_ptr->object == NULL && ptr->object_type == LM_TYPE_GATE) {
       lmodel_gate_t * gate = (lmodel_gate_t *)ptr->object;
       
-      if(gate->min_x == params->from_x
+      if( (gate->min_x == params->from_x && gate->min_y == params->from_y)
 	 ||
-	 !(gate->min_x >= params->to_x ||
-	   gate->max_x <= params->from_x ||
-	   gate->min_y >= params->to_y ||
-	   gate->max_y <= params->from_y)) {
+	 !(gate->min_x > params->to_x ||
+	   gate->max_x < params->from_x ||
+	   gate->min_y > params->to_y ||
+	   gate->max_y < params->from_y)) {
 	//debug(TM, "There is a gate!");
 
 	data_ptr->object = gate;
@@ -2714,7 +2714,9 @@ ret_t lmodel_get_gate_in_region(const logic_model_t * const lmodel, int layer,
   quadtree_traverse_func_t cb_func = (quadtree_traverse_func_t) &cb_is_gate_in_region;
   lmodel_is_gate_in_region_t data = {from_real_x, from_real_y, to_real_x, to_real_y, NULL};
 
-  if(RET_IS_NOT_OK(ret = quadtree_traverse_complete_within_region(lmodel->root[layer], from_real_x, from_real_y, to_real_x, to_real_y, cb_func, &data)))
+  if(RET_IS_NOT_OK(ret = quadtree_traverse_complete_within_region(lmodel->root[layer], 
+								  from_real_x, from_real_y, 
+								  to_real_x, to_real_y, cb_func, &data)))
      return ret;
 
   *result_object_ptr = data.object;
