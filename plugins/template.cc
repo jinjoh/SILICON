@@ -657,7 +657,7 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
 	if(RET_IS_NOT_OK(lmodel_get_gate_in_region(matching_params->project->lmodel, 
 						   matching_params->placement_layer, 
 						   *x + min_x, *y + min_y, 
-						   *x + min_x + 1, *y + min_y + 1, 
+						   *x + min_x + grid->dist_x, *y + min_y + step_size_search,
 						   &gate))) return TEMPLATE_MATCHING_ERROR;
 	if(gate != NULL) {
 	  unsigned int gate_height = gate->max_y - gate->min_y;
@@ -704,7 +704,7 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
 	if(RET_IS_NOT_OK(lmodel_get_gate_in_region(matching_params->project->lmodel, 
 						   matching_params->placement_layer, 
 						   *x + min_x, *y + min_y, 
-						   *x + min_x + 1, *y + min_y + 1, 
+						   *x + min_x + step_size_search, *y + min_y + grid->dist_y, 
 						   &gate))) return TEMPLATE_MATCHING_ERROR;
 	if(gate != NULL) {
 	  unsigned int gate_width = gate->max_x - gate->min_x;
