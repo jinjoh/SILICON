@@ -46,7 +46,7 @@ MainWin::MainWin() :
   }
 
   // setup window
-  set_default_size(800, 600);
+  set_default_size(1024, 700);
   char path[PATH_MAX];
   snprintf(path, PATH_MAX, "%s/icons/degate_logo.png", getenv("DEGATE_HOME"));
   set_icon_from_file(path);
@@ -96,6 +96,11 @@ MainWin::MainWin() :
   update_title();
   shift_key_pressed = false;
   imgWin.set_shift_key_state(false);
+  
+  imgWin.grab_focus();
+
+  project_to_open = NULL;
+  Glib::signal_idle().connect( sigc::mem_fun(*this, &MainWin::on_idle));
 
 
   if(getuid() == 0) {
@@ -104,6 +109,7 @@ MainWin::MainWin() :
 		   "But you should think about it. You should know: \"All your base are belong to us\". "
 		   "I will not drop privileges and I hope you know, what you do.");
   }
+
 }
 
 MainWin::~MainWin() {
@@ -123,6 +129,16 @@ void MainWin::update_title() {
     set_title(_title);
   }
 
+}
+
+
+bool MainWin::on_idle() {
+  debug(TM, "idle");
+  if(project_to_open != NULL) {
+    open_project(project_to_open);
+    project_to_open = NULL;
+  }
+  return false;
 }
 
 void MainWin::project_changed() {
@@ -158,6 +174,7 @@ void MainWin::initialize_menu() {
 			sigc::mem_fun(*this, &MainWin::on_menu_project_save));
 
   m_refActionGroup->add(Gtk::Action::create("ProjectSettings",
+					    Gtk::Stock::PREFERENCES,
 					    "Project settings", "Project settings"),
 			sigc::mem_fun(*this, &MainWin::on_menu_project_settings));
 
@@ -172,7 +189,19 @@ void MainWin::initialize_menu() {
   m_refActionGroup->add(Gtk::Action::create("ExportLayerAsGraphics",
 					    "Export current layer as XPM-graphics", "Export layer as graphics"),
 			sigc::mem_fun(*this, &MainWin::on_menu_project_export_layer));
-  
+
+  /*
+  Glib::RefPtr<Gtk::RecentAction> recent_action_ptr = Gtk::RecentAction::create("ProjectRecentProjects", "_Recent projects");
+  recent_action_ptr->signal_item_activated().connect(sigc::mem_fun(*this, &MainWin::on_menu_project_recent_projects));
+  m_refActionGroup->add(recent_action_ptr);
+
+  Gtk::RecentFilter * recent_filter_ptr = Gtk::manage(new Gtk::RecentFilter());
+  recent_filter_ptr->add_mime_type(degate_mime_type);
+  recent_action_ptr->set_filter(*recent_filter_ptr);
+  recent_action_ptr->set_show_numbers(true);
+  recent_action_ptr->set_sort_type(Gtk::RECENT_SORT_MRU);
+  */
+
   m_refActionGroup->add(Gtk::Action::create("ProjectQuit", Gtk::Stock::QUIT),
 			sigc::mem_fun(*this, &MainWin::on_menu_project_quit));
 
@@ -190,16 +219,17 @@ void MainWin::initialize_menu() {
 			sigc::mem_fun(*this, &MainWin::on_menu_view_zoom_out));
 
   m_refActionGroup->add(Gtk::Action::create("ViewNextLayer",
-					    Gtk::Stock::MEDIA_NEXT, "Next Layer", "Next Layer"),
+					    Gtk::Stock::GO_UP, "Layer up", "Layer up"),
 			Gtk::AccelKey("<control>2"),
 			sigc::mem_fun(*this, &MainWin::on_menu_view_next_layer));
 
   m_refActionGroup->add(Gtk::Action::create("ViewPrevLayer",
-					    Gtk::Stock::MEDIA_PREVIOUS, "Previous Layer", "Previous Layer"),
+					    Gtk::Stock::GO_DOWN, "Layer down", "Layer down"),
 			Gtk::AccelKey("<control>1"),
 			sigc::mem_fun(*this, &MainWin::on_menu_view_prev_layer));
 
-  m_refActionGroup->add(Gtk::Action::create("ViewGridConfiguration", "Grid configuration", "Grid configuration"),
+  m_refActionGroup->add(Gtk::Action::create("ViewGridConfiguration", Gtk::Stock::PREFERENCES,
+					    "Grid configuration", "Grid configuration"),
 			Gtk::AccelKey("<control>G"),
 			sigc::mem_fun(*this, &MainWin::on_menu_view_grid_config));
 
@@ -304,6 +334,7 @@ void MainWin::initialize_menu() {
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_create_by_selection));
 
   m_refActionGroup->add(Gtk::Action::create("GateList",
+					    Gtk::Stock::INDEX,
 					    "List gates", 
 					    "List available gate"),
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_list));
@@ -322,6 +353,16 @@ void MainWin::initialize_menu() {
 					    "Set gate as master", 
 					    "Set gate as master"),
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_set_as_master));
+
+  m_refActionGroup->add(Gtk::Action::create("GateRemoveGateByType",
+					    Gtk::Stock::CLEAR, "Remove gates by type ...", 
+					    "Remove gates by type ..."),
+			sigc::mem_fun(*this, &MainWin::on_menu_gate_remove_gate_by_type));
+
+  m_refActionGroup->add(Gtk::Action::create("GateRemoveGateByTypeWoMaster",
+					    Gtk::Stock::CLEAR, "Remove gates by type without master...", 
+					    "Remove gates by type without master ..."),
+			sigc::mem_fun(*this, &MainWin::on_menu_gate_remove_gate_by_type_wo_master));
 
   // Algorithms menu
   m_refActionGroup->add(Gtk::Action::create("AlgorithmsMenu", "Algorithms"));
@@ -352,6 +393,8 @@ void MainWin::initialize_menu() {
         "      <separator/>"
         "      <menuitem action='ExportViewAsGraphics'/>"
         "      <menuitem action='ExportLayerAsGraphics'/>"
+    /*        "      <separator/>"
+	      "      <menuitem action='ProjectRecentProjects'/>" */
         "      <separator/>"
         "      <menuitem action='ProjectQuit'/>"
         "    </menu>"
@@ -399,6 +442,9 @@ void MainWin::initialize_menu() {
         "      <menuitem action='GateOrientation'/>"
         "      <menuitem action='GateSetAsMaster'/>"
         "      <separator/>"
+        "      <menuitem action='GateRemoveGateByType'/>"
+        "      <menuitem action='GateRemoveGateByTypeWoMaster'/>"
+        "      <separator/>"
         "      <menuitem action='GateList'/>"
         "    </menu>"
         "    <menu action='AlgorithmsMenu'/>"
@@ -412,11 +458,16 @@ void MainWin::initialize_menu() {
         "    <toolitem action='ViewZoomIn'/>"
         "    <toolitem action='ViewZoomOut'/>"
         "    <separator/>"
+        "    <toolitem action='ViewPrevLayer'/>"
+        "    <toolitem action='ViewNextLayer'/>"
+        "    <separator/>"
         "    <toolitem action='ToolSelect'/>"
         "    <toolitem action='ToolMove'/>"
         "    <toolitem action='ToolWire'/>"
         "    <toolitem action='ToolViaUp'/>"
         "    <toolitem action='ToolViaDown'/>"
+        "    <separator/>"
+        "    <toolitem action='GateList'/>"
         "  </toolbar>"
     "</ui>";
 
@@ -440,52 +491,26 @@ void MainWin::initialize_menu() {
   if(pMenubar) m_Box.pack_start(*pMenubar, Gtk::PACK_SHRINK);
 
   Gtk::Widget* pToolbar = m_refUIManager->get_widget("/ToolBar") ;
+
   if(pToolbar) {
     m_Box.pack_start(*pToolbar, Gtk::PACK_SHRINK);
 
-    Gtk::ToolButton* pToolbarItem;
-    pToolbarItem = dynamic_cast<Gtk::ToolButton*>(m_refUIManager->get_widget("/ToolBar/ToolSelect"));
-    pToolbarItem->set_stock_id(Gtk::Stock::COLOR_PICKER);
-    /*
-    Gtk::Image * m_ImageSelect = Gtk::manage(new Gtk::Image("gui/icons/icon_select.xpm"));
-    pToolbarItem->set_icon_widget(*m_ImageSelect);
-    pToolbarItem->set_label("foo"); */
-
-    pToolbarItem = dynamic_cast<Gtk::ToolButton*>(m_refUIManager->get_widget("/ToolBar/ToolMove"));
-    pToolbarItem->set_stock_id(Gtk::Stock::SELECT_COLOR);
-
-    pToolbarItem = dynamic_cast<Gtk::ToolButton*>(m_refUIManager->get_widget("/ToolBar/ToolWire"));
-    pToolbarItem->set_stock_id(Gtk::Stock::REMOVE);
-
-    pToolbarItem = dynamic_cast<Gtk::ToolButton*>(m_refUIManager->get_widget("/ToolBar/ToolViaUp"));
-    pToolbarItem->set_stock_id(Gtk::Stock::YES);
-
-    pToolbarItem = dynamic_cast<Gtk::ToolButton*>(m_refUIManager->get_widget("/ToolBar/ToolViaDown"));
-    pToolbarItem->set_stock_id(Gtk::Stock::NO);
-
-    /*
-    Glib::RefPtr<Gdk::Bitmap> _image1_mask; 
-    Glib::RefPtr<Gdk::Pixmap> _image1_pixmap = 
-      Gdk::Pixmap::create_from_xpm(get_default_colormap(), _image1_mask, myImage_xpm); 
-    Gtk::Image *image1 = manage(new class Gtk::Image(_image1_pixmap, _image1_mask)); 
-    toolbar1->tools().push_back (Gtk::Toolbar_Helpers::ButtonElem("Button Text", *image1, 
-								  sigc::mem_fun(*this, &MainWin::on_menu_tools_wire),
-								  "tooltip text")); 
-
-    */
-    // m_refChoice_Wire = Gtk::RadioAction::create(group_tools, "ToolWire", "Wire");
-    // m_refActionGroup->add(m_refChoice_Wire, sigc::mem_fun(*this, &MainWin::on_menu_tools_wire) );
+    set_image_for_toolbar_widget("/ToolBar/ToolSelect",  "tools_select.png");
+    set_image_for_toolbar_widget("/ToolBar/ToolMove",    "tools_move.png");
+    set_image_for_toolbar_widget("/ToolBar/ToolWire",    "tools_wire.png");
+    set_image_for_toolbar_widget("/ToolBar/ToolViaUp",   "tools_via_up.png");
+    set_image_for_toolbar_widget("/ToolBar/ToolViaDown", "tools_via_down.png");
   }
 
   set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerAlignment", false);
-
   set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", false);
-
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateCreateBySelection", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateOrientation", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", false);
+  //set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByType", false);
+  //set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByTypeWoMaster", false);
 
   initialize_menu_render_funcs();
   initialize_menu_algorithm_funcs();
@@ -493,6 +518,17 @@ void MainWin::initialize_menu() {
   signal_key_press_event().connect(sigc::mem_fun(*this,&MainWin::on_key_press_event_received), false);
   signal_key_release_event().connect(sigc::mem_fun(*this,&MainWin::on_key_release_event_received), false);
 
+}
+
+void MainWin::set_image_for_toolbar_widget(Glib::ustring toolbar_widget_path, Glib::ustring image_file_name) {
+
+  char path[PATH_MAX];
+  snprintf(path, PATH_MAX, "%s/icons/%s", getenv("DEGATE_HOME"), image_file_name.c_str());
+
+  Gtk::ToolButton* pToolbarItem;
+  pToolbarItem = dynamic_cast<Gtk::ToolButton*>(m_refUIManager->get_widget(toolbar_widget_path));
+  Gtk::Image * m_ImageSelect = Gtk::manage(new Gtk::Image(path));
+  pToolbarItem->set_icon_widget(*m_ImageSelect);
 }
 
 void MainWin::initialize_menu_algorithm_funcs() {
@@ -594,12 +630,16 @@ void MainWin::set_widget_sensitivity(bool state) {
 
   set_toolbar_item_sensitivity("/ToolBar/ViewZoomIn", state);
   set_toolbar_item_sensitivity("/ToolBar/ViewZoomOut", state);
+  set_toolbar_item_sensitivity("/ToolBar/ViewPrevLayer", state);
+  set_toolbar_item_sensitivity("/ToolBar/ViewNextLayer", state);
 
   set_toolbar_item_sensitivity("/ToolBar/ToolSelect", state);
   set_toolbar_item_sensitivity("/ToolBar/ToolMove", state);
   set_toolbar_item_sensitivity("/ToolBar/ToolWire", state);
   set_toolbar_item_sensitivity("/ToolBar/ToolViaUp", state);
   set_toolbar_item_sensitivity("/ToolBar/ToolViaDown", state);
+
+  set_toolbar_item_sensitivity("/ToolBar/GateList", state);
 
   set_menu_item_sensitivity("/MenuBar/ProjectMenu/ProjectClose", state);
   set_menu_item_sensitivity("/MenuBar/ProjectMenu/ProjectSave", state);
@@ -641,6 +681,9 @@ void MainWin::set_widget_sensitivity(bool state) {
   set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicConnectionInspector", state);
 
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", state);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByType", state);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByTypeWoMaster", state);
+
 }
 
 void MainWin::set_menu_item_sensitivity(const Glib::ustring& widget_path, bool state) {
@@ -662,7 +705,47 @@ void MainWin::set_toolbar_item_sensitivity(const Glib::ustring& widget_path, boo
 }
 
 bool MainWin::on_drag_motion(const Glib::RefPtr<Gdk::DragContext> &context, int x, int y, guint time) {
+  //debug(TM, "drag");
   return true;
+}
+
+void MainWin::add_to_recent_menu() {
+
+  Glib::ustring str(main_project->project_dir);
+  str += "/project.prj";
+  
+  Gtk::RecentManager::Data data;
+
+  data.app_exec = "degate %u";
+  data.app_name  ="degate";
+
+  data.groups.push_back("degate");
+  data.description ="degate project";
+
+  data.display_name = str;
+  data.mime_type = degate_mime_type;
+
+  Glib::RefPtr<Gtk::RecentManager> recent_manager = Gtk::RecentManager::get_default();
+  recent_manager->add_item ("file://" + str, data);
+}
+
+void MainWin::on_menu_project_recent_projects() {
+  debug(TM, "on_menu_project_recent_projects()");
+  /*
+  Glib::RefPtr<Gtk::RecentManager> m_refRecentManager;
+
+
+  Gtk::RecentChooserDialog dialog(*this, "Recent Files", m_refRecentManager);
+  dialog.add_button("Select File", Gtk::RESPONSE_OK);
+  dialog.add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
+
+  const int response = dialog.run();
+  dialog.hide();
+  if(response == Gtk::RESPONSE_OK)
+    {
+      std::cout << "URI selected = " << dialog.get_current_uri() << std::endl;
+    }
+  */
 }
 
 void MainWin::on_menu_project_quit() {
@@ -885,20 +968,22 @@ void MainWin::on_menu_project_open() {
   Glib::ustring project_dir = dialog.get_filename();
   dialog.hide();
 
+  if(result == Gtk::RESPONSE_OK) open_project(project_dir);
+}
 
-  switch(result) {
-  case Gtk::RESPONSE_OK:
+void MainWin::set_project_to_open(char * project_dir) {
+  project_to_open = project_dir;
+}
 
-    ipWin = new InProgressWin(this, "Opening Project", "Please wait while opening project.");
-    ipWin->show();
+void MainWin::open_project(Glib::ustring project_dir) {
+  if(main_project) on_menu_project_close();
 
-    signal_project_open_finished_.connect(sigc::mem_fun(*this, &MainWin::on_project_load_finished));
-    thread = Glib::Thread::create(sigc::bind<const Glib::ustring>(sigc::mem_fun(*this, &MainWin::project_open_thread), project_dir), false);
+  ipWin = new InProgressWin(this, "Opening Project", "Please wait while opening project.");
+  ipWin->show();
 
-    break;
-  case Gtk::RESPONSE_CANCEL:
-    break;
-  }
+  signal_project_open_finished_.connect(sigc::mem_fun(*this, &MainWin::on_project_load_finished));
+  thread = Glib::Thread::create(sigc::bind<const Glib::ustring>(sigc::mem_fun(*this, &MainWin::project_open_thread), 
+								project_dir), false);
 }
 
 // in GUI-thread
@@ -923,7 +1008,7 @@ void MainWin::on_project_load_finished() {
 }
 
 void MainWin::project_open_thread(Glib::ustring project_dir) {
-  main_project = project_load(project_dir.c_str(), imgWin.get_render_params());
+  main_project = project_load(project_dir.c_str());
   signal_project_open_finished_();
 }
 
@@ -979,10 +1064,12 @@ void MainWin::update_gui_for_loaded_project() {
     imgWin.set_grid(&main_project->grid);
     
     set_widget_sensitivity(true);
+    add_to_recent_menu();
+
     update_title();
 
     adjust_scrollbars();
-
+    
     ciWin = new ConnectionInspectorWin(this, main_project->lmodel);
     ciWin->signal_goto_button_clicked().connect(sigc::mem_fun(*this, &MainWin::on_goto_object));
     
@@ -1223,7 +1310,8 @@ void MainWin::on_menu_tools_via_down() {
 }
 
 void MainWin::on_algorithm_finished(int slot_pos, plugin_params_t * plugin_params) {
-  debug(TM, "Algorithm finished. Is there a dialog to raise?");
+
+
   if(ipWin) {
     ipWin->close();
     delete ipWin;
@@ -1231,6 +1319,12 @@ void MainWin::on_algorithm_finished(int slot_pos, plugin_params_t * plugin_param
   }
 
   imgWin.update_screen();
+
+  if(RET_IS_NOT_OK(plugin_func_ret_status)) {
+    error_dialog("Plugin Error", "The plugin returned with an error");
+  }
+
+  debug(TM, "Algorithm finished. Is there a dialog to raise?");
 
   plugin_calc_slot(plugin_func_table, slot_pos, PLUGIN_FUNC_AFTER_DIALOG, plugin_params, this);
 
@@ -1251,7 +1345,7 @@ void MainWin::on_algorithm_finished(int slot_pos, plugin_params_t * plugin_param
 void MainWin::algorithm_calc_thread(int slot_pos, plugin_params_t * plugin_params) {
 
   debug(TM, "Calculating ...");
-  plugin_calc_slot(plugin_func_table, slot_pos, PLUGIN_FUNC_CALC, plugin_params, this);  
+  plugin_func_ret_status = plugin_calc_slot(plugin_func_table, slot_pos, PLUGIN_FUNC_CALC, plugin_params, this);  
   (*signal_algorithm_finished_)();
 }
 
@@ -1318,7 +1412,9 @@ void MainWin::on_menu_gate_orientation() {
 
     if(new_ori != gate->template_orientation) {
       if(RET_IS_NOT_OK(lmodel_set_gate_orientation(gate, new_ori)))
-	error_dialog("Error", "Can't set orientation. Probably it is not possible, because the gate represents a master template.");
+	error_dialog("Error", 
+		     "Can't set orientation. Probably it is not possible, "
+		     "because the gate represents a master template.");
       else {
 	imgWin.update_screen();
 	project_changed();
@@ -1326,6 +1422,35 @@ void MainWin::on_menu_gate_orientation() {
     }
     
   }
+}
+
+void MainWin::remove_gate_by_type(GS_DESTROY_MODE destroy_mode) {
+  if(main_project != NULL) {
+
+    GateSelectWin gsWin(this, main_project->lmodel);
+    lmodel_gate_template_t * tmpl = gsWin.get_single();
+    if(tmpl && tmpl->reference_counter > 0) {
+      Gtk::MessageDialog dialog(*this, "Are you sure you want to remove all gates by that type?", 
+				true, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_YES_NO);
+      dialog.set_title("Warning");
+      if(dialog.run() == Gtk::RESPONSE_YES) {
+	dialog.hide();
+	if(RET_IS_NOT_OK(lmodel_destroy_gates_by_template_type(main_project->lmodel, tmpl, destroy_mode))) {
+	  error_dialog("Error", "Can't remove gate.");
+	}
+	imgWin.update_screen();
+	project_changed();
+      }
+    }
+  }
+}
+
+void MainWin::on_menu_gate_remove_gate_by_type_wo_master() {
+  remove_gate_by_type(DESTROY_WO_MASTER);
+}
+
+void MainWin::on_menu_gate_remove_gate_by_type() {
+  remove_gate_by_type(DESTROY_ALL);
 }
 
 void MainWin::on_menu_gate_set_as_master() {
@@ -1371,7 +1496,7 @@ void MainWin::on_menu_gate_set() {
   if(imgWin.selection_active()) {
 
     GateSelectWin gsWin(this, main_project->lmodel);
-    tmpl = gsWin.run();
+    tmpl = gsWin.get_single();
 
     if(tmpl) {
       int layer = lmodel_get_layer_num_by_type(main_project->lmodel, LM_LAYER_TYPE_LOGIC);
@@ -1409,7 +1534,7 @@ void MainWin::on_menu_gate_set() {
     lmodel_gate_t * gate = (lmodel_gate_t *) (*it).first;
     
     GateSelectWin gsWin(this, main_project->lmodel);
-    tmpl = gsWin.run();
+    tmpl = gsWin.get_single();
     if(tmpl) {
 
       debug(TM, "new template");
@@ -1488,12 +1613,12 @@ void MainWin::on_menu_help_about() {
 
   Gtk::AboutDialog about_dialog;
 
-  about_dialog.set_version("Version 1.23");
+  about_dialog.set_version("Version 0.0.6");
   about_dialog.set_logo(Gdk::Pixbuf::create_from_file(filename));
 
   about_dialog.set_comments("Martin Schobert <martin@weltregierung.de>\n"
 			    "This software is released under the\nGNU General Public License Version 3.\n"
-			    "2008"
+			    "2009"
 			    );
   about_dialog.set_website("http://degate.zfch.de/");
   about_dialog.run();
@@ -1918,12 +2043,6 @@ void MainWin::on_menu_view_grid_config() {
 
 void MainWin::on_grid_config_changed() {
   if(gcWin) {
-    /*
-      imgWin.set_grid_offset_x(gcWin->get_grid_offset_x());
-      imgWin.set_grid_offset_y(gcWin->get_grid_offset_y());
-      imgWin.set_grid_dist_x(gcWin->get_grid_dist_x());
-      imgWin.set_grid_dist_y(gcWin->get_grid_dist_y());
-    */
     project_changed();
     imgWin.update_screen();
   }

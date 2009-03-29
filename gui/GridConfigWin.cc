@@ -58,8 +58,10 @@ GridConfigWin::GridConfigWin(Gtk::Window *parent, grid_t * grid) {
     
     refXml->get_widget("ok_button", p_ok_button);
     assert(p_ok_button != NULL);
-    if(p_ok_button != NULL) 
+    if(p_ok_button != NULL) {
+      p_ok_button->grab_focus();
       p_ok_button->signal_clicked().connect(sigc::mem_fun(*this, &GridConfigWin::on_ok_button_clicked) );
+    }
 
     refXml->get_widget("horizontal_checkbutton", p_horizontal_checkbutton);
     assert(p_horizontal_checkbutton != NULL);

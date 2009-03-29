@@ -69,6 +69,8 @@ void project_destroy(project_t * project) {
     if(project->bg_images[i]) gr_image_destroy(project->bg_images[i]);
   }
   amset_destroy(project->alignment_marker_set);
+  
+  memset(project, 0, sizeof(project_t));
   free(project);
 }
 
@@ -142,9 +144,19 @@ int project_init_directory(const char * const directory, int enable_mkdir) {
   }
 
 
-project_t * project_load(const char * const project_dir, render_params_t * const render_params) {
+ret_t project_conv_file_to_dir(char * const filename) {
+
+  char * ptr = strstr(filename, PROJECT_FILE);
+  if(ptr != NULL) {
+    *ptr = '\0';
+  }
+  return RET_OK;
+}
+
+project_t * project_load(const char * const project_dir) {
   //FILE * file;
   char filename[PATH_MAX];
+  char base_dir[PATH_MAX];
   int width, height, num_layers;
   project_t * project;
 
@@ -152,11 +164,11 @@ project_t * project_load(const char * const project_dir, render_params_t * const
   config_setting_t *setting = NULL;
 
   if(!project_dir) return NULL;
-  if(RET_IS_NOT_OK(project_cleanup(project_dir))) return NULL;
+  
+  strncpy(base_dir, project_dir, sizeof(filename));
+  if(RET_IS_NOT_OK(project_conv_file_to_dir(base_dir))) return NULL;
 
-
-
-  snprintf(filename, sizeof(filename), "%s/%s", project_dir, PROJECT_FILE);
+  snprintf(filename, sizeof(filename), "%s/%s", base_dir, PROJECT_FILE);
 
   config_init(&cfg);
 
@@ -170,7 +182,7 @@ project_t * project_load(const char * const project_dir, render_params_t * const
   PROJECT_READ_INT("height", height);
   PROJECT_READ_INT("num_layers", num_layers);
 
-  if((project = project_create(project_dir, width, height, num_layers)) == NULL) return NULL;
+  if((project = project_create(base_dir, width, height, num_layers)) == NULL) return NULL;
 
   project_map_background_memfiles(project);
 
@@ -237,10 +249,15 @@ project_t * project_load(const char * const project_dir, render_params_t * const
   config_destroy(&cfg);
 
 
-  if(RET_IS_NOT_OK(lmodel_load_files(project->lmodel, project_dir, num_layers))) {
+  if(RET_IS_NOT_OK(lmodel_load_files(project->lmodel, base_dir, num_layers))) {
     debug(TM, "Can't load logic model data from file");
     return NULL;
   }
+
+
+  // cleanup directory
+  if(RET_IS_NOT_OK(project_cleanup(base_dir))) return NULL;
+
   return project;
 		
 }

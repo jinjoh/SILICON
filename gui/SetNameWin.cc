@@ -50,9 +50,10 @@ SetNameWin::SetNameWin(Gtk::Window *parent, Glib::ustring name) {
       pButton->signal_clicked().connect(sigc::mem_fun(*this, &SetNameWin::on_cancel_button_clicked));
     
     refXml->get_widget("ok_button", pButton);
-    if(pButton)
+    if(pButton) {
       pButton->signal_clicked().connect(sigc::mem_fun(*this, &SetNameWin::on_ok_button_clicked) );
-  
+      pButton->grab_focus();
+    }
 
     refXml->get_widget("entry_name", entry);
     if(entry) {

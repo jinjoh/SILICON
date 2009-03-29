@@ -68,8 +68,32 @@ GateListWin::GateListWin(Gtk::Window *parent, logic_model_t * lmodel) {
       if(pTreeView) {
 	pTreeView->set_model(refListStore);
 	pTreeView->append_column("ID", m_Columns.m_col_id);
+	pTreeView->append_column("Reference Count", m_Columns.m_col_refcount);
+	pTreeView->append_column("Width", m_Columns.m_col_width);
+	pTreeView->append_column("Height", m_Columns.m_col_height);
 	pTreeView->append_column("Short Name", m_Columns.m_col_short_name);
 	pTreeView->append_column("Description", m_Columns.m_col_description);
+
+	Gtk::TreeView::Column * pColumn;
+
+	pColumn = pTreeView->get_column(0);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_id);
+	
+	pColumn = pTreeView->get_column(1);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_refcount);
+	
+	pColumn = pTreeView->get_column(2);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_width);
+	
+	pColumn = pTreeView->get_column(3);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_height);
+	
+	pColumn = pTreeView->get_column(4);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_short_name);
+	
+	pColumn = pTreeView->get_column(5);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_description);
+
       }
 
       lmodel_gate_template_set_t * ptr = lmodel->gate_template_set;
@@ -79,8 +103,15 @@ GateListWin::GateListWin(Gtk::Window *parent, logic_model_t * lmodel) {
 	  Gtk::TreeModel::Row row = *(refListStore->append()); 
 
 	  row[m_Columns.m_col_id] = ptr->gate->id;
+	  row[m_Columns.m_col_refcount] = ptr->gate->reference_counter;
+
+	  row[m_Columns.m_col_refcount] = ptr->gate->reference_counter;
+	  row[m_Columns.m_col_width] = ptr->gate->master_image_max_x - ptr->gate->master_image_min_x;
+	  row[m_Columns.m_col_height] = ptr->gate->master_image_max_y - ptr->gate->master_image_min_y;
+
 	  if(ptr->gate->short_name) row[m_Columns.m_col_short_name] = ptr->gate->short_name;
 	  if(ptr->gate->description) row[m_Columns.m_col_description] = ptr->gate->description;
+
 	}
 
 	ptr = ptr->next;
@@ -116,6 +147,9 @@ void GateListWin::on_add_button_clicked() {
       Gtk::TreeModel::Row row = *(refListStore->append()); 
       
       row[m_Columns.m_col_id] = tmpl->id;
+      row[m_Columns.m_col_refcount] = tmpl->reference_counter;
+      row[m_Columns.m_col_width] = tmpl->master_image_max_x - tmpl->master_image_min_x;
+      row[m_Columns.m_col_height] = tmpl->master_image_max_y - tmpl->master_image_min_y;
       row[m_Columns.m_col_short_name] = tmpl->short_name;
       row[m_Columns.m_col_description] = tmpl->description;
 
@@ -144,9 +178,26 @@ void GateListWin::on_remove_button_clicked() {
 				true, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_YES_NO);
       dialog.set_title("Warning");      
       if(dialog.run() == Gtk::RESPONSE_YES) {
-	
+	dialog.hide();
+
 	lmodel_gate_template_t * tmpl = lmodel_get_gate_template_by_id(lmodel, obj_id);
 	if(tmpl) {
+
+	  if(tmpl->reference_counter > 0) {
+	    Gtk::MessageDialog dialog2(*parent, 
+				       "The template is referenced by placed gates. "
+				       "Do you want to remove the gates as well?", 
+				       true, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_YES_NO);
+
+	    if(dialog2.run() == Gtk::RESPONSE_YES) {
+	      dialog2.hide();
+	      if(RET_IS_NOT_OK(lmodel_destroy_gates_by_template_type(lmodel, tmpl, DESTROY_ALL))) {
+		Gtk::MessageDialog dialog(*parent, "Can't remove gate.", true, Gtk::MESSAGE_ERROR);
+		dialog.set_title("Error");
+		dialog.run();
+	      }
+	    }
+	  }
 
 	  if(RET_IS_NOT_OK(lmodel_remove_gate_template(lmodel, tmpl))) {
 	    Gtk::MessageDialog dialog(*parent, "Can't remove template gate.", true, Gtk::MESSAGE_ERROR);
@@ -176,6 +227,9 @@ void GateListWin::on_edit_button_clicked() {
       GateConfigWin gcWin(parent, lmodel, tmpl);
       if(gcWin.run() == true) {
 	row[m_Columns.m_col_id] = tmpl->id;
+	row[m_Columns.m_col_refcount] = tmpl->reference_counter;
+	row[m_Columns.m_col_width] = tmpl->master_image_max_x - tmpl->master_image_min_x;
+	row[m_Columns.m_col_height] = tmpl->master_image_max_y - tmpl->master_image_min_y;
 	row[m_Columns.m_col_short_name] = tmpl->short_name;
 	row[m_Columns.m_col_description] = tmpl->description;
       }

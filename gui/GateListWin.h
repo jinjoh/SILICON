@@ -11,11 +11,17 @@ class GateListWin {
     
     GateListModelColumns() { 
       add(m_col_id); 
+      add(m_col_refcount);
+      add(m_col_width);
+      add(m_col_height);
       add(m_col_short_name); 
       add(m_col_description); 
     }
     
     Gtk::TreeModelColumn<int> m_col_id;
+    Gtk::TreeModelColumn<int> m_col_refcount;
+    Gtk::TreeModelColumn<int> m_col_width;
+    Gtk::TreeModelColumn<int> m_col_height;
     Gtk::TreeModelColumn<Glib::ustring> m_col_short_name;
     Gtk::TreeModelColumn<Glib::ustring> m_col_description;
 

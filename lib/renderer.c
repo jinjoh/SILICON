@@ -880,8 +880,11 @@ ret_t renderer_write_image(image_t * img, const char * const filename) {
   if(fd == -1) return RET_ERR;
 
   snprintf(tmp2, sizeof(tmp2), "P6\n%d %d\n255\n", img->width, img->height);
-  write(fd, tmp2, strlen(tmp2));
- 
+  if(write(fd, tmp2, strlen(tmp2)) != (ssize_t)strlen(tmp2)) {
+    close(fd);
+    return RET_ERR;
+  }
+
   ptr_dst = tmp;
 
   for(y = 0; y < img->height; y++)
@@ -894,13 +897,21 @@ ret_t renderer_write_image(image_t * img, const char * const filename) {
       *ptr_dst++ = MASK_B(pix);
 
       if(i % PIXELS_IN_BUFFER == 0) {
-	write(fd, tmp, sizeof(tmp));
+	if(write(fd, tmp, sizeof(tmp)) != sizeof(tmp)) {
+	  close(fd);
+	  return RET_ERR;
+	}
 	ptr_dst = tmp;
       }
     }
 
-  if(img->width * img->height % PIXELS_IN_BUFFER > 0)
-    write(fd, tmp, 3*((img->width * img->height) % PIXELS_IN_BUFFER));
+  if(img->width * img->height % PIXELS_IN_BUFFER > 0) {
+    ssize_t s = 3*((img->width * img->height) % PIXELS_IN_BUFFER);
+    if(write(fd, tmp, s) != s) { 
+      close(fd);
+      return RET_ERR;
+    }
+  }
   
   close(fd);
   return RET_OK;

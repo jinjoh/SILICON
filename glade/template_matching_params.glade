@@ -17,13 +17,15 @@
         <child>
           <widget class="GtkTable" id="table1">
             <property name="visible">True</property>
-            <property name="n_rows">3</property>
+            <property name="n_rows">4</property>
             <property name="n_columns">2</property>
             <child>
-              <widget class="GtkHScale" id="hscale_threshold">
+              <widget class="GtkHScale" id="hscale_threshold_hc">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="adjustment">0.59999999999999998 0 1 0.050000000000000003 0.050000000000000003 0.10000000000000001</property>
+                <property name="adjustment">0.5 0 1 0.050000000000000003 0.050000000000000003 0.10000000000000001</property>
+                <property name="digits">2</property>
+                <property name="value_pos">right</property>
               </widget>
               <packing>
                 <property name="left_attach">1</property>
@@ -33,7 +35,7 @@
             <child>
               <widget class="GtkLabel" id="label_threshold">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">Threshold for hill climbing:</property>
+                <property name="label" translatable="yes">Threshold to start hill climbing:</property>
               </widget>
             </child>
             <child>
@@ -42,8 +44,8 @@
                 <property name="label" translatable="yes">Max step size for search (pixel):</property>
               </widget>
               <packing>
-                <property name="top_attach">1</property>
-                <property name="bottom_attach">2</property>
+                <property name="top_attach">2</property>
+                <property name="bottom_attach">3</property>
               </packing>
             </child>
             <child>
@@ -52,8 +54,8 @@
                 <property name="label" translatable="yes">Max step size for correlation (pixel):</property>
               </widget>
               <packing>
-                <property name="top_attach">2</property>
-                <property name="bottom_attach">3</property>
+                <property name="top_attach">3</property>
+                <property name="bottom_attach">4</property>
               </packing>
             </child>
             <child>
@@ -65,8 +67,8 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">2</property>
-                <property name="top_attach">1</property>
-                <property name="bottom_attach">2</property>
+                <property name="top_attach">2</property>
+                <property name="bottom_attach">3</property>
               </packing>
             </child>
             <child>
@@ -78,8 +80,33 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="right_attach">2</property>
-                <property name="top_attach">2</property>
-                <property name="bottom_attach">3</property>
+                <property name="top_attach">3</property>
+                <property name="bottom_attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="label_threshold1">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Threshold for detection:</property>
+              </widget>
+              <packing>
+                <property name="top_attach">1</property>
+                <property name="bottom_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkHScale" id="hscale_threshold_detection">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="adjustment">0.69999999999999996 0 1 0.050000000000000003 0.050000000000000003 0.10000000000000001</property>
+                <property name="digits">2</property>
+                <property name="value_pos">right</property>
+              </widget>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">2</property>
+                <property name="top_attach">1</property>
+                <property name="bottom_attach">2</property>
               </packing>
             </child>
           </widget>

@@ -32,12 +32,19 @@ alignment_marker_set_t * amset_create(unsigned int num_layers) {
 }
 
 void amset_destroy(alignment_marker_set_t * set) {
-  if(set) {
+  assert(set != NULL);
+  assert(set->markers != NULL);
+
+  if(set != NULL) {
     if(set->markers) {
       int i;
       for(i = 0; i < set->max_markers; i++)
-	if(set->markers[i] != NULL) free(set->markers[i]);
+	if(set->markers[i] != NULL) {
+	  free(set->markers[i]);
+	  set->markers[i] = NULL;
+	}
       free(set->markers);
+      set->markers = NULL;
     }
     free(set);
   }
@@ -52,11 +59,16 @@ alignment_marker_t * amset_get_marker(const alignment_marker_set_t * const set, 
 				       MARKER_TYPE marker_type) {
 
   int i;
-  if(!set || !set->markers) return 0;
+  assert(set != NULL);
+  assert(set->markers != NULL);
+
+  if(set == NULL || set->markers == NULL) return NULL;
   
   for(i = 0; i < set->max_markers; i++) {
     alignment_marker_t * marker = set->markers[i];
-    if(marker && marker->marker_type == marker_type && marker->layer == layer) return set->markers[i];
+    if(marker != NULL && 
+       marker->marker_type == marker_type && 
+       marker->layer == layer) return set->markers[i];
   }
 
   return NULL;

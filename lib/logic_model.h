@@ -32,6 +32,18 @@ enum LM_PORT_TYPE {
   LM_PT_OUT = 2
 };
 
+/** modes to destroy lists gate templates */
+enum GTS_DESTROY_MODE {
+  DESTROY_CHILDREN = 1,
+  DESTROY_CONTAINER_ONLY = 2
+};
+
+/** modes to destroy gates by template */
+enum GS_DESTROY_MODE {
+  DESTROY_ALL = 1,
+  DESTROY_WO_MASTER = 2
+};
+
 enum LM_TEMPLATE_ORIENTATION {
   LM_TEMPLATE_ORIENTATION_UNDEFINED = 0,
   LM_TEMPLATE_ORIENTATION_NORMAL = 1,
@@ -82,12 +94,13 @@ struct lmodel_gate_template {
   char * short_name;
   char * description;
   
+  unsigned int reference_counter;
   lmodel_gate_template_port_t * ports;
 };
 
 
 struct lmodel_gate_template_set {
-  lmodel_gate_template_t * gate;
+  lmodel_gate_template_t * gate; // should be renamed to 'template'
   lmodel_gate_template_set_t * next;
 };
 
@@ -184,7 +197,7 @@ typedef uint32_t lmodel_map_elem_t;
 logic_model_t * lmodel_create(int num_layers, unsigned int max_x, unsigned int max_y);
 ret_t lmodel_destroy(logic_model_t * const lmodel);
 ret_t lmodel_destroy_gate_set(lmodel_gate_set_t * gset);
-ret_t lmodel_destroy_gate_template_set(lmodel_gate_template_set_t * gset);
+ret_t lmodel_destroy_gate_template_set(lmodel_gate_template_set_t * gset, GTS_DESTROY_MODE mode);
 ret_t lmodel_destroy_gate_template(lmodel_gate_template_t * tmpl);
 ret_t lmodel_destroy_gate_ports(lmodel_gate_port_t * gate_port);
 ret_t lmodel_destroy_connections(lmodel_connection_t * connections);
@@ -194,6 +207,7 @@ ret_t lmodel_destroy_wire(lmodel_wire_t * wire);
 ret_t lmodel_destroy_via(lmodel_via_t * via);
 
 ret_t lmodel_add_gate_template(logic_model_t * const lmodel, const lmodel_gate_template_t * const tmpl);
+lmodel_gate_template_set_t * lmodel_create_gate_template_set(lmodel_gate_template_t * const tmpl);
 
 ret_t lmodel_add_gate_to_gate_set(logic_model_t * const lmodel, lmodel_gate_t * const gate);
 ret_t lmodel_remove_gate_from_gate_set(logic_model_t * const lmodel, lmodel_gate_t * const gate);
@@ -266,6 +280,9 @@ ret_t lmodel_add_via_with_autojoin(logic_model_t * const lmodel, int layer,
 ret_t lmodel_remove_refs_to_gate_template(logic_model_t * const lmodel, lmodel_gate_template_t * const tmpl);
 
 ret_t lmodel_remove_object_by_ptr(logic_model_t * const lmodel, int layer, void * ptr, LM_OBJECT_TYPE object_type);
+ret_t lmodel_destroy_gates_by_template_type(logic_model_t * const lmodel, const lmodel_gate_template_t * const tmpl,
+					    GS_DESTROY_MODE mode);
+
 ret_t lmodel_remove_all_connections_from_object(LM_OBJECT_TYPE object_type, void * obj);
 ret_t lmodel_set_connections_for_object(LM_OBJECT_TYPE object_type, void * obj, lmodel_connection_t * conn);
 lmodel_connection_t * lmodel_get_connections_from_object(LM_OBJECT_TYPE object_type, void * obj);
@@ -335,6 +352,7 @@ ret_t get_line_function_for_wire(lmodel_wire_t * wire, double * m, double * n);
 ret_t lmodel_update_gate_ports(lmodel_gate_t * gate);
 ret_t lmodel_update_all_gate_ports(logic_model_t * lmodel, lmodel_gate_template_t * tmpl);
 
+int lmodel_gate_is_master(const lmodel_gate_t * const gate);
 
 ret_t lmodel_get_view_for_object(const logic_model_t * const lmodel, 
 				 LM_OBJECT_TYPE object_type, const object_ptr_t * const obj_ptr,

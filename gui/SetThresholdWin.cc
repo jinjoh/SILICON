@@ -50,9 +50,10 @@ SetThresholdWin::SetThresholdWin(Gtk::Window *parent, double threshold) {
       pButton->signal_clicked().connect(sigc::mem_fun(*this, &SetThresholdWin::on_cancel_button_clicked));
     
     refXml->get_widget("ok_button", pButton);
-    if(pButton)
+    if(pButton) {
       pButton->signal_clicked().connect(sigc::mem_fun(*this, &SetThresholdWin::on_ok_button_clicked) );
-  
+      pButton->grab_focus();
+    }
 
     refXml->get_widget("entry_name", entry);
     if(entry) {

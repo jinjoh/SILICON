@@ -51,9 +51,10 @@ PortSelectWin::PortSelectWin(Gtk::Window *parent, lmodel_gate_t * gate) {
       pButton->signal_clicked().connect(sigc::mem_fun(*this, &PortSelectWin::on_cancel_button_clicked));
     
     refXml->get_widget("ok_button", pButton);
-    if(pButton)
+    if(pButton) {
       pButton->signal_clicked().connect(sigc::mem_fun(*this, &PortSelectWin::on_ok_button_clicked) );
-  
+      pButton->grab_focus();
+    }
 
     refListStore = Gtk::ListStore::create(m_Columns);
   

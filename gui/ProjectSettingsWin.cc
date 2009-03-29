@@ -50,9 +50,11 @@ ProjectSettingsWin::ProjectSettingsWin(Gtk::Window *parent, project_t * project)
       pButton->signal_clicked().connect(sigc::mem_fun(*this, &ProjectSettingsWin::on_cancel_button_clicked));
     
     refXml->get_widget("ok_button", pButton);
-    if(pButton)
+    if(pButton) {
+      pButton->grab_focus();
       pButton->signal_clicked().connect(sigc::mem_fun(*this, &ProjectSettingsWin::on_ok_button_clicked) );
-  
+    }
+
     char str[100];
 
     refXml->get_widget("entry_lambda", entry_lambda);

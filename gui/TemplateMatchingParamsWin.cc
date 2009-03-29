@@ -10,14 +10,14 @@
 #define TM "TemplateMatchingParamsWin.cc"
 
 TemplateMatchingParamsWin::TemplateMatchingParamsWin(Gtk::Window *parent, 
-						     double threshold,
+						     double threshold_hc,
+						     double threshold_detection,
 						     unsigned int max_step_size_search,
 						     unsigned int max_step_size_xcorr) {
 
   assert(parent);
   this->parent = parent;
   ok_clicked = false;
-  orig_threshold = threshold;
 
   char file[PATH_MAX];
   snprintf(file, PATH_MAX, "%s/glade/template_matching_params.glade", getenv("DEGATE_HOME"));
@@ -57,9 +57,14 @@ TemplateMatchingParamsWin::TemplateMatchingParamsWin(Gtk::Window *parent,
       pButton->signal_clicked().connect(sigc::mem_fun(*this, &TemplateMatchingParamsWin::on_ok_button_clicked) );
   
 
-    refXml->get_widget("hscale_threshold", hscale_threshold);
-    if(hscale_threshold) {
-      hscale_threshold->set_value(threshold);
+    refXml->get_widget("hscale_threshold_hc", hscale_threshold_hc);
+    if(hscale_threshold_hc) {
+      hscale_threshold_hc->set_value(threshold_hc);
+    }
+
+    refXml->get_widget("hscale_threshold_detection", hscale_threshold_detection);
+    if(hscale_threshold_detection) {
+      hscale_threshold_detection->set_value(threshold_detection);
     }
 
     refXml->get_widget("entry_step_size_search", entry_step_size_search);
@@ -83,10 +88,12 @@ TemplateMatchingParamsWin::~TemplateMatchingParamsWin() {
   delete pDialog;
 }
 
-ret_t TemplateMatchingParamsWin::run(double * threshold,
-				      unsigned int * max_step_size_search,
-				      unsigned int * max_step_size_xcorr) {
-  assert(threshold != NULL);
+ret_t TemplateMatchingParamsWin::run(double * threshold_hc,
+				     double * threshold_detection,
+				     unsigned int * max_step_size_search,
+				     unsigned int * max_step_size_xcorr) {
+  assert(threshold_hc != NULL);
+  assert(threshold_detection != NULL);
   assert(max_step_size_search != NULL);
   assert(max_step_size_xcorr != NULL);
 
@@ -99,7 +106,8 @@ ret_t TemplateMatchingParamsWin::run(double * threshold,
 
       *max_step_size_search = atoi(entry_step_size_search->get_text().c_str());
       *max_step_size_xcorr = atoi(entry_step_size_xcorr->get_text().c_str());
-      *threshold = hscale_threshold->get_value();
+      *threshold_hc = hscale_threshold_hc->get_value();
+      *threshold_detection = hscale_threshold_detection->get_value();
 
       if(*max_step_size_search > 0 && *max_step_size_xcorr > 0) {
 	pDialog->hide();

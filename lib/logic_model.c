@@ -66,6 +66,9 @@ typedef struct {
 
 ret_t cb_join_on_contact(quadtree_t * qtree, lmodel_check_collision_t * data);
 
+/**
+ * Create a new logic model.
+ */
 logic_model_t * lmodel_create(int num_layers, unsigned int max_x, unsigned int max_y) {
 	
   logic_model_t * lmodel;
@@ -147,18 +150,35 @@ ret_t lmodel_destroy_gate_ports(lmodel_gate_port_t * gate_port) {
 }
 
 
+/**
+ * Destroy a gate object: Free its memory. Isolate its ports and destroy its ports as well.
+ * It does not remove the gate from the gate set. It does not remove the gate from the quadtree.
+ *
+ * @see lmodel_remove_object_by_ptr()
+ */
 ret_t lmodel_destroy_gate(lmodel_gate_t * gate) {
   ret_t ret;
-  assert(gate);
-  if(!gate) return RET_INV_PTR;
+  assert(gate != NULL);
+  if(gate == NULL) return RET_INV_PTR;
 
-  if(gate->name) free(gate->name);
-  if(gate->ports) if(RET_IS_NOT_OK(ret = lmodel_destroy_gate_ports(gate->ports))) return ret;
+  if(gate->name != NULL) free(gate->name);
+  if(gate->ports != NULL) if(RET_IS_NOT_OK(ret = lmodel_destroy_gate_ports(gate->ports))) return ret;
   gate->ports = NULL;
+
+  if(gate->gate_template != NULL) {
+    assert(gate->gate_template->reference_counter > 0);
+    gate->gate_template->reference_counter--;
+  }
 
   return RET_OK;
 }
 
+/**
+ * Free memory for a wire. It removes connection references to the wire first. This function
+ * does not remove the wire from the underlying quadtree.
+ *
+ * @see lmodel_remove_object_by_ptr()
+ */
 ret_t lmodel_destroy_wire(lmodel_wire_t * wire) {
   ret_t ret;
   assert(wire);
@@ -171,6 +191,13 @@ ret_t lmodel_destroy_wire(lmodel_wire_t * wire) {
   }
   return RET_OK;
 }
+
+/**
+ * Free memory for a via. It removes connection references to the via first. This function
+ * does not remove the via from the underlying quadtree.
+ *
+ * @see lmodel_remove_object_by_ptr()
+ */
 
 ret_t lmodel_destroy_via(lmodel_via_t * via) {
   ret_t ret;
@@ -232,6 +259,9 @@ ret_t cb_destroy_objects(quadtree_t * qtree, void * ptr) {
   return RET_OK;
 }
 
+/**
+ * Destroy a complete logic model including all objects.
+ */
 ret_t lmodel_destroy(logic_model_t * const lmodel) {
   int i;
   ret_t ret;
@@ -248,7 +278,7 @@ ret_t lmodel_destroy(logic_model_t * const lmodel) {
   if(lmodel->layer_type) free(lmodel->layer_type);
   
   if(lmodel->gate_template_set &&
-     RET_IS_NOT_OK(ret = lmodel_destroy_gate_template_set(lmodel->gate_template_set))) return ret;
+     RET_IS_NOT_OK(ret = lmodel_destroy_gate_template_set(lmodel->gate_template_set, DESTROY_CHILDREN))) return ret;
 
   if(lmodel->gate_set &&
      RET_IS_NOT_OK(ret = lmodel_destroy_gate_set(lmodel->gate_set))) return ret;
@@ -257,7 +287,10 @@ ret_t lmodel_destroy(logic_model_t * const lmodel) {
   return RET_OK;
 }
 
-ret_t lmodel_destroy_gate_template_set(lmodel_gate_template_set_t * gset) {
+/**
+ * Destroy a template set.
+ */
+ret_t lmodel_destroy_gate_template_set(lmodel_gate_template_set_t * gset, GTS_DESTROY_MODE mode) {
   ret_t ret;
   lmodel_gate_template_set_t * ptr = gset;
 
@@ -265,8 +298,9 @@ ret_t lmodel_destroy_gate_template_set(lmodel_gate_template_set_t * gset) {
   if(!gset) return RET_INV_PTR;
   
   while(ptr) {
-    if(RET_IS_NOT_OK(ret = lmodel_destroy_gate_template(ptr->gate))) return ret;
+    if(mode == DESTROY_CHILDREN && RET_IS_NOT_OK(ret = lmodel_destroy_gate_template(ptr->gate))) return ret;
     lmodel_gate_template_set_t * ptr_next = ptr->next;
+    memset(ptr, 0, sizeof(lmodel_gate_template_set_t));
     free(ptr);
     ptr = ptr_next;
   }
@@ -280,6 +314,7 @@ ret_t lmodel_destroy_gate_set(lmodel_gate_set_t * gset) {
   
   while(ptr) {
     lmodel_gate_set_t * ptr_next = ptr->next;
+    memset(ptr, 0, sizeof(lmodel_gate_set_t));
     free(ptr);
     ptr = ptr_next;
   }
@@ -299,6 +334,7 @@ ret_t lmodel_destroy_gate_template(lmodel_gate_template_t * tmpl) {
   while(ptr) {
     if(ptr->port_name) free(ptr->port_name);
     ptr_next = ptr->next;
+    memset(ptr, 0, sizeof(lmodel_gate_template_port_t));
     free(ptr);
     ptr = ptr_next;
   }
@@ -759,11 +795,13 @@ ret_t lmodel_add_connection_build_helper(logic_model_t * lmodel, connection_buil
 }
 
 
-ret_t lmodel_import_wire(logic_model_t * lmodel, Wire_t * wire) {
+ret_t lmodel_import_wire(logic_model_t * lmodel, Wire_t * wire, unsigned int * highest_object_id) {
   long from_x, from_y, to_x, to_y, diameter, obj_id, layer;
   ret_t ret;
   assert(lmodel != NULL);
   assert(wire != NULL);
+  assert(highest_object_id != NULL);
+
   if(!lmodel || !wire) return RET_INV_PTR;
 
   if(asn_INTEGER2long(&wire->from_x, &from_x) != -1 &&
@@ -774,7 +812,7 @@ ret_t lmodel_import_wire(logic_model_t * lmodel, Wire_t * wire) {
      asn_INTEGER2long(&wire->id, &obj_id) != -1 &&
      asn_INTEGER2long(&wire->layer, &layer) != -1) {
 
-
+    if((unsigned long)obj_id > *highest_object_id) *highest_object_id = obj_id;
 
     lmodel_wire_t * new_wire = lmodel_create_wire(lmodel, from_x, from_y, to_x, to_y, 
 						  diameter, 
@@ -798,11 +836,13 @@ ret_t lmodel_import_wire(logic_model_t * lmodel, Wire_t * wire) {
   return RET_OK;
 }
 
-ret_t lmodel_import_via(logic_model_t * lmodel, Via_t * via) {
+ret_t lmodel_import_via(logic_model_t * lmodel, Via_t * via, unsigned int * highest_object_id) {
   long x, y, diameter, obj_id, direction, layer;
   ret_t ret;
   assert(lmodel != NULL);
   assert(via != NULL);
+  assert(highest_object_id != NULL);
+
   if(!lmodel || !via) return RET_INV_PTR;
 
   if(asn_INTEGER2long(&via->x, &x) != -1 &&
@@ -811,6 +851,8 @@ ret_t lmodel_import_via(logic_model_t * lmodel, Via_t * via) {
      asn_INTEGER2long(&via->direction, &direction) != -1 &&
      asn_INTEGER2long(&via->id, &obj_id) != -1 &&
      asn_INTEGER2long(&via->layer, &layer) != -1) {
+
+    if((unsigned long)obj_id > *highest_object_id) *highest_object_id = obj_id;
     
     LM_VIA_DIR dir;
     switch(direction) {
@@ -985,12 +1027,14 @@ lmodel_gate_port_t * lmodel_create_gate_port(lmodel_gate_t * gate, lmodel_gate_t
   return gport;
 }
 
-ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate) {
+ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate, unsigned int * highest_object_id) {
   long min_x, min_y, max_x, max_y, gate_id, obj_id, layer, master_orientation;
   ret_t ret;
   int port_i;
   assert(lmodel != NULL);
   assert(gate != NULL);
+  assert(highest_object_id != NULL);
+
   if(!lmodel || !gate) return RET_INV_PTR;
 
   if(asn_INTEGER2long(&gate->min_x, &min_x) != -1 &&
@@ -1002,6 +1046,8 @@ ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate) {
      asn_INTEGER2long(&gate->layer, &layer) != -1 &&
      asn_INTEGER2long(&gate->master_orientation, &master_orientation) != -1
      ) {
+
+    if((unsigned long)obj_id > *highest_object_id) *highest_object_id = obj_id;
     
     lmodel_gate_template_t * tmpl = lmodel_get_gate_template_by_id(lmodel, gate_id);
 
@@ -1633,6 +1679,9 @@ ret_t lmodel_remove_all_connections_from_object(LM_OBJECT_TYPE object_type, void
   
 }
 
+/**
+ * Call this function to remove an object from the logic model and from the underlying quadtree as well.
+ */
 ret_t lmodel_remove_object_by_ptr(logic_model_t * const lmodel, int layer, void * ptr, LM_OBJECT_TYPE object_type) {
   quadtree_object_t * optr;
   lmodel_lookup_object_t data = {0, 0, object_type, ptr};
@@ -1652,8 +1701,9 @@ ret_t lmodel_remove_object_by_ptr(logic_model_t * const lmodel, int layer, void 
     if(RET_IS_NOT_OK(ret = lmodel_destroy_via((lmodel_via_t *)ptr))) return ret;
     break;
   case LM_TYPE_GATE:
-    if(RET_IS_NOT_OK(ret = lmodel_destroy_gate((lmodel_gate_t *)ptr))) return ret;
+    // remove from list
     if(RET_IS_NOT_OK(ret = lmodel_remove_gate_from_gate_set(lmodel, (lmodel_gate_t *)ptr))) return ret;
+    if(RET_IS_NOT_OK(ret = lmodel_destroy_gate((lmodel_gate_t *)ptr))) return ret;
     break;
   default:
     return RET_ERR;
@@ -1703,6 +1753,7 @@ ret_t lmodel_decode_file(logic_model_t * const lmodel, FileContent_t * file_cont
   
   int i;
   ret_t ret;
+  unsigned int highest_object_id = 0;
   assert(lmodel != NULL);
   assert(file_content != NULL);
 
@@ -1719,13 +1770,13 @@ ret_t lmodel_decode_file(logic_model_t * const lmodel, FileContent_t * file_cont
       if(!obj) return RET_INV_PTR;
       
       if(obj->present == Object_PR_wire) {
-	if(RET_IS_NOT_OK(ret = lmodel_import_wire(lmodel, &obj->choice.wire))) return ret;
+	if(RET_IS_NOT_OK(ret = lmodel_import_wire(lmodel, &obj->choice.wire, &highest_object_id))) return ret;
       }
       else if(obj->present == Object_PR_via) {
-	if(RET_IS_NOT_OK(ret = lmodel_import_via(lmodel, &obj->choice.via))) return ret;
+	if(RET_IS_NOT_OK(ret = lmodel_import_via(lmodel, &obj->choice.via, &highest_object_id))) return ret;
       }
       else if(obj->present == Object_PR_gate) {
-	if(RET_IS_NOT_OK(ret = lmodel_import_gate(lmodel, &obj->choice.gate))) return ret;
+	if(RET_IS_NOT_OK(ret = lmodel_import_gate(lmodel, &obj->choice.gate, &highest_object_id))) return ret;
       }
       else if(obj->present == Object_PR_gate_template) {
 	if(RET_IS_NOT_OK(ret = lmodel_import_gate_template(lmodel, &obj->choice.gate_template))) 
@@ -1733,7 +1784,8 @@ ret_t lmodel_decode_file(logic_model_t * const lmodel, FileContent_t * file_cont
       }
     }
   }
-  
+
+  lmodel->object_id_counter = highest_object_id;
   return RET_OK;
 }
 
@@ -2040,11 +2092,11 @@ ret_t cb_join_on_contact(quadtree_t * qtree, lmodel_check_collision_t * data) {
   
   quadtree_object_t * ptr = qtree->objects;
   while(ptr) {
-    debug(TM, "there is an object. check for collision");
+    //debug(TM, "there is an object. check for collision");
     if(lmodel_check_collision(data->object_type, data->object, 
 			      (LM_OBJECT_TYPE)ptr->object_type, ptr->object)) {
       // join
-      debug(TM, "\tthere is a collision");
+      //debug(TM, "\tthere is a collision");
       if(RET_IS_NOT_OK(ret = lmodel_connect_objects(data->object_type, data->object, 
 						    (LM_OBJECT_TYPE)ptr->object_type, ptr->object)))
 	return ret;
@@ -2143,6 +2195,8 @@ lmodel_gate_t * lmodel_create_gate(logic_model_t * const lmodel,
   gate->name = name;
   gate->id = obj_id ? obj_id : lmodel->object_id_counter++;
   gate->gate_template = gate_template;
+
+  if(gate_template != NULL) gate_template->reference_counter++;
 
   return gate;
 }
@@ -2295,6 +2349,11 @@ ret_t lmodel_add_gate_to_gate_set(logic_model_t * const lmodel,
   return RET_OK;
 }
 
+/**
+ * Remove a gate (only) from a gate list. This function does not remove any references.
+ *
+ * @see lmodel_remove_object_by_ptr()
+ */
 ret_t lmodel_remove_gate_from_gate_set(logic_model_t * const lmodel, lmodel_gate_t * const gate) {
   assert(lmodel != NULL);
   assert(gate != NULL);
@@ -2313,6 +2372,36 @@ ret_t lmodel_remove_gate_from_gate_set(logic_model_t * const lmodel, lmodel_gate
   }
   return RET_OK;
 }
+
+
+/**
+ * Remove gate instances from logic model that reference a template of type tmpl and destroy the gates.
+ */
+ret_t lmodel_destroy_gates_by_template_type(logic_model_t * const lmodel, 
+					    const lmodel_gate_template_t * const tmpl,					    
+					    GS_DESTROY_MODE mode) {
+  ret_t ret;
+  assert(lmodel != NULL);
+  assert(tmpl != NULL);
+  if(lmodel == NULL || tmpl == NULL) return RET_INV_PTR;
+  
+  int layer = lmodel_get_layer_num_by_type(lmodel, LM_LAYER_TYPE_LOGIC);
+
+  lmodel_gate_set_t * gset_ptr = lmodel->gate_set;
+  while(gset_ptr != NULL) {
+    if(gset_ptr->gate != NULL && gset_ptr->gate->gate_template == tmpl) {
+      int destroy = 1;
+      if(mode == DESTROY_WO_MASTER && lmodel_gate_is_master(gset_ptr->gate)) destroy = 0;
+
+      // implicit removal from gate set
+      if(destroy == 1 && RET_IS_NOT_OK(ret = lmodel_remove_object_by_ptr(lmodel, layer, gset_ptr->gate, 
+									 LM_TYPE_GATE))) return ret;
+    }
+    gset_ptr = gset_ptr->next;
+  }
+  return RET_OK;
+}
+
 
 /** Add a gate template to a gate template set. 
  * @see lmodel_add_gate_template()
@@ -2340,7 +2429,7 @@ ret_t lmodel_add_gate_template_to_gate_template_set(lmodel_gate_template_set_t *
     ptr = ptr->next;
   }
 
-  if(!tmpl->id) {
+  if(tmpl->id == 0) {
     tmpl->id = obj_id ? obj_id : MAX(ptr->gate ? ptr->gate->id : 0, max_id) + 1;
   }
 
@@ -2371,24 +2460,36 @@ ret_t lmodel_add_gate_template(logic_model_t * const lmodel,
 			       lmodel_gate_template_t * const tmpl, 
 			       unsigned int obj_id) {
 
-  lmodel_gate_template_set_t * gset;
 
   assert(lmodel);
   assert(tmpl);
   if(!lmodel || !tmpl) return RET_INV_PTR;
   
   if(lmodel->gate_template_set == NULL) {
-    if((gset = (lmodel_gate_template_set_t *) malloc(sizeof(lmodel_gate_template_set_t))) == NULL) 
-      return RET_MALLOC_FAILED;
-    memset(gset, 0, sizeof(lmodel_gate_template_set_t));
 
-    lmodel->gate_template_set = gset;
-    gset->gate = tmpl;
+    lmodel->gate_template_set = lmodel_create_gate_template_set(tmpl);
+    assert(lmodel->gate_template_set != NULL);
+    if(lmodel->gate_template_set == NULL) return RET_MALLOC_FAILED;
+      
     return RET_OK;
   }
   else return lmodel_add_gate_template_to_gate_template_set(lmodel->gate_template_set, tmpl, obj_id);
 }
 
+/** create a gate template set and add a template 
+ */
+lmodel_gate_template_set_t * lmodel_create_gate_template_set(lmodel_gate_template_t * const tmpl) {
+
+  lmodel_gate_template_set_t * gset = NULL;
+
+  if((gset = (lmodel_gate_template_set_t *) malloc(sizeof(lmodel_gate_template_set_t))) == NULL) 
+    return NULL;
+  memset(gset, 0, sizeof(lmodel_gate_template_set_t));
+
+  gset->gate = tmpl;
+
+  return gset;
+}
 
 /** 
  * For some applications we need the linear function, that describes the line of a wire.
@@ -2576,12 +2677,14 @@ ret_t cb_is_gate_in_region(quadtree_t * qtree, lmodel_is_gate_in_region_t * data
   lmodel_is_gate_in_region_t * params = (lmodel_is_gate_in_region_t *) data_ptr;
 
   while(ptr) {
-    debug(TM, "there is an object. check for collision");
+    //debug(TM, "there is an object. check for collision");
 
     if(data_ptr->object == NULL && ptr->object_type == LM_TYPE_GATE) {
       lmodel_gate_t * gate = (lmodel_gate_t *)ptr->object;
       
-      if(!(gate->min_x >= params->to_x ||
+      if(gate->min_x == params->from_x
+	 ||
+	 !(gate->min_x >= params->to_x ||
 	   gate->max_x <= params->from_x ||
 	   gate->min_y >= params->to_y ||
 	   gate->max_y <= params->from_y)) {
@@ -2789,6 +2892,9 @@ ret_t lmodel_set_via_name(lmodel_via_t * via, const char * const new_name) {
 
 }
 
+/**
+ * Set a name for an object from logic model.
+ */
 ret_t lmodel_set_name(LM_OBJECT_TYPE object_type, void * obj_ptr, const char * const new_name) {
   
   switch(object_type) {
@@ -2860,8 +2966,16 @@ ret_t lmodel_set_template_for_gate(logic_model_t * lmodel, lmodel_gate_t * gate,
     gate->gate_template->master_image_max_y = 0;
   }
   */
+
+  if(gate->gate_template != NULL) {
+    // there is a referenced template
+    assert(gate->gate_template->reference_counter > 0);
+    gate->gate_template->reference_counter--;
+  }
   gate->gate_template = tmpl;
-  
+
+  if(gate->gate_template != NULL) gate->gate_template->reference_counter++;
+
   return lmodel_update_gate_ports(gate);
 }
 
@@ -2874,6 +2988,23 @@ lmodel_gate_template_t * lmodel_get_template_for_gate(lmodel_gate_t * gate) {
 }
 
 /**
+ * Check, if a gate is a master gate. This means, if the image is used as template
+ * @return 1, if yes, else 0
+ */
+int lmodel_gate_is_master(const lmodel_gate_t * const gate) {
+  assert(gate != NULL);
+  if(gate == NULL) return false;
+
+  if(gate->gate_template != NULL &&
+     gate->min_x == gate->gate_template->master_image_min_x &&
+     gate->min_y == gate->gate_template->master_image_min_y &&
+     gate->max_x == gate->gate_template->master_image_max_x &&
+     gate->max_y == gate->gate_template->master_image_max_y) return 1;
+  else return 0;
+  
+}
+
+/**
  * Set gates orientation realtive to the template.
  * You can't redefine master gates orientation.
  */
@@ -2881,11 +3012,7 @@ ret_t lmodel_set_gate_orientation(lmodel_gate_t * gate, LM_TEMPLATE_ORIENTATION 
   assert(gate);
   if(!gate) return RET_INV_PTR;
 
-  if(gate->gate_template &&
-     gate->min_x == gate->gate_template->master_image_min_x &&
-     gate->min_y == gate->gate_template->master_image_min_y &&
-     gate->max_x == gate->gate_template->master_image_max_x &&
-     gate->max_y == gate->gate_template->master_image_max_y) {
+  if(lmodel_gate_is_master(gate)) {
 
     // gate defines a template
     if(gate->template_orientation == LM_TEMPLATE_ORIENTATION_UNDEFINED) {
@@ -3005,6 +3132,9 @@ ret_t lmodel_adjust_gate_orientation_for_all_gates(logic_model_t * lmodel, lmode
 }
 
 
+/** 
+ * Remove a gate template from logic model and free corresponding memory.
+ */
 ret_t lmodel_remove_gate_template(logic_model_t * const lmodel, lmodel_gate_template_t * const tmpl) {
   ret_t ret;
   assert(lmodel);
@@ -3043,6 +3173,10 @@ ret_t lmodel_remove_gate_template(logic_model_t * const lmodel, lmodel_gate_temp
   return RET_OK;
 }
 
+/**
+ * Get a center location for an object.
+ * @todo: rename it to lmodel_get_location_for_object()
+ */
 
 ret_t lmodel_get_view_for_object(const logic_model_t * const lmodel, 
 				 LM_OBJECT_TYPE object_type, 
@@ -3120,51 +3254,3 @@ ret_t lmodel_get_view_for_object(const logic_model_t * const lmodel,
 
   return RET_ERR;
 }
-
-/*
-ret_t lmodel_get_all_connected_objects_bfs(lmodel_connection_t ** closed_list, lmodel_connection_t ** open_list) {
-
-  while((*open_list) != NULL) {
-    lmodel_connection_t * curr = *open_list;
-    *open_list = (*open_list)->next;
-
-    lmodel_connect_object(closed_list, curr->object_type, (object_ptr_t *)curr->obj_ptr);
-
-    lmodel_connection_t * succ = lmodel_get_connections_from_object(curr->object_type, curr->obj_ptr);
-    while(succ != NULL) {
-      if((lmodel_find_connection_to_object(*closed_list, (object_ptr_t *)succ->obj_ptr) == NULL) &&
-	 (lmodel_find_connection_to_object(*open_list, (object_ptr_t *)succ->obj_ptr) == NULL) ) {
-
-	lmodel_connect_object(open_list, succ->object_type, (object_ptr_t *)succ->obj_ptr);
-      }
-      succ = succ->next;
-    }
-
-  }
-
-  return RET_OK;
-}
-
-lmodel_connection_t * lmodel_get_all_connected_objects(const lmodel_connection_t * const connections) {
-
-  lmodel_connection_t * closed_list = NULL;
-  lmodel_connection_t * open_list = NULL;
-
-  const lmodel_connection_t * ptr = connections;
-
-  while(ptr != NULL) {
-    debug(TM, "ADDDDDDDDD %p", ptr->obj_ptr);
-    lmodel_connect_object(&open_list, ptr->object_type, (object_ptr_t *)ptr->obj_ptr);  
-    ptr = ptr->next;
-  }
-
-  if(RET_IS_NOT_OK(lmodel_get_all_connected_objects_bfs(&closed_list, &open_list))) {
-    lmodel_destroy_connections(closed_list);
-    lmodel_destroy_connections(open_list);
-    return NULL;
-  }
-  
-  return closed_list;
-}
-
-*/

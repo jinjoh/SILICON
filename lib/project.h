@@ -36,7 +36,7 @@ typedef struct project project_t;
 project_t * project_create(const char * project_dir, unsigned int width, unsigned int height, int num_layers);
 void project_destroy(project_t * project);
 int project_init_directory(const char * const directory, int enable_mkdir);
-project_t * project_load(const char * const project_dir, render_params_t * const render_params);
+project_t * project_load(const char * const project_dir /*, render_params_t * const render_params*/);
 
 int project_map_background_memfiles(project_t * const project);
 

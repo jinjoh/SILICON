@@ -15,7 +15,6 @@ GateSelectWin::GateSelectWin(Gtk::Window *parent, logic_model_t * const lmodel) 
   assert(parent);
   this->lmodel = lmodel;
   this->parent = parent;
-  result = NULL;
 
   char file[PATH_MAX];
   snprintf(file, PATH_MAX, "%s/glade/gate_select.glade", getenv("DEGATE_HOME"));
@@ -61,8 +60,32 @@ GateSelectWin::GateSelectWin(Gtk::Window *parent, logic_model_t * const lmodel) 
     if(pTreeView) {
       pTreeView->set_model(refListStore);
       pTreeView->append_column("ID", m_Columns.m_col_id);
+      pTreeView->append_column("Reference Count", m_Columns.m_col_refcount);
+      pTreeView->append_column("Width", m_Columns.m_col_width);
+      pTreeView->append_column("Height", m_Columns.m_col_height);
       pTreeView->append_column("Short Name", m_Columns.m_col_short_name);
       pTreeView->append_column("Description", m_Columns.m_col_description);
+
+      Gtk::TreeView::Column * pColumn;
+
+      pColumn = pTreeView->get_column(0);
+      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_id);
+      
+      pColumn = pTreeView->get_column(1);
+      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_refcount);
+      
+      pColumn = pTreeView->get_column(2);
+      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_width);
+      
+      pColumn = pTreeView->get_column(3);
+      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_height);
+      
+      pColumn = pTreeView->get_column(4);
+      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_short_name);
+      
+      pColumn = pTreeView->get_column(5);
+      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_description);
+
     }
     
     lmodel_gate_template_set_t * ptr = lmodel->gate_template_set;
@@ -71,12 +94,18 @@ GateSelectWin::GateSelectWin(Gtk::Window *parent, logic_model_t * const lmodel) 
 	Gtk::TreeModel::Row row = *(refListStore->append()); 
 	
 	row[m_Columns.m_col_id] = ptr->gate->id;
+	row[m_Columns.m_col_refcount] = ptr->gate->reference_counter;
+	row[m_Columns.m_col_width] = ptr->gate->master_image_max_x - ptr->gate->master_image_min_x;
+	row[m_Columns.m_col_height] = ptr->gate->master_image_max_y - ptr->gate->master_image_min_y;
+
 	if(ptr->gate->short_name) row[m_Columns.m_col_short_name] = ptr->gate->short_name;
 	if(ptr->gate->description) row[m_Columns.m_col_description] = ptr->gate->description;
       }
       
       ptr = ptr->next;
     }
+
+    Glib::RefPtr<Gtk::TreeSelection> refTreeSelection =  pTreeView->get_selection();
   }
 }
 
@@ -85,27 +114,58 @@ GateSelectWin::~GateSelectWin() {
 }
 
 
-lmodel_gate_template_t * GateSelectWin::run() {
+lmodel_gate_template_t * GateSelectWin::get_single() {
+  lmodel_gate_template_t * result = NULL;
   pDialog->run();
+
+  if(ok_clicked == false) return NULL;
+
+  Glib::RefPtr<Gtk::TreeSelection> refTreeSelection =  pTreeView->get_selection();
+  Gtk::TreeModel::iterator iter = refTreeSelection->get_selected();
+  if(iter && *iter) {
+    Gtk::TreeModel::Row row = *iter; 
+    int obj_id = row[m_Columns.m_col_id];
+    result = lmodel_get_gate_template_by_id(lmodel, obj_id);
+    debug(TM, "selected single template: [%s]", result->short_name);
+
+  }
+
+  return result;
+}
+
+lmodel_gate_template_set_t * GateSelectWin::get_multiple() {
+  lmodel_gate_template_set_t * result = NULL;
+
+  Glib::RefPtr<Gtk::TreeSelection> refTreeSelection =  pTreeView->get_selection();
+
+  refTreeSelection->set_mode(Gtk::SELECTION_MULTIPLE);
+  pDialog->run();
+
+  if(ok_clicked == false) return NULL;
+
+  std::vector<Gtk::TreeModel::Path> pathlist = refTreeSelection->get_selected_rows();
+
+  for(std::vector<Gtk::TreeModel::Path>::iterator iter = pathlist.begin(); iter != pathlist.end(); ++iter) {
+    Gtk::TreeModel::Row row = *(refTreeSelection->get_model()->get_iter (*iter));
+
+    int obj_id = row[m_Columns.m_col_id];
+    lmodel_gate_template_t * tmpl = lmodel_get_gate_template_by_id(lmodel, obj_id);
+    debug(TM, "selected template: [%s]", tmpl->short_name);
+    
+    if(result == NULL) result  = lmodel_create_gate_template_set(tmpl);
+    else lmodel_add_gate_template_to_gate_template_set(result, tmpl, 0);
+  }
+  
   return result;
 }
 
 void GateSelectWin::on_ok_button_clicked() {
-  result = NULL;
-  Glib::RefPtr<Gtk::TreeSelection> refTreeSelection =  pTreeView->get_selection();
-  if(refTreeSelection) {
-    Gtk::TreeModel::iterator iter = refTreeSelection->get_selected();
-    if(iter && *iter) {
-      Gtk::TreeModel::Row row = *iter; 
-      int obj_id = row[m_Columns.m_col_id];
-      result = lmodel_get_gate_template_by_id(lmodel, obj_id);
-      pDialog->hide();
-    }
-  }
+  ok_clicked = true;
+  pDialog->hide();
 }
 
 void GateSelectWin::on_cancel_button_clicked() {
-  result = NULL;
+  ok_clicked = false;
   pDialog->hide();
 }
 

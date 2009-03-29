@@ -71,19 +71,23 @@ ret_t mm_alloc_memory(memory_map_t * map) {
  * be synced to disc and unmapped.
  */
 ret_t mm_destroy(memory_map_t * map) {
+  ret_t ret = RET_OK;
   assert(map);
   if(!map) return RET_INV_PTR;
 
   if(map->mem) {
 
     if(map->storage_type == MAP_STORAGE_TYPE_FILE) {
-      if((msync(map->mem, map->width * map->height  * map->bytes_per_elem, MS_SYNC) == -1) &&
-	 (munmap(map->mem, map->width * map->height * map->bytes_per_elem) == -1)) {
-	debug(TM, "munmap failed");
-
-	if(map->filename) free(map->filename);
-	return RET_ERR;
+      if(msync(map->mem, map->width * map->height  * map->bytes_per_elem, MS_SYNC) == -1) {
+	debug(TM, "msync() failed");
+	ret = RET_ERR;
       }
+
+      if(munmap(map->mem, map->width * map->height * map->bytes_per_elem) == -1) {
+	debug(TM, "munmap failed");
+	ret = RET_ERR;
+      }
+
       map->mem = NULL;
     }
     else if(map->storage_type == MAP_STORAGE_TYPE_MEM) {
@@ -97,14 +101,14 @@ ret_t mm_destroy(memory_map_t * map) {
   if(map->filename && map->is_temp_file) {
     if(unlink(map->filename) == -1) {
       debug(TM, "Can't unlink temp file");
-      return RET_ERR;
+      ret = RET_ERR;
     }
   }
 
   if(map->filename) free(map->filename);
 	
   free(map);
-  return RET_OK;
+  return ret;
 }
 
 
@@ -198,7 +202,12 @@ ret_t mm_map_file(memory_map_t * map, const char * const project_dir, const char
   if(filesize < map->width * map->height * map->bytes_per_elem) {
     filesize = map->width * map->height * map->bytes_per_elem;
     lseek(map->fd, filesize - 1, SEEK_SET);
-    write(map->fd, "\0", 1);
+    if(write(map->fd, "\0", 1) != 1) {
+      perror("can't open file");
+      free(map->filename);
+      map->filename = NULL;
+      return RET_ERR;
+    }
   }
 	
   // map the file into memory
@@ -240,7 +249,12 @@ ret_t mm_map_file_by_fd(memory_map_t * map, const char * const project_dir, int 
   if(filesize < map->width * map->height * map->bytes_per_elem) {
     filesize = map->width * map->height * map->bytes_per_elem;
     lseek(map->fd, filesize - 1, SEEK_SET);
-    write(map->fd, "\0", 1);
+    if(write(map->fd, "\0", 1) != 1) {
+      free(map->filename);
+      map->filename = NULL;
+      close(map->fd);
+      return RET_ERR;
+    }
   }
 	
   // map the file into memory

@@ -1,3 +1,16 @@
+degate (0.0.6) unstable; urgency=low
+
+  * improved grid configuration
+  * focus removed from quit button and set to image area
+  * connection inspector: sorted rows
+  * gate list / gate selection: sortable rows, more attributes displayed
+  * dedicated toolbar icons added
+  * open projects via command line
+  * bugfix in memory management: memory mapped files were not correctly deallocated
+  * more API documentation
+	
+ -- Martin Schobert <martin@weltregierung.de>  Wed, 30 Mar 2009 12:00:00 +0100
+
 degate (0.0.5) unstable; urgency=low
 
   * select gate ports

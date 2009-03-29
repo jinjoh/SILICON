@@ -18,9 +18,21 @@ class MainWin : public Gtk::Window  {
  public:
   MainWin();
   virtual ~MainWin();
-  void open_popup_menu(GdkEventButton * event);
-        
+  void open_project(Glib::ustring project_dir);
+  void set_project_to_open(char * project_dir);
+
  protected:
+  char * project_to_open;
+
+  void zoom_in(unsigned int center_x, unsigned int center_y);
+  void zoom_out(unsigned int center_x, unsigned int center_y);
+  void center_view(unsigned int center_x, unsigned int center_y, unsigned int layer);
+  void set_layer(unsigned int layer);
+
+  bool selected_objects_are_interconnectable();
+  bool selected_objects_are_removable();
+
+  void open_popup_menu(GdkEventButton * event);
 
   //Signal handlers:
   virtual void on_v_adjustment_changed();
@@ -37,23 +49,13 @@ class MainWin : public Gtk::Window  {
   virtual void on_menu_project_export_archive();
   virtual void on_menu_project_export_view();
   virtual void on_menu_project_export_layer();
+  virtual void on_menu_project_recent_projects();
   
   virtual void on_menu_view_zoom_in();
   virtual void on_menu_view_zoom_out();
   virtual void on_menu_view_next_layer();
   virtual void on_menu_view_prev_layer();
   virtual void on_menu_view_grid_config();
-
-  void zoom_in(unsigned int center_x, unsigned int center_y);
-  void zoom_out(unsigned int center_x, unsigned int center_y);
-  void center_view(unsigned int center_x, unsigned int center_y, unsigned int layer);
-  void set_layer(unsigned int layer);
-
-  virtual void on_menu_help_about();
-  virtual void on_menu_others();
-
-  bool selected_objects_are_interconnectable();
-  bool selected_objects_are_removable();
 
   // Layer menu
   virtual void on_menu_layer_import_background();
@@ -76,6 +78,8 @@ class MainWin : public Gtk::Window  {
   virtual void on_menu_gate_set();
   virtual void on_menu_gate_orientation();
   virtual void on_menu_gate_set_as_master();
+  virtual void on_menu_gate_remove_gate_by_type();
+  virtual void on_menu_gate_remove_gate_by_type_wo_master();
   
   // Tools menu
   virtual void on_menu_tools_select();
@@ -83,6 +87,10 @@ class MainWin : public Gtk::Window  {
   virtual void on_menu_tools_wire();
   virtual void on_menu_tools_via_up();
   virtual void on_menu_tools_via_down();
+
+  // Help menu
+  virtual void on_menu_help_about();
+  virtual void on_menu_others();
 
   virtual bool on_imgwin_clicked(GdkEventButton * event);
   void object_clicked(unsigned int real_x, unsigned int real_y);
@@ -98,6 +106,9 @@ class MainWin : public Gtk::Window  {
   bool on_key_press_event_received(GdkEventKey * event);
   bool on_key_release_event_received(GdkEventKey * event);
 
+  //virtual bool on_expose_event(GdkEventExpose * event);
+  bool on_idle();
+  
   //Child widgets:
 
   Gtk::VBox m_Box;
@@ -129,7 +140,7 @@ class MainWin : public Gtk::Window  {
 
   project_t * main_project;
   plugin_func_table_t * plugin_func_table;
-
+  ret_t plugin_func_ret_status;
 
  private:
   bool shift_key_pressed;
@@ -149,6 +160,7 @@ class MainWin : public Gtk::Window  {
   void on_popup_menu_set_port();
 
   void update_title();
+  void add_to_recent_menu();
 
   void set_menu_item_sensitivity(const Glib::ustring& widget_path, bool state);
   void set_toolbar_item_sensitivity(const Glib::ustring& widget_path, bool state);
@@ -178,6 +190,7 @@ class MainWin : public Gtk::Window  {
   void initialize_image_window();
   void initialize_menu_render_funcs();
   void initialize_menu_algorithm_funcs();
+  void set_image_for_toolbar_widget(Glib::ustring toolbar_widget_path, Glib::ustring file_name);
 
   void on_algorithms_func_clicked(int pos);
 
@@ -188,6 +201,9 @@ class MainWin : public Gtk::Window  {
 
   void error_dialog(const char * const title, const char * const message);
   void warning_dialog(const char * const title, const char * const message);
+
+  void remove_gate_by_type(GS_DESTROY_MODE destory_mode);
+
 };
 
 #endif

@@ -42,5 +42,6 @@ void debug(const char * const module, const char * const format, ...);
 #define debug(module, format, ...) ;
 #endif
 
+#define degate_mime_type "application/degate"
 
 #endif

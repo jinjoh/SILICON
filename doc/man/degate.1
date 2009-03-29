@@ -1,22 +1,25 @@
-.TH degate 1 "December 20, 2008" "Version 0.0.1"
+.TH degate 1 "December 20, 2008" "Version 0.0.6"
 .SH NAME
 degate \- reverse engineering of logic gates
 .SH SYNOPSIS
-.B degate
+.B degate [ project file | project directory]
 .SH DESCRIPTION
-Degates' purpose is to aid  reverse engineering of integrated circuits (ICs). Degate helps you to explore images from ICs. It matches logic gates  on the imagery given by graphical templates and it assists you in tracing circuit paths.
+Degates' purpose is to aid reverse engineering of integrated circuits (ICs). Degate helps you to explore images from ICs. It matches logic gates  on the imagery given by graphical templates and it assists you in tracing circuit paths.
 .PP
 Degate is not a completely automatic analyzing tool. Degate helps you with some automation in your manual reverse engineering process. 
 .SH ENVIRONMENT
 .TP
 DEGATE_HOME
 Path to files, that are used at runtime (usually /usr/share/degate). See FILES.
+.TP
+DEGATE_PLUGINS
+Path to the plugin directory (usually /usr/lib/degate). See FILES.
 .SH FILES
 .TP
 $DEGATE_HOME
 This directory contains files, that are used at runtime.
 .TP
-$DEGATE_HOME/plugins
+$DEGATE_PLUGINS
 Plugins for image analysis.
 .SH AUTHOR
 Martin Schobert <martin@weltregierung.de>

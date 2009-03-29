@@ -10,6 +10,7 @@ class ConnectionInspectorWin : public Gtk::Window {
   public:
     
     ConnectionInspectorModelColumns() { 
+
       add(m_col_id); 
       add(m_col_sub_id); 
       add(m_col_object_type_name); 
@@ -19,6 +20,8 @@ class ConnectionInspectorWin : public Gtk::Window {
 
       add(m_col_object_type);
       add(m_col_object_ptr);
+
+      add(color_);
     }
     
     Gtk::TreeModelColumn<int> m_col_id;
@@ -29,6 +32,8 @@ class ConnectionInspectorWin : public Gtk::Window {
 
     Gtk::TreeModelColumn<LM_OBJECT_TYPE> m_col_object_type;
     Gtk::TreeModelColumn<object_ptr_t * > m_col_object_ptr;
+    //Gtk::TreeModelColumn<Gdk::Color> color_; 
+    Gtk::TreeModelColumn<Glib::ustring> color_; 
 
   };
 

@@ -10,21 +10,23 @@ class TemplateMatchingParamsWin  {
 
  public:
   TemplateMatchingParamsWin(Gtk::Window *parent, 
-			    double threshold,
+			    double threshold_hc,
+			    double threshold_detection,
 			    unsigned int max_step_size_search,
 			    unsigned int max_step_size_xcorr);
   virtual ~TemplateMatchingParamsWin();
         
-  ret_t run(double * threshold,
+  ret_t run(double * threshold_hc,
+	    double * threshold_detection,
 	    unsigned int * max_step_size_search,
 	    unsigned int * max_step_size_xcorr);
 
  private:
-  double orig_threshold;
   Gtk::Window *parent;
   Gtk::Dialog* pDialog;
 
-  Gtk::HScale * hscale_threshold;
+  Gtk::HScale * hscale_threshold_hc;
+  Gtk::HScale * hscale_threshold_detection;
   Gtk::Entry * entry_step_size_search;
   Gtk::Entry * entry_step_size_xcorr;
 

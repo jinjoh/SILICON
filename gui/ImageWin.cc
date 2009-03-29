@@ -93,6 +93,7 @@ ImageWin::ImageWin() {
 	     Gdk::ALL_EVENTS_MASK);
 
   set_flags(Gtk::CAN_FOCUS);
+
 }
 
 
