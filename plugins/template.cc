@@ -603,7 +603,8 @@ void adjust_step_size( unsigned int * step_size_search, unsigned int * step_size
 }
 
 TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y, 
-				     unsigned int step_size_search, 
+				     unsigned int step_size_search,
+				     image_t * _template,
 				     unsigned int min_x, unsigned int max_x,
 				     unsigned int min_y, unsigned int max_y,
 				     template_matching_params_t * matching_params) {
@@ -657,14 +658,15 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
 	if(RET_IS_NOT_OK(lmodel_get_gate_in_region(matching_params->project->lmodel, 
 						   matching_params->placement_layer, 
 						   *x + min_x, *y + min_y, 
-						   *x + min_x + grid->dist_x, *y + min_y + step_size_search,
+						   *x + min_x + _template->width, 
+						   *y + min_y + _template->height,
 						   &gate))) return TEMPLATE_MATCHING_ERROR;
 	if(gate != NULL) {
 	  unsigned int gate_height = gate->max_y - gate->min_y;
 	  if(gate_height > step_size_search) gate_height -= step_size_search;
 	  debug(TM, "there is a gate skip y by %d", gate_height);
 	  *y += gate_height;
-	  return get_next_pos(x, y, step_size_search, min_x, max_x, min_y, max_y, matching_params);
+	  return get_next_pos(x, y, step_size_search, _template, min_x, max_x, min_y, max_y, matching_params);
 	}
 
       }
@@ -704,14 +706,15 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
 	if(RET_IS_NOT_OK(lmodel_get_gate_in_region(matching_params->project->lmodel, 
 						   matching_params->placement_layer, 
 						   *x + min_x, *y + min_y, 
-						   *x + min_x + step_size_search, *y + min_y + grid->dist_y, 
+						   *x + min_x + _template->width, 
+						   *y + min_y + _template->height, 
 						   &gate))) return TEMPLATE_MATCHING_ERROR;
 	if(gate != NULL) {
 	  unsigned int gate_width = gate->max_x - gate->min_x;
 	  if(gate_width > step_size_search) gate_width -= step_size_search;
 	  debug(TM, "there is a gate skip x by %d", gate_width);
 	  *x += gate_width;
-	  return get_next_pos(x, y, step_size_search, min_x, max_x, min_y, max_y, matching_params);
+	  return get_next_pos(x, y, step_size_search, _template, min_x, max_x, min_y, max_y, matching_params);
 	}
 
       }
@@ -778,7 +781,7 @@ ret_t imgalgo_run_template_matching(image_t * master,
   y = 0;
 
 
-  while((state = get_next_pos(&x, &y, step_size_search,
+  while((state = get_next_pos(&x, &y, step_size_search, _template,
 		     min_x, max_x, min_y, max_y, matching_params)) == TEMPLATE_MATCHING_CONTINUE) {
 
     if(mm_get_double(temp, x, y) == -1) continue;
