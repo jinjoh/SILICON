@@ -1,7 +1,8 @@
 #include "grid.h"
 #include <assert.h>
 
-ret_t snap_to_grid(grid_t * grid, unsigned int x_in, unsigned int y_in, unsigned int * x_out, unsigned int * y_out) {
+ret_t snap_to_grid(const grid_t * const grid, 
+		   unsigned int x_in, unsigned int y_in, unsigned int * x_out, unsigned int * y_out) {
 
   if(x_out == NULL && y_out == NULL) return RET_INV_PTR;
 	

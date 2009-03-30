@@ -648,10 +648,10 @@ void adjust_step_size( unsigned int * step_size_search, unsigned int * step_size
  */
 TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y, 
 				     unsigned int step_size_search,
-				     image_t * _template,
+				     const image_t * const _template,
 				     unsigned int min_x, unsigned int max_x,
 				     unsigned int min_y, unsigned int max_y,
-				     template_matching_params_t * matching_params) {
+				     const template_matching_params_t * const matching_params) {
   
   unsigned int width = max_x - min_x;
   unsigned int height = max_y - min_y;
@@ -670,13 +670,9 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
   }
   else if(matching_params->matching_mode == TEMPLATE_MATCHING_ALONG_GRID_COLS) {
 
-    grid_t * grid = &(matching_params->project->grid);
+    const grid_t * grid = &(matching_params->project->grid);
 
     if(grid->vertical_lines_enabled) {
-
-      //debug(TM, "d=%f w=%d        max_x=%d min_x=%d", grid->dist_x, width, max_x, min_x);
-      //assert(grid->dist_x < width);
-      //if(grid->dist_x >= width) return TEMPLATE_MATCHING_ERROR;
 
       if(*x == 0) { // start condition
 	debug(TM, "start conditions");
@@ -719,13 +715,9 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
   }
   else if(matching_params->matching_mode == TEMPLATE_MATCHING_ALONG_GRID_ROWS) {
 
-    grid_t * grid = &(matching_params->project->grid);
+    const grid_t * grid = &(matching_params->project->grid);
 
     if(grid->horizontal_lines_enabled) {
-
-      //debug(TM, "d=%d h=%d", grid->dist_y, height);
-      //assert(grid->dist_y < height);
-      //if(grid->dist_y >= height) return TEMPLATE_MATCHING_ERROR;
 
       if(*y == 0) { // start condition
 	debug(TM, "start conditions");
@@ -941,58 +933,16 @@ double imgalgo_calc_single_xcorr(image_t * master,
   
   unsigned int _x, _y;
   unsigned int factor =  step_size * step_size;
-  double nummerator1 = 0 /*, nummerator2 = 0 */;
+  double nummerator = 0;
 
-#define METHOD1
-
-#ifdef METHOD1
   for(_y = 0; _y < zero_mean_template->height; _y += step_size) {
     for(_x = 0; _x < zero_mean_template->width; _x += step_size) {
       double f_xy = gr_get_greyscale_pixval(master, _x + local_x, _y + local_y);
       double t_xy = mm_get_double(zero_mean_template, _x, _y);
-      nummerator1 += (f_xy * t_xy) * factor;
+      nummerator += (f_xy * t_xy) * factor;
       
     }
   }
-#endif
-
-  /*
-#ifdef METHOD2
-  double * map = (double *)alloca(zero_mean_template->height * zero_mean_template->width* sizeof(double));
-
-  for(_y = 0; _y < zero_mean_template->height; _y += step_size)
-    for(_x = 0; _x < zero_mean_template->width; _x += step_size) {
-      double f_xy = gr_get_greyscale_pixval(master, _x + local_x, _y + local_y);
-      double t_xy = mm_get_double(zero_mean_template, _x, _y);
-      map[_y * zero_mean_template->width + _x] = (f_xy * t_xy) * factor;
-    }
-
-  for(_y = 0; _y < zero_mean_template->height; _y += step_size)
-    for(_x = 0; _x < zero_mean_template->width; _x += step_size)
-      nummerator1 += map[_y * zero_mean_template->width + _x];
-#endif
-
-#ifdef METHOD3
-  double * map = (double *)alloca(zero_mean_template->height * zero_mean_template->width* sizeof(double));
-  double * i = map;
-
-  v4df a,b,c;
-  for(_y = 0; _y < zero_mean_template->height; _y += 2)
-    for(_x = 0; _x < zero_mean_template->width; _x += 2) {
-      
-      a.f[0] = gr_get_greyscale_pixval(master, _x + local_x, _y + local_y);
-
-      double f_xy = gr_get_greyscale_pixval(master, _x + local_x, _y + local_y);
-      double t_xy = mm_get_double(zero_mean_template, _x, _y);
-      (*i++) = (f_xy * t_xy) * factor;
-    }
-
-  for(i = map; i < map + zero_mean_template->height * zero_mean_template->width;)
-    nummerator2 += (*i++);
-#endif
   
-  //  assert(fabs( nummerator1 - nummerator2) < 0.0001);
-  */
-  
-  return nummerator1/denominator;
+  return nummerator/denominator;
 }
