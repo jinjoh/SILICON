@@ -41,6 +41,7 @@ class GateSelectWin  {
   Gtk::Window *parent;
   logic_model_t * lmodel;
   Gtk::Dialog* pDialog;
+  Gtk::Button* pOkButton;
 
   GateListModelColumns m_Columns;
   Glib::RefPtr<Gtk::ListStore> refListStore;
@@ -51,7 +52,7 @@ class GateSelectWin  {
   // Signal handlers:
   virtual void on_ok_button_clicked();
   virtual void on_cancel_button_clicked();
-
+  virtual void on_selection_changed();
 };
 
 #endif

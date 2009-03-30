@@ -49,10 +49,11 @@ GateSelectWin::GateSelectWin(Gtk::Window *parent, logic_model_t * const lmodel) 
     if(pButton)
       pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateSelectWin::on_cancel_button_clicked));
     
-    refXml->get_widget("ok_button", pButton);
-    if(pButton)
-      pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateSelectWin::on_ok_button_clicked) );
-  
+    refXml->get_widget("ok_button", pOkButton);
+    if(pOkButton) {
+      pOkButton->set_sensitive(false);
+      pOkButton->signal_clicked().connect(sigc::mem_fun(*this, &GateSelectWin::on_ok_button_clicked) );         
+    }
 
     refListStore = Gtk::ListStore::create(m_Columns);
   
@@ -60,7 +61,7 @@ GateSelectWin::GateSelectWin(Gtk::Window *parent, logic_model_t * const lmodel) 
     if(pTreeView) {
       pTreeView->set_model(refListStore);
       pTreeView->append_column("ID", m_Columns.m_col_id);
-      pTreeView->append_column("Reference Count", m_Columns.m_col_refcount);
+      pTreeView->append_column("#", m_Columns.m_col_refcount);
       pTreeView->append_column("Width", m_Columns.m_col_width);
       pTreeView->append_column("Height", m_Columns.m_col_height);
       pTreeView->append_column("Short Name", m_Columns.m_col_short_name);
@@ -86,6 +87,9 @@ GateSelectWin::GateSelectWin(Gtk::Window *parent, logic_model_t * const lmodel) 
       pColumn = pTreeView->get_column(5);
       if(pColumn) pColumn->set_sort_column(m_Columns.m_col_description);
 
+      Glib::RefPtr<Gtk::TreeSelection> refTreeSelection = pTreeView->get_selection();
+      refTreeSelection->signal_changed().connect(sigc::mem_fun(*this, &GateSelectWin::on_selection_changed));
+
     }
     
     lmodel_gate_template_set_t * ptr = lmodel->gate_template_set;
@@ -105,8 +109,13 @@ GateSelectWin::GateSelectWin(Gtk::Window *parent, logic_model_t * const lmodel) 
       ptr = ptr->next;
     }
 
-    Glib::RefPtr<Gtk::TreeSelection> refTreeSelection =  pTreeView->get_selection();
   }
+}
+
+
+void GateSelectWin::on_selection_changed() {
+  debug(TM, "sth. selected");
+  pOkButton->set_sensitive(true);
 }
 
 GateSelectWin::~GateSelectWin() {
