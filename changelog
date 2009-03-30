@@ -7,6 +7,7 @@ degate (0.0.6) unstable; urgency=low
   * dedicated toolbar icons added
   * open projects via command line
   * bugfix in memory management: memory mapped files were not correctly deallocated
+  * template matching: select multiple gate for matching
   * more API documentation
 	
  -- Martin Schobert <martin@weltregierung.de>  Wed, 30 Mar 2009 12:00:00 +0100

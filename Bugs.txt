@@ -1,11 +1,5 @@
 This is a list of known bugs:
 
-GUI:
-
-
-Template: matching:
-
-- overlapping matches
 
 Logic modell:
 

@@ -280,8 +280,7 @@ ret_t lmodel_destroy(logic_model_t * const lmodel) {
   if(lmodel->gate_template_set &&
      RET_IS_NOT_OK(ret = lmodel_destroy_gate_template_set(lmodel->gate_template_set, DESTROY_CHILDREN))) return ret;
 
-  if(lmodel->gate_set &&
-     RET_IS_NOT_OK(ret = lmodel_destroy_gate_set(lmodel->gate_set))) return ret;
+  if(lmodel->gate_set && RET_IS_NOT_OK(ret = lmodel_destroy_gate_set(lmodel->gate_set))) return ret;
   free(lmodel);
 
   return RET_OK;

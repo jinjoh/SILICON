@@ -68,7 +68,7 @@ GateListWin::GateListWin(Gtk::Window *parent, logic_model_t * lmodel) {
       if(pTreeView) {
 	pTreeView->set_model(refListStore);
 	pTreeView->append_column("ID", m_Columns.m_col_id);
-	pTreeView->append_column("Reference Count", m_Columns.m_col_refcount);
+	pTreeView->append_column("#", m_Columns.m_col_refcount);
 	pTreeView->append_column("Width", m_Columns.m_col_width);
 	pTreeView->append_column("Height", m_Columns.m_col_height);
 	pTreeView->append_column("Short Name", m_Columns.m_col_short_name);
