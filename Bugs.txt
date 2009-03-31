@@ -5,6 +5,11 @@ Logic modell:
 
 - combination of vertical and horizontal wires don't auto-join
   
+UI:
+
+- some toolbar widgets are not shown when using older gtk/gtkmm libraries.
+
+- join / select / highlighting problem
 
 Misc.
 

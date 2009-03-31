@@ -1429,21 +1429,39 @@ void MainWin::remove_gate_by_type(GS_DESTROY_MODE destroy_mode) {
   if(main_project != NULL) {
 
     GateSelectWin gsWin(this, main_project->lmodel);
-    lmodel_gate_template_t * tmpl = gsWin.get_single();
-    if(tmpl && tmpl->reference_counter > 0) {
-      Gtk::MessageDialog dialog(*this, "Are you sure you want to remove all gates by that type?", 
-				true, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_YES_NO);
-      dialog.set_title("Warning");
-      if(dialog.run() == Gtk::RESPONSE_YES) {
-	dialog.hide();
-	if(RET_IS_NOT_OK(lmodel_destroy_gates_by_template_type(main_project->lmodel, tmpl, destroy_mode))) {
+    lmodel_gate_template_set_t * tmpl_set = gsWin.get_multiple();
+    lmodel_gate_template_set_t * set_ptr = tmpl_set;
+    assert(tmpl_set != NULL);
+    if(tmpl_set == NULL) return;
+
+    Gtk::MessageDialog dialog(*this, "Are you sure you want to remove all gates by that type(s)?", 
+			      true, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_YES_NO);
+    dialog.set_title("Warning");
+    if(dialog.run() == Gtk::RESPONSE_YES) {
+      dialog.hide();
+
+      while(set_ptr != NULL) {
+	assert(set_ptr->gate != NULL);
+
+	if(set_ptr->gate != NULL &&
+	   RET_IS_NOT_OK(lmodel_destroy_gates_by_template_type(main_project->lmodel, 
+							       set_ptr->gate, 
+							       destroy_mode))) {
 	  error_dialog("Error", "Can't remove gate.");
 	}
-	imgWin.update_screen();
-	project_changed();
+
+	set_ptr = set_ptr->next;
       }
+
+      imgWin.update_screen();
+      project_changed();
     }
+
+    if(RET_IS_NOT_OK(lmodel_destroy_gate_template_set(tmpl_set, DESTROY_CONTAINER_ONLY)))
+      error_dialog("Error", "Can't destroy temporary data structure.");
+
   }
+
 }
 
 void MainWin::on_menu_gate_remove_gate_by_type_wo_master() {
@@ -1493,6 +1511,11 @@ void MainWin::on_menu_gate_set_as_master() {
 
     if(RET_IS_NOT_OK(lmodel_gate_template_set_master_region(tmpl, gate->min_x, gate->min_y, gate->max_x, gate->max_y))) {
       error_dialog("Error", "Cant set this gate as master template.");
+      return;
+    }
+
+    if(RET_IS_NOT_OK(lmodel_adjust_templates_port_locations(tmpl, orig_orient))) {
+      error_dialog("Error", "Can't adjust templates port locations.");
       return;
     }
 
@@ -1868,11 +1891,25 @@ void MainWin::on_popup_menu_set_port() {
       error_dialog("Error", "Unknown error.");
       return;
     }
-    if(obj_ptr == NULL || object_type != LM_TYPE_GATE) {
-      error_dialog("Error", "There is no gate. You may want to switch to the logic layer first.");
+
+    if(obj_ptr != NULL && object_type == LM_TYPE_GATE_PORT) {
+      // user clicked on an alredy placed gate port -> derive gate object from it
+      lmodel_gate_port_t * gate_port = (lmodel_gate_port_t *) obj_ptr;
+      object_type = LM_TYPE_GATE;
+      obj_ptr = gate_port->gate;
+    }
+
+    if(obj_ptr == NULL) {
+      error_dialog("Error", "There is no gate. Maybe you are not working on the logic layer?");
       return;
     }
-    assert(obj_ptr);
+
+    if(object_type != LM_TYPE_GATE) {
+      error_dialog("Error", "You clicked on something that is not a gate.");
+      return;
+    }
+
+    assert(obj_ptr != NULL);
 
     lmodel_gate_t * gate = (lmodel_gate_t *) obj_ptr;
     if(gate->gate_template == NULL) {

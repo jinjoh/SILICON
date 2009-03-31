@@ -8,5 +8,20 @@ template matching:
 
 UI:
 
-- The user should be able to select multiple template types for gate removal.
+- global color definition for ports by type, eg. 
+   "clk" = yellow
+   "clock" = yellow
+   "/clk" = green
+   "/clock" = green
+   "rst" = "red"
+   "/rst" = darkred
+   (light colors preferred)
+- colors for template types (dark colors preferred)
+
+- Cancel button and real progress for template matching
+
+- "Select all objects in region"
+- "Select all gates in region"
+- "Select all wires in region"
+- "Select all via in region"
 

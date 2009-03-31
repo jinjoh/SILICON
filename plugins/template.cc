@@ -408,7 +408,7 @@ ret_t raise_dialog_after(Gtk::Window * parent, plugin_params_t * pparams) {
   template_matching_params_t * matching_params = (template_matching_params_t *) pparams->data_ptr;
 
   if(matching_params->objects_added > 0) {
-    snprintf(str, sizeof(str), "I found %d objects and added %d objects into the logic model."
+    snprintf(str, sizeof(str), "I found %d objects and added %d objects into the logic model. "
 	     "The matching took %d seconds.", 
 	     matching_params->objects_added, matching_params->objects_added, matching_params->seconds);
   }

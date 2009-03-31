@@ -2537,13 +2537,57 @@ ret_t get_line_function_for_wire(lmodel_wire_t * wire, double * m, double * n) {
 }
 
 /**
+ * If you redefine the master for a gate, it is possible that your new master is not oriented the same way
+ * as your old master. But the new master needs to be oriented "normal". 
+ *
+ * The coordinates for a template port are relative to the upper left corner of a normal oriented template.
+ * @param tmpl is the template
+ * @param trans The transformation that must be applied to the coordinates of all ports.
+ */
+
+ret_t lmodel_adjust_templates_port_locations(lmodel_gate_template * const tmpl, 
+					     LM_TEMPLATE_ORIENTATION trans) {
+  assert(tmpl != NULL);
+  if(tmpl == NULL) return RET_INV_PTR;
+
+  unsigned int height = tmpl->master_image_max_y - tmpl->master_image_min_y;
+  unsigned int width = tmpl->master_image_max_x - tmpl->master_image_min_x;
+
+  lmodel_gate_template_port_t * port_ptr = tmpl->ports;
+  while(port_ptr != NULL) {
+
+    switch(trans) {
+    case LM_TEMPLATE_ORIENTATION_UNDEFINED:
+      return RET_ERR;
+    case LM_TEMPLATE_ORIENTATION_NORMAL:
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
+      port_ptr->relative_y_coord = height - port_ptr->relative_y_coord;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
+      port_ptr->relative_x_coord= width - port_ptr->relative_x_coord;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
+      port_ptr->relative_x_coord = width - port_ptr->relative_x_coord;
+      port_ptr->relative_y_coord = height - port_ptr->relative_y_coord;
+      break;
+    }
+    
+
+    port_ptr = port_ptr->next;
+  }
+  
+  return RET_OK;
+}
+
+/**
  * Check, if at (x,y) is a gate port.
  * @returns The function returns a pointer to the gate port. If there are invalid params or no gate or no gate port, the function returns NULL.
  * @param gate A gate with an assigned master template. The gate is somewhere placed on a layer.
  * @param x,y The x coordinate relative to the layer origin. If values are larger than layer's width or height, nothing will be found.
  */
 lmodel_gate_port_t * get_gate_port_at(const lmodel_gate_t * const gate, unsigned int x, unsigned int y) {
-  assert(gate);
+  assert(gate != NULL);
   if(gate == NULL) return NULL;
 
   if(x >= gate->min_x && x < gate->max_x &&
