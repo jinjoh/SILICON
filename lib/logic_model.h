@@ -332,6 +332,7 @@ ret_t lmodel_reset_gate_shape(lmodel_gate_t * gate);
 lmodel_gate_template_t * lmodel_get_gate_template_by_id(logic_model_t * const lmodel, unsigned int obj_id);
 
 
+int lmodel_gate_template_get_num_ports(const lmodel_gate_template_t * const tmpl);
 ret_t lmodel_gate_template_add_port(logic_model_t * lmodel, 
 				    lmodel_gate_template_t * const tmpl, const lmodel_gate_template_port_t * const port);
 ret_t lmodel_gate_template_set_port(logic_model_t * lmodel, 

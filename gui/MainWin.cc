@@ -527,8 +527,10 @@ void MainWin::set_image_for_toolbar_widget(Glib::ustring toolbar_widget_path, Gl
 
   Gtk::ToolButton* pToolbarItem;
   pToolbarItem = dynamic_cast<Gtk::ToolButton*>(m_refUIManager->get_widget(toolbar_widget_path));
-  Gtk::Image * m_ImageSelect = Gtk::manage(new Gtk::Image(path));
-  pToolbarItem->set_icon_widget(*m_ImageSelect);
+  if(pToolbarItem == NULL) return;
+  Gtk::Image * m_Image = Gtk::manage(new Gtk::Image(path));
+  if(m_Image == NULL) return;
+  pToolbarItem->set_icon_widget(*m_Image);
 }
 
 void MainWin::initialize_menu_algorithm_funcs() {
@@ -1337,7 +1339,6 @@ void MainWin::on_algorithm_finished(int slot_pos, plugin_params_t * plugin_param
   //signal_algorithm_finished_.disconnect();
   delete signal_algorithm_finished_;
 
-  imgWin.update_screen();
   project_changed();
 }
 
@@ -1857,7 +1858,7 @@ void MainWin::on_popup_menu_set_port() {
       return;
     }
     if(obj_ptr == NULL || object_type != LM_TYPE_GATE) {
-      error_dialog("Error", "There is no gate");
+      error_dialog("Error", "There is no gate. You may want to switch to the logic layer first.");
       return;
     }
     assert(obj_ptr);
@@ -1865,6 +1866,12 @@ void MainWin::on_popup_menu_set_port() {
     lmodel_gate_t * gate = (lmodel_gate_t *) obj_ptr;
     if(gate->gate_template == NULL) {
       error_dialog("Error", "Please define a template type for that gate.");
+      return;
+    }
+
+    // check, if the gate has defined ports
+    if(lmodel_gate_template_get_num_ports(gate->gate_template) == 0) {
+      error_dialog("Error", "Please define ports before you place them.");
       return;
     }
 

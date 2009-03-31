@@ -687,6 +687,22 @@ ret_t lmodel_gate_template_add_port(logic_model_t * lmodel,
   return RET_OK;
 }
 
+/**
+ * Get the number of defined ports for a gate template
+ */
+int lmodel_gate_template_get_num_ports(const lmodel_gate_template_t * const tmpl) {
+  int counter = 0;
+  assert(tmpl != NULL);
+  if(tmpl == NULL) return 0;
+
+  lmodel_gate_template_port_t * ptr = tmpl->ports;
+  while(ptr) {
+    counter++;
+    ptr = ptr->next;
+  }
+  return counter;
+}
+
 ret_t lmodel_gate_template_set_port(logic_model_t * lmodel,
 				    lmodel_gate_template_t * const tmpl, 
 				    unsigned int id, const char * const port_name, 
