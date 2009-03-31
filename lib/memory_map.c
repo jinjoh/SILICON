@@ -215,7 +215,7 @@ ret_t mm_map_file(memory_map_t * map, const char * const project_dir, const char
   // map the file into memory
   if((map->mem = (uint8_t *) MMAP(NULL, filesize,
 				  PROT_READ | PROT_WRITE, 
-				  MAP_FILE | MAP_SHARED, map->fd, 0)) == (void *)(-1)) {
+				  MAP_FILE | MAP_PRIVATE, map->fd, 0)) == (void *)(-1)) {
     perror("mmap failed");
     free(map->filename);
     map->filename = NULL;
@@ -266,7 +266,7 @@ ret_t mm_map_file_by_fd(memory_map_t * map, const char * const project_dir, int 
   // map the file into memory
   if((map->mem = (uint8_t *) MMAP(NULL, filesize,
 				  PROT_READ | PROT_WRITE, 
-				  MAP_FILE | MAP_SHARED, map->fd, 0)) == (void *)(-1)) {
+				  MAP_FILE | MAP_PRIVATE, map->fd, 0)) == (void *)(-1)) {
     perror("mmap failed");
     free(map->filename);
     map->filename = NULL;
