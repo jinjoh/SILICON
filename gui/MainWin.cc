@@ -1469,13 +1469,24 @@ void MainWin::on_menu_gate_set_as_master() {
       return;
     }
 
+    if(lmodel_gate_is_master(gate) == 1) {
+      error_dialog("Error", "The gate is already a master.");
+      return;      
+    }
+
     LM_TEMPLATE_ORIENTATION orig_orient = lmodel_get_gate_orientation(gate);
     if(orig_orient == LM_TEMPLATE_ORIENTATION_UNDEFINED) {
-      error_dialog("Error", "The gate orientation is undefined. Please define it. Set it at least to \"normal\".");
+      error_dialog("Error", "The gate orientation is undefined. Please define it.");
       return;
     }
 
-    if(RET_IS_NOT_OK(lmodel_set_gate_orientation(gate, orig_orient))) {
+    if(RET_IS_NOT_OK(lmodel_set_gate_orientation(gate, LM_TEMPLATE_ORIENTATION_NORMAL))) {
+      error_dialog("Error", "Can't reset gate's orientation to normal orientation.");
+      return;
+    }
+
+    if(RET_IS_NOT_OK(lmodel_adjust_gate_orientation_for_all_gates(main_project->lmodel, gate, 
+								  orig_orient))) {
       error_dialog("Error", "Can't adjust other gates orientation relative to the new master template.");
       return;
     }

@@ -2222,7 +2222,7 @@ lmodel_gate_t * lmodel_create_gate(logic_model_t * const lmodel,
 ret_t lmodel_add_gate(logic_model_t * const lmodel, int layer,
 		      lmodel_gate_t * gate) {
 
-
+  ret_t ret;
   quadtree_object_t * obj;
   CHECK(lmodel, layer);
   assert(gate);
@@ -2234,7 +2234,8 @@ ret_t lmodel_add_gate(logic_model_t * const lmodel, int layer,
 			       gate->max_x,
 			       gate->max_y);
 
-  if(!obj) return RET_ERR;
+  assert(obj != NULL);
+  if(obj == NULL) return RET_ERR;
   
   // add object to quadtree
   if(!quadtree_insert(lmodel->root[layer], obj)) {
@@ -2243,6 +2244,8 @@ ret_t lmodel_add_gate(logic_model_t * const lmodel, int layer,
     return RET_ERR;
   }
   
+  if(RET_IS_NOT_OK(ret = lmodel_update_gate_ports(gate))) return ret;
+
   // add to gate list
   return lmodel_add_gate_to_gate_set(lmodel, gate);
 
@@ -3045,6 +3048,11 @@ ret_t lmodel_set_gate_orientation(lmodel_gate_t * gate, LM_TEMPLATE_ORIENTATION 
     if(gate->template_orientation == LM_TEMPLATE_ORIENTATION_UNDEFINED) {
       gate->template_orientation = orientation;
     }
+    else if(gate->gate_template != NULL && 
+	    orientation == LM_TEMPLATE_ORIENTATION_NORMAL &&
+	    gate->gate_template->reference_counter == 1) {
+      gate->template_orientation = LM_TEMPLATE_ORIENTATION_NORMAL;
+    }
     else
       return RET_ERR;
   }
@@ -3060,6 +3068,78 @@ LM_TEMPLATE_ORIENTATION lmodel_get_gate_orientation(lmodel_gate_t * gate) {
   return gate->template_orientation;
 }
 
+LM_TEMPLATE_ORIENTATION lmodel_apply_transformation_chaining(LM_TEMPLATE_ORIENTATION trans1, 
+							     LM_TEMPLATE_ORIENTATION trans2) {
+  switch(trans1) {
+	  
+  case LM_TEMPLATE_ORIENTATION_UNDEFINED:
+    return LM_TEMPLATE_ORIENTATION_UNDEFINED;
+    break;
+	  
+  case LM_TEMPLATE_ORIENTATION_NORMAL:
+    return trans2;
+    break;
+	  
+  case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
+
+    switch(trans2) {
+    case LM_TEMPLATE_ORIENTATION_UNDEFINED:
+    case LM_TEMPLATE_ORIENTATION_NORMAL: 
+      return trans1;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
+      return LM_TEMPLATE_ORIENTATION_NORMAL;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
+      return LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
+      return LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT;
+      break;
+    }
+    break;
+
+  case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
+    switch(trans2) {
+    case LM_TEMPLATE_ORIENTATION_UNDEFINED:
+    case LM_TEMPLATE_ORIENTATION_NORMAL: 
+      return trans1;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
+      return LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
+      return LM_TEMPLATE_ORIENTATION_NORMAL;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
+      return LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN;
+      break;
+    }
+    break;
+
+  case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
+    switch(trans2) {
+    case LM_TEMPLATE_ORIENTATION_UNDEFINED:
+    case LM_TEMPLATE_ORIENTATION_NORMAL: 
+      return trans1;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
+      return LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
+      return LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN;
+      break;
+    case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
+      return LM_TEMPLATE_ORIENTATION_NORMAL;
+      break;
+    }
+    break;
+  default:
+    return LM_TEMPLATE_ORIENTATION_UNDEFINED;
+  }
+
+  return LM_TEMPLATE_ORIENTATION_UNDEFINED;
+}
 
 /**
  * Each gate "instance" is oriented relative to the master. If you set another gate instance
@@ -3088,68 +3168,9 @@ ret_t lmodel_adjust_gate_orientation_for_all_gates(logic_model_t * lmodel, lmode
 
     if(gate != except_for_gate) {
 
-      if(gate->gate_template) {
-	switch(gate->template_orientation) {
-	  
-	case LM_TEMPLATE_ORIENTATION_UNDEFINED:
-	  break;
-	  
-	case LM_TEMPLATE_ORIENTATION_NORMAL:
-	  gate->template_orientation = transformation;
-	  break;
-	  
-	case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
-
-	  switch(transformation) {
-	  case LM_TEMPLATE_ORIENTATION_UNDEFINED:
-	  case LM_TEMPLATE_ORIENTATION_NORMAL: break;
-	  case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
-	    gate->template_orientation = LM_TEMPLATE_ORIENTATION_NORMAL;
-	    break;
-	  case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
-	    gate->template_orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH;
-	    break;
-	  case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
-	    gate->template_orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT;
-	    break;
-	  }
-	  break;
-
-	case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
-	  switch(transformation) {
-	  case LM_TEMPLATE_ORIENTATION_UNDEFINED:
-	  case LM_TEMPLATE_ORIENTATION_NORMAL: break;
-	  case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
-	    gate->template_orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH;
-	    break;
-	  case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
-	    gate->template_orientation = LM_TEMPLATE_ORIENTATION_NORMAL;
-	    break;
-	  case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
-	    gate->template_orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN;
-	    break;
-	  }
-	  break;
-
-	case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
-	  switch(transformation) {
-	  case LM_TEMPLATE_ORIENTATION_UNDEFINED:
-	  case LM_TEMPLATE_ORIENTATION_NORMAL: break;
-	  case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
-	    gate->template_orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT;
-	    break;
-	  case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
-	    gate->template_orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN;
-	    break;
-	  case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
-	    gate->template_orientation = LM_TEMPLATE_ORIENTATION_NORMAL;
-	    break;
-	  }
-	  break;
-	default:
-	  return RET_ERR;
-	}
-      }
+      if(gate->gate_template != NULL)
+	gate->template_orientation = lmodel_apply_transformation_chaining(gate->template_orientation, transformation);
+      
     }
     
     gset_ptr = gset_ptr->next;

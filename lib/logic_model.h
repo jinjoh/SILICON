@@ -323,7 +323,8 @@ lmodel_gate_template_t * lmodel_get_template_for_gate(lmodel_gate_t * gate);
 
 ret_t lmodel_set_gate_orientation(lmodel_gate_t * gate, LM_TEMPLATE_ORIENTATION orientation);
 LM_TEMPLATE_ORIENTATION lmodel_get_gate_orientation(lmodel_gate_t * gate);
-
+LM_TEMPLATE_ORIENTATION lmodel_apply_transformation_chaining(LM_TEMPLATE_ORIENTATION trans1, 
+							     LM_TEMPLATE_ORIENTATION trans2);
 ret_t lmodel_adjust_gate_orientation_for_all_gates(logic_model_t * lmodel, lmodel_gate_t * except_for_gate, 
 						   LM_TEMPLATE_ORIENTATION transformation);
 
