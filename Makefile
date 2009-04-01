@@ -126,7 +126,8 @@ documentation:
 	doxygen Doxyfile
 
 run:
-	export DEGATE_HOME=.;export DEGATE_PLUGINS=plugins; ./degate
+	export DEGATE_HOME=.;export DEGATE_PLUGINS=plugins; \
+		gdb -x gdb_commands -q ./degate
 
 stats:
 	wc -l lib/*.[ch] gui/*.cc gui/*.h plugins/*.cc
