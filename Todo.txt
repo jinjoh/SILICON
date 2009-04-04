@@ -25,3 +25,11 @@ UI:
 - "Select all wires in region"
 - "Select all via in region"
 
+renderer:
+
+- draw strings to the left of a port, if there is space
+- linebreaked gate strings
+
+Misc:
+
+- use 

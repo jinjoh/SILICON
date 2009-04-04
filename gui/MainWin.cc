@@ -1431,7 +1431,7 @@ void MainWin::remove_gate_by_type(GS_DESTROY_MODE destroy_mode) {
     GateSelectWin gsWin(this, main_project->lmodel);
     lmodel_gate_template_set_t * tmpl_set = gsWin.get_multiple();
     lmodel_gate_template_set_t * set_ptr = tmpl_set;
-    assert(tmpl_set != NULL);
+
     if(tmpl_set == NULL) return;
 
     Gtk::MessageDialog dialog(*this, "Are you sure you want to remove all gates by that type(s)?", 
