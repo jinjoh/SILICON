@@ -29,7 +29,6 @@ LIBS=-lstdc++ -lc -lpthread -ldl \
 	`freetype-config --libs` \
 	`pkg-config --print-errors --libs $(LIB_NAMES)`
 
-
 LIB_OBJS=lib/grid.o \
 	lib/debug.o \
 	lib/plugins.o \
@@ -40,7 +39,8 @@ LIB_OBJS=lib/grid.o \
 	lib/logic_model.o \
 	lib/img_algorithms.o \
 	lib/renderer.o \
-	lib/project.o
+	lib/project.o \
+	lib/scaling_manager.o
 
 GUI_OBJS=gui/SplashWin.o \
 	gui/NewProjectWin.o \

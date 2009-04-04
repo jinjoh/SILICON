@@ -509,8 +509,6 @@ void MainWin::initialize_menu() {
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateOrientation", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", false);
-  //set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByType", false);
-  //set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByTypeWoMaster", false);
 
   initialize_menu_render_funcs();
   initialize_menu_algorithm_funcs();
@@ -520,16 +518,23 @@ void MainWin::initialize_menu() {
 
 }
 
-void MainWin::set_image_for_toolbar_widget(Glib::ustring toolbar_widget_path, Glib::ustring image_file_name) {
+void MainWin::set_image_for_toolbar_widget(Glib::ustring toolbar_widget_path, 
+					   Glib::ustring image_file_name) {
 
   char path[PATH_MAX];
-  snprintf(path, PATH_MAX, "%s/icons/%s", getenv("DEGATE_HOME"), image_file_name.c_str());
+  snprintf(path, PATH_MAX, "%s/icons/%s", 
+	   getenv("DEGATE_HOME"), image_file_name.c_str());
 
   Gtk::ToolButton* pToolbarItem;
   pToolbarItem = dynamic_cast<Gtk::ToolButton*>(m_refUIManager->get_widget(toolbar_widget_path));
+
+  assert(pToolbarItem != NULL);
   if(pToolbarItem == NULL) return;
+  
   Gtk::Image * m_Image = Gtk::manage(new Gtk::Image(path));
+  assert(m_Image != NULL);
   if(m_Image == NULL) return;
+
   pToolbarItem->set_icon_widget(*m_Image);
 }
 
@@ -784,9 +789,9 @@ void MainWin::on_menu_project_new() {
 
     switch(result) {
     case(Gtk::RESPONSE_OK):
-      if((project_init_directory(project_dir.c_str(), 0) == 0) ||
+      if(RET_IS_NOT_OK(project_init_directory(project_dir.c_str(), 0)) ||
 	 ((main_project = project_create(project_dir.c_str(), width, height, layers)) == NULL) ||
-	 (project_map_background_memfiles(main_project) == 0)) {
+	 RET_IS_NOT_OK(project_map_background_memfiles(main_project))) {
 
 	Gtk::MessageDialog dialog(*this, "Error: Can't create new project", true, Gtk::MESSAGE_ERROR);
 	dialog.set_title("Initialization of the new project failed.");
@@ -825,7 +830,10 @@ void MainWin::on_menu_project_close() {
     imgWin.set_current_layer(-1);
     imgWin.set_grid(NULL);
 
-    project_destroy(main_project);
+    if(RET_IS_NOT_OK(project_destroy(main_project))) {
+      error_dialog("Error", "Can't destroy project. This should not happen.");
+    }
+
     main_project = NULL;
     imgWin.update_screen();    
 
@@ -946,7 +954,7 @@ void MainWin::on_export_finished(bool success) {
 
 void MainWin::on_menu_project_save() {
   if(main_project) {
-    if(!project_save(main_project, imgWin.get_render_params())) {
+    if(RET_IS_NOT_OK(project_save(main_project))) {
       Gtk::MessageDialog dialog(*this, "Can't save project.", true, Gtk::MESSAGE_ERROR);
       dialog.set_title("Error");
       dialog.run();
@@ -2008,11 +2016,14 @@ void MainWin::on_popup_menu_set_alignment_marker(MARKER_TYPE marker_type) {
     // check if the marker is already stored
     if(amset_get_marker(main_project->alignment_marker_set, main_project->current_layer, 
 			marker_type) != NULL) {
-      Gtk::MessageDialog dialog(*this, "Marker already placed. Do you want to replace it?", true, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_YES_NO);
+      Gtk::MessageDialog dialog(*this, "Marker already placed. Do you want to replace it?", 
+				true, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_YES_NO);
       dialog.set_title("Warning");      
       if(dialog.run() == Gtk::RESPONSE_YES) {
-	if(amset_replace_marker(main_project->alignment_marker_set, main_project->current_layer, 
-				marker_type, last_click_on_real_x, last_click_on_real_y) == 0) {
+	if(RET_IS_NOT_OK(amset_replace_marker(main_project->alignment_marker_set, 
+					      main_project->current_layer, 
+					      marker_type, 
+					      last_click_on_real_x, last_click_on_real_y))) {
 	  Gtk::MessageDialog dialog(*this, "Error: Can't replace marker.", true, Gtk::MESSAGE_ERROR);
 	  dialog.set_title("Error");
 	  dialog.run();
@@ -2020,8 +2031,10 @@ void MainWin::on_popup_menu_set_alignment_marker(MARKER_TYPE marker_type) {
       }
     }
     else {
-      if(amset_add_marker(main_project->alignment_marker_set, main_project->current_layer, 
-			  marker_type, last_click_on_real_x, last_click_on_real_y) == 0) {
+      if(RET_IS_NOT_OK(amset_add_marker(main_project->alignment_marker_set, 
+					main_project->current_layer, 
+					marker_type, 
+					last_click_on_real_x, last_click_on_real_y))) {
 	Gtk::MessageDialog dialog(*this, "Error: Can't add marker.", true, Gtk::MESSAGE_ERROR);
 	dialog.set_title("Error");
 	dialog.run();
@@ -2362,8 +2375,8 @@ void MainWin::on_menu_layer_align() {
 
   if(scaling_x && scaling_y && shift_x && shift_y) {
 
-    if(amset_calc_transformation(main_project->alignment_marker_set,
-				 scaling_x, scaling_y, shift_x, shift_y)) {
+    if(RET_IS_OK(amset_calc_transformation(main_project->alignment_marker_set,
+					   scaling_x, scaling_y, shift_x, shift_y))) {
  
       ipWin = new InProgressWin(this, "Layer alignment", "Please wait while aligning layers.");
       ipWin->show();
@@ -2404,11 +2417,6 @@ void MainWin::layer_alignment_thread(double * scaling_x, double * scaling_y, int
     gr_scale_and_shift_in_place(main_project->bg_images[i],
 				scaling_x[i], scaling_y[i], 
 				shift_x[i], shift_y[i]);
-    // transform logic model images
-    /* XXX
-    mm_scale_and_shift_in_place(main_project->lmodel->root[i],
-				scaling_x[i], scaling_y[i], 
-				shift_x[i], shift_y[i]); */
   }
   signal_layer_alignment_finished_();  
 }
@@ -2427,8 +2435,10 @@ void MainWin::on_layer_alignment_finished(double * scaling_x, double * scaling_y
 #ifdef DEBUG
     amset_print(main_project->alignment_marker_set);
 #endif
-    amset_apply_transformation_to_markers(main_project->alignment_marker_set,
-					  scaling_x, scaling_y, shift_x, shift_y);
+    if(RET_IS_NOT_OK(amset_apply_transformation_to_markers(main_project->alignment_marker_set,
+							   scaling_x, scaling_y, shift_x, shift_y))) {
+      error_dialog("Error", "Can't apply transformation.");
+    }
 #ifdef DEBUG
     amset_print(main_project->alignment_marker_set);
 #endif
