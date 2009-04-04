@@ -91,6 +91,8 @@ ret_t gr_scale_and_shift_in_place(image_t *img,
 				  double scaling_x, double scaling_y, 
 				  unsigned int shift_x, unsigned int shift_y);
 
+ret_t gr_scale_image(image_t * src, image_t * dst);
+
 ret_t gr_flip_left_right(image_t * image);
 ret_t gr_flip_up_down(image_t * image);
 

@@ -31,23 +31,24 @@ alignment_marker_set_t * amset_create(unsigned int num_layers) {
   return set;
 }
 
-void amset_destroy(alignment_marker_set_t * set) {
+ret_t amset_destroy(alignment_marker_set_t * set) {
   assert(set != NULL);
   assert(set->markers != NULL);
+  if(set == NULL || set->markers == NULL) return RET_INV_PTR;
 
-  if(set != NULL) {
-    if(set->markers) {
-      int i;
-      for(i = 0; i < set->max_markers; i++)
-	if(set->markers[i] != NULL) {
-	  free(set->markers[i]);
-	  set->markers[i] = NULL;
-	}
-      free(set->markers);
-      set->markers = NULL;
+  int i;
+  for(i = 0; i < set->max_markers; i++)
+    if(set->markers[i] != NULL) {
+      free(set->markers[i]);
+      set->markers[i] = NULL;
     }
-    free(set);
-  }
+
+  free(set->markers);
+  set->markers = NULL;
+  memset(set, 0, sizeof(alignment_marker_set_t));
+  free(set);
+  
+  return RET_OK;
 }
 
 
@@ -75,11 +76,11 @@ alignment_marker_t * amset_get_marker(const alignment_marker_set_t * const set, 
 }
 
 
-int amset_add_marker(alignment_marker_set_t * set, unsigned int layer, 
+ret_t amset_add_marker(alignment_marker_set_t * set, unsigned int layer, 
 		     MARKER_TYPE marker_type,
 		     unsigned int x, unsigned int y) {
   int i;
-  if(!set || !set->markers) return 0;
+  if(!set || !set->markers) return RET_INV_PTR;
 
   if(amset_get_marker(set, layer, marker_type) == NULL) {
 
@@ -87,33 +88,33 @@ int amset_add_marker(alignment_marker_set_t * set, unsigned int layer,
     for(i = 0; i < set->max_markers; i++) {
       if(set->markers[i] == NULL) {
 	if((set->markers[i] = (alignment_marker_t *)malloc(sizeof(alignment_marker_t))) == NULL)
-	  return 0;
+	  return RET_ERR;
 	memset(set->markers[i], 0, sizeof(alignment_marker_t));
 	set->markers[i]->marker_type = marker_type;
 	set->markers[i]->layer = layer;
 	set->markers[i]->x = x;
 	set->markers[i]->y = y;
-	return 1;
+	return RET_OK;
       }
     }
   }
   
-  return 0;
+  return RET_ERR;
 }
 
-int amset_replace_marker(alignment_marker_set_t * set, unsigned int layer, 
+ret_t amset_replace_marker(alignment_marker_set_t * set, unsigned int layer, 
 			 MARKER_TYPE marker_type,
 			 unsigned int x, unsigned int y) {
   
-  if(!set || !set->markers) return 0;
+  if(!set || !set->markers) return RET_INV_PTR;
   alignment_marker_t * ptr_marker = amset_get_marker(set, layer, marker_type);
 
   if(ptr_marker != NULL) {
     ptr_marker->x = x;
     ptr_marker->y = y;
-    return 1;
+    return RET_OK;
   }
-  else return 0;
+  else return RET_ERR;
 }
 
 /**
@@ -189,13 +190,13 @@ MARKER_TYPE amset_mtype_str_to_mtype(const char * const marker_type_str) {
   else return MARKER_TYPE_UNDEF;
 }
 
-int amset_apply_transformation_to_markers(alignment_marker_set * const set,
+ret_t amset_apply_transformation_to_markers(alignment_marker_set * const set,
 					  double * const scaling_x, double * const scaling_y, 
 					  int * const shift_x, int * const shift_y) {
   
   int i;
 
-  if(!set || !(set->markers)) return 0;
+  if(set == NULL|| set->markers == NULL) return RET_INV_PTR;
 
   for(i = 0; i < set->max_markers; i++) {
     if(set->markers[i] != NULL) {
@@ -205,10 +206,10 @@ int amset_apply_transformation_to_markers(alignment_marker_set * const set,
     }
   }
 
-  return 1;
+  return RET_OK;
 }
 
-int amset_calc_transformation(const alignment_marker_set_t * const set,
+ret_t amset_calc_transformation(const alignment_marker_set_t * const set,
 			      double * const scaling_x, double * const scaling_y, 
 			      int * const shift_x, int * const shift_y) {
 
@@ -216,7 +217,7 @@ int amset_calc_transformation(const alignment_marker_set_t * const set,
 
   if(!set || !(set->markers)) {
     puts("amset_calc_transformation(): invalid params");
-    return 0;
+    return RET_ERR;
   }
 
   // preset scalings to 1 and shifts to 0
@@ -229,7 +230,7 @@ int amset_calc_transformation(const alignment_marker_set_t * const set,
 
   if(set->num_layers == 1) {
     puts("amset_calc_transformation(): only one layer");
-    return 1;
+    return RET_OK;
   }
 
 
@@ -246,7 +247,7 @@ int amset_calc_transformation(const alignment_marker_set_t * const set,
 
     if(!m1_up || !m2_up || !m1_down || !m2_down) {
       puts("amset_calc_transformation(): invalid marker pointer");
-      return 0;
+      return RET_ERR;
     }
 
     // lower layer
@@ -260,7 +261,7 @@ int amset_calc_transformation(const alignment_marker_set_t * const set,
     if(dist_x_lower == 0 || dist_x_upper == 0 ||
        dist_y_lower == 0 || dist_y_upper == 0) {
       puts("amset_calc_transformation(): ");
-      return 0;
+      return RET_ERR;
     }
        
     printf("\t lower layer %02d: distance between m1 and m2: x=%f  y=%f\n", i, dist_x_lower, dist_y_lower);
@@ -314,7 +315,7 @@ int amset_calc_transformation(const alignment_marker_set_t * const set,
 
     if(!m1_up || !m2_up || !m1_down || !m2_down) {
       puts("amset_calc_transformation(): invalid marker pointer");
-      return 0;
+      return RET_ERR;
     }
 
 
@@ -408,5 +409,5 @@ int amset_calc_transformation(const alignment_marker_set_t * const set,
       
   */
 
-  return 1;
+  return RET_OK;
 }

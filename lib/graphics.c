@@ -68,6 +68,7 @@ image_t * gr_create_image(unsigned int width, unsigned int height, IMAGE_TYPE im
   return ptr;
 }
 
+
 image_t * gr_create_memory_image(unsigned int width, unsigned int height, IMAGE_TYPE image_type) {
   image_t * img = gr_create_image(width, height, image_type);
   if(img != NULL) {
@@ -108,7 +109,8 @@ ret_t gr_image_destroy(image_t * img) {
  * @returns pointer to new image.
 */
 image_t * gr_extract_image(image_t * img,
-			   unsigned int min_x, unsigned int min_y, unsigned int width, unsigned int height) {
+			   unsigned int min_x, unsigned int min_y, 
+			   unsigned int width, unsigned int height) {
 
   assert(img != NULL);
   if(!img) return NULL;
@@ -139,7 +141,8 @@ image_t * gr_extract_image(image_t * img,
  * @returns pointer to new image.
 */
 image_t * gr_extract_image_as_gs(image_t * img,
-				 unsigned int min_x, unsigned int min_y, unsigned int width, unsigned int height) {
+				 unsigned int min_x, unsigned int min_y, 
+				 unsigned int width, unsigned int height) {
 
   assert(img != NULL);
   if(!img) return NULL;
@@ -195,7 +198,8 @@ ret_t gr_map_file(image_t * img, const char * const project_dir, const char * co
 /**
  * Use storage in opend file as storage for image data
  */
-ret_t gr_map_file_by_fd(image_t * img, const char * const project_dir, int fd, const char * const filename) {
+ret_t gr_map_file_by_fd(image_t * img, const char * const project_dir, 
+			int fd, const char * const filename) {
 	
   if(!img) return RET_INV_PTR;
   return mm_map_file_by_fd(img->map, project_dir, fd, filename);
@@ -423,9 +427,80 @@ ret_t gr_scale_and_shift_in_place(image_t *img,
 				double scaling_x, double scaling_y, 
 				unsigned int shift_x, unsigned int shift_y) {
 
+  // XXX: code should be placed here
   return mm_scale_and_shift_in_place(img->map, scaling_x, scaling_y, shift_x, shift_y);
 }
 
+
+#define P3(s) (s < 0 ? 0 : pow(s,3))
+#define CUBICAL_WEIGHTING(s) (1/6 * ( P3(s+2) - 4*P3(s+1) + 6*P3(s) - 4*P3(s-1)))
+
+uint8_t ROUND_AND_CHECK_LIMITS(double val) {
+  int v = rint(val);
+  if(v > 255) return 255;
+  else if(v < 0) return 0;
+  else return v;
+}
+
+/**
+ * Scale a source image to destination image. The function implements a bicubic interpolation.
+ * 
+ */
+
+ret_t gr_scale_image(image_t * src, image_t * dst) {
+  assert(src != NULL);
+  assert(dst != NULL);
+  assert(src->image_type == IMAGE_TYPE_RGBA);
+  assert(dst->image_type == IMAGE_TYPE_RGBA);
+  if(src == NULL || dst == NULL) return RET_INV_PTR;
+  if(src->image_type != IMAGE_TYPE_RGBA || dst->image_type != IMAGE_TYPE_RGBA) {
+    debug(TM, "scaling of not RGBA type images is not implemented");
+    return RET_ERR;
+  }
+
+  unsigned int dst_x, dst_y;
+  double scaling_x = src->width / dst->width;
+  double scaling_y = src->height / dst->height;
+
+  for(dst_y = 0; dst_y < dst->height; dst_y++) {
+    double src_y = (double)dst_y/ scaling_y;
+    int src_j = lrint(src_y);
+    double src_dy = src_y - src_j;
+
+    for(dst_x = 0; dst_x < dst->width - 1; dst_x++) {
+      double src_x = (double)dst_x / scaling_x;
+      int src_i = lrint(src_x);
+      double src_dx = src_x - src_i;
+      
+      int m, n;
+      double F_dsti_dstj_R = 0;
+      double F_dsti_dstj_G = 0;
+      double F_dsti_dstj_B = 0;
+      double F_dsti_dstj_A = 0;
+      for(m = -1; m <= 2; m++)
+	for(n = -1; n <= 2; n++) {
+
+	  uint32_t pix = 0;
+	  if(src_x > 1 && src_y > 1) pix = gr_get_pixval(src, src_x + m, src_y + n);
+	  
+	  double weight = 
+	    CUBICAL_WEIGHTING((double)m - src_dx) * 
+	    CUBICAL_WEIGHTING(src_dy - (double)n);
+
+	  F_dsti_dstj_R += MASK_R(pix) * weight;
+	  F_dsti_dstj_G += MASK_G(pix) * weight;
+	  F_dsti_dstj_B += MASK_B(pix) * weight;
+	  F_dsti_dstj_A += MASK_A(pix) * weight;	    
+	}
+
+      gr_set_pixval(dst, dst_x, dst_y, MERGE_CHANNELS(ROUND_AND_CHECK_LIMITS(F_dsti_dstj_R),
+						      ROUND_AND_CHECK_LIMITS(F_dsti_dstj_G),
+						      ROUND_AND_CHECK_LIMITS(F_dsti_dstj_B),
+						      ROUND_AND_CHECK_LIMITS(F_dsti_dstj_A) ));
+    }
+  }
+ 
+}
 
 /** In-place flipping of RBGA an GS images. */
 ret_t gr_flip_up_down(image_t * img) {

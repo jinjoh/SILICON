@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <libconfig.h>
+#include <assert.h>
 
 #include "project.h"
 #include "renderer.h"
@@ -53,7 +54,13 @@ project_t * project_create(const char * const project_dir, unsigned int width, u
   ptr->pin_diameter = 4;
   ptr->lambda = 4;
   ptr->wire_diameter = ptr->pin_diameter;
-  
+
+  if((ptr->scaling_manager = scalmgr_create(num_layers, ptr->bg_images,
+					    project_dir)) == NULL) {
+    project_destroy(ptr);
+    return NULL;
+  }
+
   if((ptr->alignment_marker_set = amset_create(num_layers)) == NULL) {
     project_destroy(ptr);
     return NULL;
@@ -61,66 +68,92 @@ project_t * project_create(const char * const project_dir, unsigned int width, u
   return ptr;
 }
 
-void project_destroy(project_t * project) {
+/** 
+ * Destroy a project and all objects that are referenced within a project. This includes
+ * images and the logic model.
+ */
+ret_t project_destroy(project_t * project) {
+  ret_t ret;
   int i;
-  if(project->project_dir) free(project->project_dir);
-  lmodel_destroy(project->lmodel);
-  for(i = 0; i < project->num_layers; i++) {
-    if(project->bg_images[i]) gr_image_destroy(project->bg_images[i]);
-  }
-  amset_destroy(project->alignment_marker_set);
+
+  assert(project != NULL);
+  if(project == NULL) return RET_INV_PTR;
+
+  if(project->project_dir != NULL) free(project->project_dir);
+  if(project->lmodel != NULL) 
+    if(RET_IS_NOT_OK(ret = lmodel_destroy(project->lmodel))) return ret;
   
+ for(i = 0; i < project->num_layers; i++) {
+   if(project->bg_images[i] != NULL) 
+     if(RET_IS_NOT_OK(ret = gr_image_destroy(project->bg_images[i]))) return ret;
+  }
+
+  if(project->alignment_marker_set != NULL)
+    if(RET_IS_NOT_OK(ret = amset_destroy(project->alignment_marker_set))) return ret;
+  
+  if(project->scaling_manager != NULL) 
+    if(RET_IS_NOT_OK(ret = scalmgr_destroy(project->scaling_manager))) return ret;
+
   memset(project, 0, sizeof(project_t));
   free(project);
+  return RET_OK;
 }
 
-int project_map_background_memfiles(project_t * const project) {
+ret_t project_map_background_memfiles(project_t * const project) {
   int i;
+  ret_t ret;
 
+  assert(project != NULL);
+  assert(project->project_dir != NULL);
+  assert(project->bg_images != NULL);
+  if(project == NULL || project->project_dir == NULL || project->bg_images == NULL) 
+    return RET_INV_PTR;
+  
   for(i = 0; i < project->num_layers; i++) {
     char bg_mapping_filename[PATH_MAX];
     snprintf(bg_mapping_filename, sizeof(bg_mapping_filename), "bg_layer_%02d.dat", i);
-    if(!RET_IS_OK(gr_map_file(project->bg_images[i],  project->project_dir, bg_mapping_filename))) {
+    if(!RET_IS_OK(ret = gr_map_file(project->bg_images[i],  
+				    project->project_dir, bg_mapping_filename))) {
       puts("mapping failed");
-      return 0;
+      return ret;
     }
   }
-  return 1;
+  return RET_OK;
 }
 
 #define TEMPLATE_DAT_HEADER "# foo"
 #define TEMPLATE_PLACEMENT_DAT_HEADER "# bar"
 
-int project_init_directory(const char * const directory, int enable_mkdir) {
+ret_t project_init_directory(const char * const directory, int enable_mkdir) {
   char filename[PATH_MAX];
-  FILE * f;
+  FILE * f = NULL;
 	
-  if(!directory) return 0;
+  if(directory == NULL) return RET_INV_PTR;
 	
-  if(enable_mkdir && (mkdir(directory, 0600) == -1)) return 0;
+  if(enable_mkdir && (mkdir(directory, 0600) == -1)) return RET_ERR;
 
   snprintf(filename, sizeof(filename), "%s/%s", directory, TEMPLATES_DAT);
-  if((f = fopen(filename, "w+")) == NULL) return 0;
+  if((f = fopen(filename, "w+")) == NULL) return RET_ERR;
 
   if(fwrite(TEMPLATE_DAT_HEADER, 1, sizeof(TEMPLATE_DAT_HEADER), f) != sizeof(TEMPLATE_DAT_HEADER)) {
     fclose(f);
-    return 0;
+    return RET_ERR;
   }
 
   fclose(f);
 
   snprintf(filename, sizeof(filename), "%s/%s", directory, TEMPLATE_PLACEMENT_DAT);
-  if((f = fopen(filename, "w+")) == NULL) return 0;
+  if((f = fopen(filename, "w+")) == NULL) return RET_ERR;
 
   if(fwrite(TEMPLATE_PLACEMENT_DAT_HEADER, 1, sizeof(TEMPLATE_PLACEMENT_DAT_HEADER), f) != 
      sizeof(TEMPLATE_PLACEMENT_DAT_HEADER)) {
     fclose(f);
-    return 0;
+    return RET_ERR;
   }
 
   fclose(f);
 	
-  return 1;
+  return RET_OK;
 }
 
 #define PROJECT_READ_INT(name, variable) \
@@ -182,9 +215,16 @@ project_t * project_load(const char * const project_dir) {
   PROJECT_READ_INT("height", height);
   PROJECT_READ_INT("num_layers", num_layers);
 
-  if((project = project_create(base_dir, width, height, num_layers)) == NULL) return NULL;
+  if((project = project_create(base_dir, width, height, num_layers)) == NULL) {
+    config_destroy(&cfg);
+    return NULL;
+  }
 
-  project_map_background_memfiles(project);
+  if(RET_IS_NOT_OK(project_map_background_memfiles(project))) {
+    config_destroy(&cfg);
+    project_destroy(project);
+    return NULL;
+  }
 
   PROJECT_READ_INT("lambda", project->lambda);
   PROJECT_READ_INT("pin_diameter", project->pin_diameter);
@@ -202,6 +242,7 @@ project_t * project_load(const char * const project_dir) {
   if((setting = config_lookup(&cfg, "layer_type")) == NULL) {
     printf("can't read config item layer_type\n");
     config_destroy(&cfg);
+    project_destroy(project);
     return NULL;
   }
   else {
@@ -210,12 +251,14 @@ project_t * project_load(const char * const project_dir) {
       const char * layer_type_str = config_setting_get_string_elem(setting, i);
       if(!layer_type_str) {
 	config_destroy(&cfg);
+	project_destroy(project);
 	return NULL;
       }
       else {
 	if(!RET_IS_OK(lmodel_set_layer_type_from_string(project->lmodel, i, layer_type_str))) {
 	  puts("can't convert");
 	  config_destroy(&cfg);
+	  project_destroy(project);
 	  return NULL;
 	}
       }
@@ -226,6 +269,7 @@ project_t * project_load(const char * const project_dir) {
   if((setting = config_lookup(&cfg, "alignment_marker_set")) == NULL) {
     printf("can't read config item alignment_marker_set\n");
     config_destroy(&cfg);
+    project_destroy(project);
     return NULL;
   }
   else {
@@ -236,10 +280,11 @@ project_t * project_load(const char * const project_dir) {
       long x = config_setting_get_int_elem(setting, i+2);
       long y = config_setting_get_int_elem(setting, i+3);
 
-      if(!amset_add_marker(project->alignment_marker_set, layer,
-			   amset_mtype_str_to_mtype(marker_type_str), x, y)) {
+      if(RET_IS_NOT_OK(amset_add_marker(project->alignment_marker_set, layer,
+					amset_mtype_str_to_mtype(marker_type_str), x, y))) {
 	printf("can't add marker\n");
 	config_destroy(&cfg);
+	project_destroy(project);
 	return NULL;
       }
     }
@@ -251,12 +296,21 @@ project_t * project_load(const char * const project_dir) {
 
   if(RET_IS_NOT_OK(lmodel_load_files(project->lmodel, base_dir, num_layers))) {
     debug(TM, "Can't load logic model data from file");
+    project_destroy(project);
     return NULL;
   }
 
 
+  if(RET_IS_NOT_OK(scalmgr_set_scalings(project->scaling_manager, 4, 1))) {
+    project_destroy(project);
+    return NULL;
+  }
+
   // cleanup directory
-  if(RET_IS_NOT_OK(project_cleanup(base_dir))) return NULL;
+  if(RET_IS_NOT_OK(project_cleanup(base_dir))) {
+    project_destroy(project);
+    return NULL;
+  }
 
   return project;
 		
@@ -267,7 +321,7 @@ project_t * project_load(const char * const project_dir) {
   if((setting = config_setting_add(_group, name, CONFIG_TYPE_INT)) == NULL) { \
     printf("Error in project_save(): can't store %s = %d\n", name, value); \
     config_destroy(&cfg); \
-    return 0; \
+    return RET_ERR; \
   } \
   else { \
     config_setting_set_int(setting, value); \
@@ -277,7 +331,7 @@ project_t * project_load(const char * const project_dir) {
   if((setting = config_setting_add(_group, name, CONFIG_TYPE_FLOAT)) == NULL) { \
     printf("Error in project_save(): can't store %s = %f\n", name, value); \
     config_destroy(&cfg); \
-    return 0; \
+    return RET_ERR; \
   } \
   else { \
     printf("project_save(): store %s = %f\n", name, value); \
@@ -286,10 +340,13 @@ project_t * project_load(const char * const project_dir) {
 
 
 
-int project_save(const project_t * const project, const render_params_t * const render_params) {
+ret_t project_save(const project_t * const project) {
   struct config_t cfg;
   config_setting_t *setting = NULL, *group = NULL, *array = NULL;
   char filename[PATH_MAX];
+  
+  assert(project != NULL);
+  if(project == NULL) return RET_INV_PTR;
 
   config_init(&cfg);
   snprintf(filename, sizeof(filename), "%s/%s", project->project_dir, PROJECT_FILE);
@@ -305,7 +362,7 @@ int project_save(const project_t * const project, const render_params_t * const 
   // store grid
   if((group = config_setting_add(cfg.root, "grid", CONFIG_TYPE_GROUP)) == NULL) {
     config_destroy(&cfg);
-    return 0;    
+    return RET_ERR;
   }
   PROJECT_STORE_INT(group, "offset_x", project->grid.offset_x);
   PROJECT_STORE_INT(group, "offset_y", project->grid.offset_y);
@@ -316,12 +373,12 @@ int project_save(const project_t * const project, const render_params_t * const 
 
 
   // store layer types
-  if(render_params && render_params->lmodel && render_params->lmodel->layer_type) {
+  if(project->lmodel != NULL && project->lmodel->layer_type != NULL) {
     int i;
     if((array = config_setting_add(cfg.root, "layer_type", CONFIG_TYPE_ARRAY)) == NULL) {
       puts("can't add node");
       config_destroy(&cfg);
-      return 0;    
+      return RET_ERR;
     }
     
     for(i = 0; i < project->num_layers; i++) {
@@ -331,11 +388,12 @@ int project_save(const project_t * const project, const render_params_t * const 
       if((config_setting_set_string_elem(array, -1, layer_type_str)) == NULL) {
 	puts("can't add value");
 	config_destroy(&cfg);
-	return 0;    
+	return RET_ERR;
       }
     }
-    
+   
   }
+  else return RET_ERR;
 
   // store alignment markers
   if(project->alignment_marker_set && project->alignment_marker_set->markers) {
@@ -343,7 +401,7 @@ int project_save(const project_t * const project, const render_params_t * const 
     if((array = config_setting_add(cfg.root, "alignment_marker_set", CONFIG_TYPE_LIST)) == NULL) {
       puts("can't add node");
       config_destroy(&cfg);
-      return 0;    
+      return RET_ERR;    
     }
     for(i = 0; i < project->alignment_marker_set->max_markers; i++) {
       alignment_marker_t * marker = project->alignment_marker_set->markers[i];
@@ -358,23 +416,23 @@ int project_save(const project_t * const project, const render_params_t * const 
 	  puts("can't add value");
 	  config_destroy(&cfg);
 	  free(mtype_str);
-	  return 0;    
+	  return RET_ERR;
 	}
 	free(mtype_str);
 
       }
     }
   }
-
+  
   config_write_file(&cfg, filename);
   config_destroy(&cfg);
 
   if(RET_IS_NOT_OK(lmodel_serialize_to_file(project->lmodel, project->project_dir))) {
     debug(TM, "Can't save logic model.");
-    return 0;
+    return RET_ERR;
   }
 
-  return 1;
+  return RET_OK;
 }
 
 
