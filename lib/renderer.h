@@ -94,6 +94,7 @@ struct renderer {
   int rendering_enabled[MAX_RENDERER_LAYER];
   char * names[MAX_RENDERER_LAYER];
 
+  // for font rendering
   FT_Library library;
   FT_Face face;
   FT_GlyphSlot slot;
@@ -101,9 +102,8 @@ struct renderer {
   // x/y-positions are only stored to check, if we have to recalculate the step-arrays
   unsigned int last_screen_width, last_screen_height;
   unsigned int last_map_width, last_map_height;
+  double last_rel_scaling_x, last_rel_scaling_y;
   unsigned int * x_steps, * y_steps;
-  double scaling_x;
-  double scaling_y;
 
   int num; // number of rendering layers
 };

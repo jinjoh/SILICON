@@ -61,4 +61,6 @@ ret_t scalmgr_unmap_files_for_layer(scaling_manager_t * sm, unsigned int layer);
 unsigned int scalmgr_get_max_zoom_in_factor(scaling_manager_t * sm);
 unsigned int scalmgr_get_max_zoom_out_factor(scaling_manager_t * sm);
 
+ret_t scalmgr_recreate_scalings(scaling_manager_t * sm);
+
 #endif

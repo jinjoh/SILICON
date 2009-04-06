@@ -2251,6 +2251,10 @@ void MainWin::background_import_thread(Glib::ustring bg_filename) {
 				 0, 0, bg_filename.c_str()))) {
     debug(TM, "Can't import image file");
   }
+  else {
+    if(RET_IS_NOT_OK(scalmgr_recreate_scalings(main_project->scaling_manager)))
+      debug(TM, "Can't recreate scaled images.");
+  }
 
   signal_bg_import_finished_();
 }

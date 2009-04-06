@@ -115,9 +115,9 @@ image_t * scalmgr_get_image(scaling_manager_t * sm, unsigned int layer, double s
   image_list_t * ptr = NULL;
 
   if(scaling < 1) { // zoom in
-    debug(TM, "zoom factor is %d", lrint(1.0/scaling));
+    //debug(TM, "zoom factor is %d", lrint(1.0/scaling));
     factor = get_nearest_power_of_two(lrint(1.0/scaling));
-    debug(TM, "zoom factor -> %d", factor);
+    //debug(TM, "zoom factor -> %d", factor);
     if(factor > sm->zoom_in_factor) factor = sm->zoom_in_factor;
     ptr = sm->zoom_in_images;
   }
@@ -129,13 +129,13 @@ image_t * scalmgr_get_image(scaling_manager_t * sm, unsigned int layer, double s
   else factor = 1;
 
   if(factor == 1) {
-    debug(TM, "return normal image");
+    //debug(TM, "return normal image");
     assert(sm->bg_images[layer] != NULL);
     *scaling_found = 1;
     return sm->bg_images[layer];
   }
   
-  debug(TM, "looking for image on layer %d with scaling of %d", layer, factor);
+  //debug(TM, "looking for image on layer %d with scaling of %d", layer, factor);
   while(ptr != NULL) {
     if(ptr->layer == layer && ptr->zoom == factor) {
 
@@ -185,13 +185,15 @@ ret_t scalmgr_destroy_scalings(scaling_manager_t * sm) {
 
   
   if(sm->zoom_out_factor >= 2) {
-    if(RET_IS_NOT_OK(ret = scalmgr_destroy_image_list(sm->zoom_out_images))) return ret;
+    if(sm->zoom_out_images != NULL && 
+       RET_IS_NOT_OK(ret = scalmgr_destroy_image_list(sm->zoom_out_images))) return ret;
     sm->zoom_out_images = NULL;
     sm->zoom_in_factor = 1;
   }
 
   if(sm->zoom_in_factor >= 2) {
-    if(RET_IS_NOT_OK(ret = scalmgr_destroy_image_list(sm->zoom_in_images))) return ret;
+    if(sm->zoom_in_images != NULL &&
+       RET_IS_NOT_OK(ret = scalmgr_destroy_image_list(sm->zoom_in_images))) return ret;
     sm->zoom_in_images = NULL;
     sm->zoom_out_factor = 1;
   }
@@ -354,6 +356,34 @@ ret_t scalmgr_unmap_files_for_layer(scaling_manager_t * sm, unsigned int layer) 
   return RET_OK;
 }
 
+
+/**
+ * Recreate scaled images.
+ */
+ret_t scalmgr_recreate_scalings(scaling_manager_t * sm) {
+  ret_t ret;
+  assert(sm != NULL);
+  assert(sm->bg_images[0] != NULL);
+  if(sm == NULL || sm->bg_images[0] == NULL) return RET_INV_PTR;
+
+  // destroy current scaled images
+  if(RET_IS_NOT_OK(ret = scalmgr_destroy_scalings(sm))) return ret;
+
+  // create new scaling
+
+  if(RET_IS_NOT_OK(ret = scalmgr_create_scalings(sm, sm->zoom_out_factor, 
+						 ZOOM_OUT, &(sm->zoom_out_images)))) {
+    return ret;
+  }
+
+  if(RET_IS_NOT_OK(ret = scalmgr_create_scalings(sm, sm->zoom_in_factor, 
+						 ZOOM_IN, &(sm->zoom_in_images)))) {
+    return ret;
+  }
+
+  return RET_OK;
+}
+
 /** 
  * Define the scalings.
  */
@@ -368,26 +398,10 @@ ret_t scalmgr_set_scalings(scaling_manager_t * sm, unsigned int zoom_out_factor,
   if(sm == NULL || sm->bg_images[0] == NULL) return RET_INV_PTR;
   if(zoom_out_factor == 0 || zoom_in_factor == 0) return RET_ERR;
 
-  // destroy current scaled images
-  if(RET_IS_NOT_OK(ret = scalmgr_destroy_scalings(sm))) return ret;
-
-  // create new scaling
-
-  if(RET_IS_NOT_OK(ret = scalmgr_create_scalings(sm, zoom_out_factor, 
-						 ZOOM_OUT, &(sm->zoom_out_images)))) {
-    return ret;
-  }
-
-  if(RET_IS_NOT_OK(ret = scalmgr_create_scalings(sm, zoom_in_factor, 
-						 ZOOM_IN, &(sm->zoom_in_images)))) {
-    return ret;
-  }
-  
   sm->zoom_in_factor = zoom_in_factor;
   sm->zoom_out_factor = zoom_out_factor;
 
-  return RET_OK;
-
+  return scalmgr_recreate_scalings(sm);
 }
 
 /**
