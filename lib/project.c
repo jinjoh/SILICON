@@ -1,3 +1,24 @@
+/*                                                                              
+                                                                                
+This file is part of the IC reverse engineering tool degate.                    
+                                                                                
+Copyright 2008, 2009 by Martin Schobert                                         
+                                                                                
+Degate is free software: you can redistribute it and/or modify                  
+it under the terms of the GNU General Public License as published by            
+the Free Software Foundation, either version 3 of the License, or               
+any later version.                                                              
+                                                                                
+Degate is distributed in the hope that it will be useful,                       
+but WITHOUT ANY WARRANTY; without even the implied warranty of                  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   
+GNU General Public License for more details.                                    
+                                                                                
+You should have received a copy of the GNU General Public License               
+along with degate. If not, see <http://www.gnu.org/licenses/>.                  
+                                                                                
+*/
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <limits.h>
@@ -15,8 +36,6 @@
 #define TEMPLATES_DAT "templates.dat"
 #define TEMPLATE_PLACEMENT_DAT "template_placements.dat"
 #define PROJECT_FILE "project.prj"
-
-#define TM "project.c"
 
 project_t * project_create(const char * const project_dir, unsigned int width, unsigned int height, int num_layers) {
 
@@ -112,11 +131,14 @@ ret_t project_map_background_memfiles(project_t * const project) {
   for(i = 0; i < project->num_layers; i++) {
     char bg_mapping_filename[PATH_MAX];
     snprintf(bg_mapping_filename, sizeof(bg_mapping_filename), "bg_layer_%02d.dat", i);
-    if(!RET_IS_OK(ret = gr_map_file(project->bg_images[i],  
-				    project->project_dir, bg_mapping_filename))) {
+    if(RET_IS_NOT_OK(ret = gr_map_file(project->bg_images[i],  
+				       project->project_dir, bg_mapping_filename))) {
       puts("mapping failed");
       return ret;
     }
+#ifdef MAP_FILES_ON_DEMAND
+    if(RET_IS_NOT_OK(ret = gr_deactivate_mapping(project->bg_images[i]))) return ret;
+#endif
   }
   return RET_OK;
 }
@@ -301,7 +323,7 @@ project_t * project_load(const char * const project_dir) {
   }
 
 
-  if(RET_IS_NOT_OK(scalmgr_set_scalings(project->scaling_manager, 4, 1))) {
+  if(RET_IS_NOT_OK(scalmgr_set_scalings(project->scaling_manager, 8, 1))) {
     project_destroy(project);
     return NULL;
   }

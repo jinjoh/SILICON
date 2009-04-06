@@ -1,3 +1,24 @@
+/*                                                                              
+                                                                                
+This file is part of the IC reverse engineering tool degate.                    
+                                                                                
+Copyright 2008, 2009 by Martin Schobert                                         
+                                                                                
+Degate is free software: you can redistribute it and/or modify                  
+it under the terms of the GNU General Public License as published by            
+the Free Software Foundation, either version 3 of the License, or               
+any later version.                                                              
+                                                                                
+Degate is distributed in the hope that it will be useful,                       
+but WITHOUT ANY WARRANTY; without even the implied warranty of                  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   
+GNU General Public License for more details.                                    
+                                                                                
+You should have received a copy of the GNU General Public License               
+along with degate. If not, see <http://www.gnu.org/licenses/>.                  
+                                                                                
+*/
+
 #ifndef __IMAGEWIN_H__
 #define __IMAGEWIN_H__
 
@@ -6,6 +27,7 @@
 #include "lib/renderer.h"
 #include "lib/logic_model.h"
 #include "lib/graphics.h"
+#include "lib/scaling_manager.h"
 #include <list>
 #include "gui_globals.h"
 
@@ -59,7 +81,7 @@ class ImageWin : public Gtk::DrawingArea {
 
   // to access rendering params
   void set_render_logic_model(logic_model_t  * lmodel);
-  void set_render_background_images(image_t ** bg_images);
+  void set_render_background_images(image_t ** bg_images, scaling_manager_t * scaling_manager);
   void set_current_layer(int layer);
   void toggle_render_info_layer(int slot_pos);
   bool get_renderer_func_enabled(int slot_pos);

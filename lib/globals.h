@@ -1,3 +1,24 @@
+/*                                                                              
+                                                                                
+This file is part of the IC reverse engineering tool degate.                    
+                                                                                
+Copyright 2008, 2009 by Martin Schobert                                         
+                                                                                
+Degate is free software: you can redistribute it and/or modify                  
+it under the terms of the GNU General Public License as published by            
+the Free Software Foundation, either version 3 of the License, or               
+any later version.                                                              
+                                                                                
+Degate is distributed in the hope that it will be useful,                       
+but WITHOUT ANY WARRANTY; without even the implied warranty of                  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   
+GNU General Public License for more details.                                    
+                                                                                
+You should have received a copy of the GNU General Public License               
+along with degate. If not, see <http://www.gnu.org/licenses/>.                  
+                                                                                
+*/
+
 #ifndef __GLOBALS_H__
 #define __GLOBALS_H__
 
@@ -35,13 +56,24 @@ enum ret_t {
 #define RET_IS_OK(call_res) ((call_res) == RET_OK)
 #define RET_IS_NOT_OK(call_res) ((call_res) != RET_OK)
 
+#define TM __FILE__,__LINE__
+
 
 #ifdef DEBUG
-void debug(const char * const module, const char * const format, ...);
+void debug(const char * const module, int line, const char * const format, ...);
 #else
-#define debug(module, format, ...) ;
+#define debug(module, line, format, ...) ;
 #endif
 
 #define degate_mime_type "application/degate"
+
+#if __SIZEOF_POINTER__ == 4
+#define ARCH_32
+#define MAP_FILES_ON_DEMAND
+#elif __SIZEOF_POINTER__ == 8
+#define ARCH_64
+#else
+#error "Unknown architecture"
+#endif
 
 #endif

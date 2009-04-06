@@ -1,3 +1,24 @@
+/*                                                                              
+                                                                                
+This file is part of the IC reverse engineering tool degate.                    
+                                                                                
+Copyright 2008, 2009 by Martin Schobert                                         
+                                                                                
+Degate is free software: you can redistribute it and/or modify                  
+it under the terms of the GNU General Public License as published by            
+the Free Software Foundation, either version 3 of the License, or               
+any later version.                                                              
+                                                                                
+Degate is distributed in the hope that it will be useful,                       
+but WITHOUT ANY WARRANTY; without even the implied warranty of                  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   
+GNU General Public License for more details.                                    
+                                                                                
+You should have received a copy of the GNU General Public License               
+along with degate. If not, see <http://www.gnu.org/licenses/>.                  
+                                                                                
+*/
+
 #include "globals.h"
 
 #include <stdio.h>
@@ -21,8 +42,6 @@
 #else
 #define MMAP mmap
 #endif
-
-#define TM "graphics.c"
 
 #define CHECK_XY_IN_IMG(img, x, y) (img != NULL && x < img->width && y < img->height)
 
@@ -96,11 +115,14 @@ ret_t gr_alloc_memory(image_t * img) {
  * Destroy an image.
  */
 ret_t gr_image_destroy(image_t * img) {
-  if(!img) return RET_INV_PTR;
+  assert(img != NULL);
+  if(img == NULL) return RET_INV_PTR;
   
   ret_t ret = mm_destroy(img->map);
-
-  free(img);
+  if(RET_IS_OK(ret)) {
+    memset(img, 0, sizeof(image_t));
+    free(img);
+  }
   return ret;
 }
 
@@ -113,7 +135,7 @@ image_t * gr_extract_image(image_t * img,
 			   unsigned int width, unsigned int height) {
 
   assert(img != NULL);
-  if(!img) return NULL;
+  if(img == NULL) return NULL;
 
   image_t * extracted_img = gr_create_image(width, height, img->image_type);
   if(!extracted_img) {
@@ -173,7 +195,9 @@ image_t * gr_extract_image_as_gs(image_t * img,
  * @returns RET_OK on success
  */
 ret_t gr_map_clear(image_t * img) {
-  if(!img || !img->map) return RET_INV_PTR;
+  assert(img != NULL);
+  assert(img->map != NULL);
+  if(img == NULL || img->map == NULL) return RET_INV_PTR;
   return mm_clear(img->map);
 }
 
@@ -183,7 +207,8 @@ ret_t gr_map_clear(image_t * img) {
  */
 ret_t gr_map_temp_file(image_t * img, const char * const project_dir) {
   
-  if(!img) return RET_INV_PTR;
+  assert(img != NULL);
+  if(img == NULL) return RET_INV_PTR;
   return mm_map_temp_file(img->map, project_dir);
 }
 
@@ -191,7 +216,8 @@ ret_t gr_map_temp_file(image_t * img, const char * const project_dir) {
  * Use storage in file as storage for image data
  */
 ret_t gr_map_file(image_t * img, const char * const project_dir, const char * const filename) {
-  if(!img) return RET_INV_PTR;
+  assert(img != NULL);
+  if(img == NULL) return RET_INV_PTR;
   return mm_map_file(img->map, project_dir, filename);
 }
 
@@ -201,10 +227,37 @@ ret_t gr_map_file(image_t * img, const char * const project_dir, const char * co
 ret_t gr_map_file_by_fd(image_t * img, const char * const project_dir, 
 			int fd, const char * const filename) {
 	
-  if(!img) return RET_INV_PTR;
+  assert(img != NULL);
+  if(img == NULL) return RET_INV_PTR;
   return mm_map_file_by_fd(img->map, project_dir, fd, filename);
 }
 
+
+/**
+ * On 32 bit architectures it might be neccessary to temporarily unmap data files.
+ * This function should be used to unmap the data file from address space.
+ * @see gr_reactivate_mapping()
+ */
+ret_t gr_deactivate_mapping(image_t *img) {
+  assert(img != NULL);
+  assert(img->map != NULL);
+  if(img == NULL || img->map == NULL) return RET_INV_PTR;
+  debug(TM, "unmapping image");
+  return mm_deactivate_mapping(img->map);
+}
+
+/**
+ * On 32 bit architectures it might be neccessary to temporarily unmap data files.
+ * This function should be used to map the data file again into address space.
+ * @see gr_deactivate_mapping()
+ */
+ret_t gr_reactivate_mapping(image_t *img) {
+  assert(img != NULL);
+  assert(img->map != NULL);
+  if(img == NULL || img->map == NULL) return RET_INV_PTR;
+  debug(TM, "remapping image");
+  return mm_reactivate_mapping(img->map);
+}
 
 /**
  * Copies a rectangular region (min_x, min_y, max_x, max_y) from the source image into destination image.
@@ -222,13 +275,16 @@ ret_t gr_map_file_by_fd(image_t * img, const char * const project_dir,
 ret_t gr_copy_image(image_t * dst_img, image_t * src_img, 
 		  unsigned int min_x, unsigned int min_y, unsigned int max_x, unsigned int max_y) {
 
-  assert(max_x > min_x || max_y > min_y);
-  assert(dst_img || src_img);
+  assert(max_x > min_x);
+  assert(max_y > min_y);
+  assert(src_img != NULL);
+  assert(dst_img != NULL);
   assert(dst_img->map);
   assert(src_img->map);
 
   if(max_x <= min_x || max_y <= min_y) return RET_ERR;
-  if(!dst_img || !dst_img->map || !src_img || !src_img->map) return RET_INV_PTR;
+  if(dst_img == NULL || dst_img->map == NULL || 
+     src_img == NULL || src_img->map == NULL) return RET_INV_PTR;
 
   // real width and height for copy
   unsigned int width = MIN(MIN(max_x, src_img->width) - min_x, dst_img->width);
@@ -241,11 +297,13 @@ ret_t gr_copy_image(image_t * dst_img, image_t * src_img,
       
 
   return RET_OK;
-
 }
 
 ret_t gr_clone_image_data(image_t * dst_img, image_t * src_img) {
-  if(!dst_img || !src_img) return RET_INV_PTR;
+  assert(dst_img != NULL);
+  assert(src_img != NULL);
+
+  if(dst_img == NULL || src_img == NULL) return RET_INV_PTR;
 
   if(dst_img->width == src_img->width &&
      dst_img->height == src_img->height &&
@@ -313,14 +371,15 @@ void gr_copy_pixel(image_t * dst_img, unsigned int dst_x, unsigned int dst_y,
 
 
 ret_t gr_import_background_image(image_t * img, 
-			       unsigned int offs_x, unsigned int offs_y,
-			       const char * const filename) {
+				 unsigned int offs_x, unsigned int offs_y,
+				 const char * const filename) {
   MagickWand *magick_wand;
   MagickBooleanType status;
   unsigned int src_x, src_y;
 	
+  assert(img != NULL);
   assert(img->map != NULL);
-  if(!img || !img->map) return RET_INV_PTR;
+  if(img == NULL || img->map == NULL) return RET_INV_PTR;
   MagickWandGenesis();
 	
   magick_wand = NewMagickWand();  
@@ -432,8 +491,8 @@ ret_t gr_scale_and_shift_in_place(image_t *img,
 }
 
 
-#define P3(s) (s < 0 ? 0 : pow(s,3))
-#define CUBICAL_WEIGHTING(s) (1/6 * ( P3(s+2) - 4*P3(s+1) + 6*P3(s) - 4*P3(s-1)))
+#define P3(s) (s < 0 ? 0 : pow(s, 3))
+#define CUBICAL_WEIGHTING(s) (1.0/6.0 * ( P3(s+2.) - 4.*P3(s+1.) + 6.*P3(s) - 4.*P3(s-1.)))
 
 uint8_t ROUND_AND_CHECK_LIMITS(double val) {
   int v = rint(val);
@@ -462,13 +521,15 @@ ret_t gr_scale_image(image_t * src, image_t * dst) {
   double scaling_x = src->width / dst->width;
   double scaling_y = src->height / dst->height;
 
+  debug(TM, "\tscaling: sx=%f sy=%f", scaling_x, scaling_y);
+
   for(dst_y = 0; dst_y < dst->height; dst_y++) {
-    double src_y = (double)dst_y/ scaling_y;
+    double src_y = (double)dst_y * scaling_y;
     int src_j = lrint(src_y);
     double src_dy = src_y - src_j;
 
-    for(dst_x = 0; dst_x < dst->width - 1; dst_x++) {
-      double src_x = (double)dst_x / scaling_x;
+    for(dst_x = 0; dst_x < dst->width; dst_x++) {
+      double src_x = (double)dst_x * scaling_x;
       int src_i = lrint(src_x);
       double src_dx = src_x - src_i;
       
@@ -476,36 +537,42 @@ ret_t gr_scale_image(image_t * src, image_t * dst) {
       double F_dsti_dstj_R = 0;
       double F_dsti_dstj_G = 0;
       double F_dsti_dstj_B = 0;
-      double F_dsti_dstj_A = 0;
+      double weight;
+      uint32_t pix;
+
       for(m = -1; m <= 2; m++)
 	for(n = -1; n <= 2; n++) {
 
-	  uint32_t pix = 0;
-	  if(src_x > 1 && src_y > 1) pix = gr_get_pixval(src, src_x + m, src_y + n);
+	  pix = 0;
+	  if(src_x > 1 && src_y > 1 &&
+	     src_x < src->width - 2 && src_y < src->height - 2) 
+	    pix = gr_get_pixval(src, src_x + m, src_y + n);
 	  
-	  double weight = 
+	  weight = 
 	    CUBICAL_WEIGHTING((double)m - src_dx) * 
 	    CUBICAL_WEIGHTING(src_dy - (double)n);
 
-	  F_dsti_dstj_R += MASK_R(pix) * weight;
-	  F_dsti_dstj_G += MASK_G(pix) * weight;
-	  F_dsti_dstj_B += MASK_B(pix) * weight;
-	  F_dsti_dstj_A += MASK_A(pix) * weight;	    
+	  F_dsti_dstj_R += (double)MASK_R(pix) * weight;
+	  F_dsti_dstj_G += (double)MASK_G(pix) * weight;
+	  F_dsti_dstj_B += (double)MASK_B(pix) * weight;
 	}
 
-      gr_set_pixval(dst, dst_x, dst_y, MERGE_CHANNELS(ROUND_AND_CHECK_LIMITS(F_dsti_dstj_R),
-						      ROUND_AND_CHECK_LIMITS(F_dsti_dstj_G),
-						      ROUND_AND_CHECK_LIMITS(F_dsti_dstj_B),
-						      ROUND_AND_CHECK_LIMITS(F_dsti_dstj_A) ));
+      pix = MERGE_CHANNELS(ROUND_AND_CHECK_LIMITS(F_dsti_dstj_R),
+			   ROUND_AND_CHECK_LIMITS(F_dsti_dstj_G),
+			   ROUND_AND_CHECK_LIMITS(F_dsti_dstj_B),
+			   MASK_A(pix));
+      //debug(TM, "%X", pix );
+      gr_set_pixval(dst, dst_x, dst_y, pix);
     }
   }
- 
+  
+  return RET_OK;
 }
 
 /** In-place flipping of RBGA an GS images. */
 ret_t gr_flip_up_down(image_t * img) {
-  assert(img);
-  if(!img) return RET_ERR;
+  assert(img != NULL);
+  if(img == NULL) return RET_ERR;
   
   unsigned int x, y;
 
@@ -541,8 +608,8 @@ ret_t gr_flip_up_down(image_t * img) {
 
 /** In-place flipping of RGBA and GS images. */
 ret_t gr_flip_left_right(image_t * img) {
-  assert(img);
-  if(!img) return RET_ERR;
+  assert(img != NULL);
+  if(img == NULL) return RET_ERR;
   
   unsigned int x, y;
 

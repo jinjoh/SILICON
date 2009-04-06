@@ -1,3 +1,24 @@
+/*                                                                              
+                                                                                
+This file is part of the IC reverse engineering tool degate.                    
+                                                                                
+Copyright 2008, 2009 by Martin Schobert                                         
+                                                                                
+Degate is free software: you can redistribute it and/or modify                  
+it under the terms of the GNU General Public License as published by            
+the Free Software Foundation, either version 3 of the License, or               
+any later version.                                                              
+                                                                                
+Degate is distributed in the hope that it will be useful,                       
+but WITHOUT ANY WARRANTY; without even the implied warranty of                  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   
+GNU General Public License for more details.                                    
+                                                                                
+You should have received a copy of the GNU General Public License               
+along with degate. If not, see <http://www.gnu.org/licenses/>.                  
+                                                                                
+*/
+
 #include <gdkmm/window.h>
 #include <iostream>
 
@@ -6,6 +27,7 @@
 #include "lib/renderer.h"
 #include "lib/logic_model.h"
 #include "lib/graphics.h"
+#include "lib/scaling_manager.h"
 #include <list>
 
 
@@ -29,27 +51,13 @@ void ImageWin::setup_renderer() {
   current_layer = -1;
 }
 
-/*
-void ImageWin::set_object_matching_preview(bool state) {
-  if(state) {
-    puts("adding a temp layer");
-    renderer_add_layer(renderer, 
-		       (render_func_t) &render_wire_matching_preview, &render_params, 
-		       1, "Object matching preview");
-  }
-  else {
-    renderer_remove_last_layer(renderer);
-  }
-}
-
-*/
-
 void ImageWin::set_render_logic_model(logic_model_t  * lmodel) {
   render_params.lmodel = lmodel;
 }
 
-void ImageWin::set_render_background_images(image_t ** bg_images) {
+void ImageWin::set_render_background_images(image_t ** bg_images, scaling_manager_t * scaling_manager) {
   render_params.bg_images = bg_images;
+  render_params.scaling_manager = scaling_manager;
 }
 
 void ImageWin::set_current_layer(int layer) {

@@ -1,3 +1,24 @@
+/*                                                                              
+                                                                                
+This file is part of the IC reverse engineering tool degate.                    
+                                                                                
+Copyright 2008, 2009 by Martin Schobert                                         
+                                                                                
+Degate is free software: you can redistribute it and/or modify                  
+it under the terms of the GNU General Public License as published by            
+the Free Software Foundation, either version 3 of the License, or               
+any later version.                                                              
+                                                                                
+Degate is distributed in the hope that it will be useful,                       
+but WITHOUT ANY WARRANTY; without even the implied warranty of                  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   
+GNU General Public License for more details.                                    
+                                                                                
+You should have received a copy of the GNU General Public License               
+along with degate. If not, see <http://www.gnu.org/licenses/>.                  
+                                                                                
+*/
+
 #ifndef __GRAPHICS_H__
 #define __GRAPHICS_H__
 
@@ -61,6 +82,9 @@ ret_t gr_map_clear(image_t * img);
 ret_t gr_map_temp_file(image_t * img, const char * const project_dir);
 ret_t gr_map_file(image_t * img, const char * const project_dir, const char * const filename);
 ret_t gr_map_file_by_fd(image_t * img, const char * const project_dir, int fd, const char * const filename);
+
+ret_t gr_deactivate_mapping(image_t *img);
+ret_t gr_reactivate_mapping(image_t *img);
 
 ret_t gr_copy_image(image_t * dst_img, image_t * src_img, 
 		    unsigned int min_x, unsigned int min_y, unsigned int max_x, unsigned int max_y);

@@ -1,3 +1,24 @@
+/*                                                                              
+                                                                                
+This file is part of the IC reverse engineering tool degate.                    
+                                                                                
+Copyright 2008, 2009 by Martin Schobert                                         
+                                                                                
+Degate is free software: you can redistribute it and/or modify                  
+it under the terms of the GNU General Public License as published by            
+the Free Software Foundation, either version 3 of the License, or               
+any later version.                                                              
+                                                                                
+Degate is distributed in the hope that it will be useful,                       
+but WITHOUT ANY WARRANTY; without even the implied warranty of                  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   
+GNU General Public License for more details.                                    
+                                                                                
+You should have received a copy of the GNU General Public License               
+along with degate. If not, see <http://www.gnu.org/licenses/>.                  
+                                                                                
+*/
+
 #include <gdkmm/window.h>
 #include <gtkmm/stock.h>
 #include <libglademm.h>
@@ -28,8 +49,6 @@
 #include "lib/logic_model.h"
 #include "lib/alignment_marker.h"
 #include "lib/plugins.h"
-
-#define TM "MainWin.cc"
 
 #define ZOOM_STEP 1.8
 
@@ -117,7 +136,7 @@ MainWin::~MainWin() {
 
 
 void MainWin::update_title() {
-  if(!main_project) {
+  if(main_project == NULL) {
     set_title("degate");
   }
   else {
@@ -364,8 +383,8 @@ void MainWin::initialize_menu() {
 					    "Remove gates by type without master ..."),
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_remove_gate_by_type_wo_master));
 
-  // Algorithms menu
-  m_refActionGroup->add(Gtk::Action::create("AlgorithmsMenu", "Algorithms"));
+  // Recognition menu
+  m_refActionGroup->add(Gtk::Action::create("RecognitionMenu", "Recognition"));
 
 
   // Help menu:
@@ -447,7 +466,7 @@ void MainWin::initialize_menu() {
         "      <separator/>"
         "      <menuitem action='GateList'/>"
         "    </menu>"
-        "    <menu action='AlgorithmsMenu'/>"
+        "    <menu action='RecognitionMenu'/>"
         "    <menu action='HelpMenu'>"
         "      <menuitem action='HelpAbout'/>"
         "    </menu>"
@@ -540,7 +559,7 @@ void MainWin::set_image_for_toolbar_widget(Glib::ustring toolbar_widget_path,
 
 void MainWin::initialize_menu_algorithm_funcs() {
 
-  Gtk::MenuItem * pMenuItem = dynamic_cast<Gtk::MenuItem*>(m_refUIManager->get_widget("/MenuBar/AlgorithmsMenu"));
+  Gtk::MenuItem * pMenuItem = dynamic_cast<Gtk::MenuItem*>(m_refUIManager->get_widget("/MenuBar/RecognitionMenu"));
   assert(pMenuItem != NULL);
 
   if(pMenuItem) {
@@ -696,7 +715,7 @@ void MainWin::set_widget_sensitivity(bool state) {
 void MainWin::set_menu_item_sensitivity(const Glib::ustring& widget_path, bool state) {
   Gtk::MenuItem * pItem = dynamic_cast<Gtk::MenuItem*>(m_refUIManager->get_widget(widget_path));
 #ifdef DEBUG
-  if(!pItem) std::cout << "widget lookup failed for path: " << widget_path << std::endl;
+  if(pItem == NULL) debug(TM, "widget lookup failed for path: %s", widget_path.c_str());
 #endif
   assert(pItem != NULL);
   if(pItem) pItem->set_sensitive(state);
@@ -705,7 +724,7 @@ void MainWin::set_menu_item_sensitivity(const Glib::ustring& widget_path, bool s
 void MainWin::set_toolbar_item_sensitivity(const Glib::ustring& widget_path, bool state) {
   Gtk::Widget * pItem = m_refUIManager->get_widget(widget_path);
 #ifdef DEBUG
-  if(!pItem) std::cout << "widget lookup failed for path: " << widget_path << std::endl;
+  if(pItem == NULL) debug(TM, "widget lookup failed for path: %s", widget_path.c_str());
 #endif
   assert(pItem != NULL);
   if(pItem) pItem->set_sensitive(state);
@@ -826,7 +845,7 @@ void MainWin::on_menu_project_close() {
     }
 
     imgWin.set_render_logic_model(NULL);
-    imgWin.set_render_background_images(NULL);
+    imgWin.set_render_background_images(NULL, NULL);
     imgWin.set_current_layer(-1);
     imgWin.set_grid(NULL);
 
@@ -1007,18 +1026,25 @@ void MainWin::on_project_load_finished() {
     ipWin = NULL;
   }
   
-  if(!main_project) {
+  if(main_project == NULL) {
     Gtk::MessageDialog err_dialog(*this, "Can't open project", false, Gtk::MESSAGE_ERROR, Gtk::BUTTONS_OK, true);
     err_dialog.run();
   }
   else {
     set_layer_type_in_menu(lmodel_get_layer_type(main_project->lmodel, main_project->current_layer));
     update_gui_for_loaded_project();
+    set_layer(0);
   }
 }
 
 void MainWin::project_open_thread(Glib::ustring project_dir) {
   main_project = project_load(project_dir.c_str());
+#ifdef MAP_FILES_ON_DEMAND
+  if(RET_IS_NOT_OK(gr_reactivate_mapping(main_project->bg_images[main_project->current_layer]))) {
+    debug(TM, "mapping image failed");
+  }
+#endif
+
   signal_project_open_finished_();
 }
 
@@ -1068,7 +1094,7 @@ void MainWin::update_gui_for_loaded_project() {
     imgWin.set_view(0, 0, imgWin.get_width(), imgWin.get_height());
     
     imgWin.set_render_logic_model(main_project->lmodel);
-    imgWin.set_render_background_images(main_project->bg_images);
+    imgWin.set_render_background_images(main_project->bg_images, main_project->scaling_manager);
     imgWin.reset_selection();
     imgWin.set_current_layer(0);
     imgWin.set_grid(&main_project->grid);
@@ -1095,7 +1121,37 @@ void MainWin::update_gui_for_loaded_project() {
 }
 
 void MainWin::set_layer(unsigned int layer) {
+  if(main_project == NULL) return;
   if(main_project->num_layers == 0) return;
+
+  
+#ifdef MAP_FILES_ON_DEMAND
+  //if((unsigned int)main_project->current_layer != layer) {
+    
+    if(RET_IS_NOT_OK(scalmgr_unmap_files_for_layer(main_project->scaling_manager, 
+						   main_project->current_layer))) {
+      debug(TM, "unmapping prescaled images faild");
+      return;
+    }
+
+    if(RET_IS_NOT_OK(gr_deactivate_mapping(main_project->bg_images[main_project->current_layer]))) {
+      debug(TM, "unmapping image for layer %d failed.", main_project->current_layer);
+      return;
+    }
+    if(RET_IS_NOT_OK(gr_reactivate_mapping(main_project->bg_images[layer]))) {
+      debug(TM, "mapping image for layer %d failed.", layer);
+      return;
+    }
+
+    if(RET_IS_NOT_OK(scalmgr_map_files_for_layer(main_project->scaling_manager, layer))) {
+      debug(TM, "mapping prescaled images faild");
+      return;
+    }
+
+    //}
+
+  
+#endif
 
   main_project->current_layer = layer;
 
@@ -1134,7 +1190,6 @@ void MainWin::on_menu_view_next_layer() {
     set_layer(main_project->current_layer + 1);
   else 
     set_layer(0);
-
 }
 
 void MainWin::on_menu_view_prev_layer() {
@@ -1147,7 +1202,7 @@ void MainWin::on_menu_view_prev_layer() {
 }
 
 void MainWin::on_menu_view_zoom_in() {
-  if(!main_project) return;
+  if(main_project == NULL) return;
   unsigned int delta_x = imgWin.get_max_x() - imgWin.get_min_x();
   unsigned int delta_y = imgWin.get_max_y() - imgWin.get_min_y();
 
@@ -1160,7 +1215,7 @@ void MainWin::on_menu_view_zoom_in() {
 
 void MainWin::zoom_in(unsigned int center_x, unsigned int center_y) {
 
-  if(!main_project) return;
+  if(main_project == NULL) return;
   double delta_x = imgWin.get_max_x() - imgWin.get_min_x();
   double delta_y = imgWin.get_max_y() - imgWin.get_min_y();
 
@@ -1182,7 +1237,7 @@ void MainWin::zoom_in(unsigned int center_x, unsigned int center_y) {
 }
 
 void MainWin::on_menu_view_zoom_out() {
-  if(!main_project) return;
+  if(main_project == NULL) return;
 
   unsigned int delta_x = imgWin.get_max_x() - imgWin.get_min_x();
   unsigned int delta_y = imgWin.get_max_y() - imgWin.get_min_y();
@@ -1197,7 +1252,7 @@ void MainWin::on_menu_view_zoom_out() {
 
 void MainWin::zoom_out(unsigned int center_x, unsigned int center_y) {
 
-  if(!main_project) return;
+  if(main_project == NULL) return;
 
   double delta_x = imgWin.get_max_x() - imgWin.get_min_x();
   double delta_y = imgWin.get_max_y() - imgWin.get_min_y();
@@ -1224,7 +1279,7 @@ void MainWin::zoom_out(unsigned int center_x, unsigned int center_y) {
 
 void MainWin::center_view(unsigned int center_x, unsigned int center_y, unsigned int layer) {
 
-  if(!main_project) return;
+  if(main_project == NULL) return;
 
   unsigned int width_half = (imgWin.get_max_x() - imgWin.get_min_x()) / 2;
   unsigned int height_half = (imgWin.get_max_y() - imgWin.get_min_y()) / 2;
@@ -1360,7 +1415,7 @@ void MainWin::algorithm_calc_thread(int slot_pos, plugin_params_t * plugin_param
 
 void MainWin::on_algorithms_func_clicked(int slot_pos) {
 
-  if(!main_project) {
+  if(main_project == NULL) {
     error_dialog("Error", "You need to open a project first.");
     return;
   }
@@ -1368,7 +1423,7 @@ void MainWin::on_algorithms_func_clicked(int slot_pos) {
   debug(TM, "algorithm clicked %d", slot_pos);
 
   plugin_params_t * pparams = (plugin_params_t * )malloc(sizeof(plugin_params_t));
-  if(!pparams) return;
+  if(pparams == NULL) return;
   memset(pparams, 0, sizeof(plugin_params_t));
   
   pparams->project = main_project;
@@ -1376,7 +1431,6 @@ void MainWin::on_algorithms_func_clicked(int slot_pos) {
   pparams->max_x = imgWin.get_selection_max_x();
   pparams->min_y = imgWin.get_selection_min_y();
   pparams->max_y = imgWin.get_selection_max_y();
-  pparams->grid = imgWin.get_grid();
   
   debug(TM, "Call init method for plugin");
   if(RET_IS_NOT_OK(plugin_calc_slot(plugin_func_table, slot_pos, PLUGIN_FUNC_INIT, pparams, this))) {
@@ -1489,7 +1543,7 @@ void MainWin::on_menu_gate_set_as_master() {
     lmodel_gate_t * gate = (lmodel_gate_t *) (*it).first;
     lmodel_gate_template_t * tmpl = lmodel_get_template_for_gate(gate);
 
-    if(!tmpl) {
+    if(tmpl == NULL) {
       error_dialog("Error", "The gate should be the master template, but you have not defined of which type. "
 		   "Please set a gate type for the gate.");
       return;
@@ -1534,7 +1588,7 @@ void MainWin::on_menu_gate_set_as_master() {
 
 void MainWin::on_menu_gate_set() {
   lmodel_gate_template_t * tmpl = NULL;
-  if(!main_project) return;
+  if(main_project == NULL) return;
 
   if(imgWin.selection_active()) {
 
@@ -1677,7 +1731,7 @@ void MainWin::on_wire_tool_release() {
 						main_project->wire_diameter, NULL, 0);
   assert(new_wire);
 
-  if(!RET_IS_OK(lmodel_add_wire_with_autojoin(main_project->lmodel, main_project->current_layer, new_wire)))
+  if(RET_IS_NOT_OK(lmodel_add_wire_with_autojoin(main_project->lmodel, main_project->current_layer, new_wire)))
     error_dialog("Error", "Can't place wire");
   else
     project_changed();
@@ -2193,7 +2247,8 @@ void MainWin::on_background_import_finished() {
 }
 
 void MainWin::background_import_thread(Glib::ustring bg_filename) {
-  if(!gr_import_background_image(main_project->bg_images[main_project->current_layer], 0, 0, bg_filename.c_str())) {
+  if(RET_IS_NOT_OK(gr_import_background_image(main_project->bg_images[main_project->current_layer], 
+				 0, 0, bg_filename.c_str()))) {
     debug(TM, "Can't import image file");
   }
 
@@ -2337,7 +2392,7 @@ void MainWin::on_menu_layer_clear_background_image() {
   int result = dialog.run();
   switch(result) {
   case(Gtk::RESPONSE_OK):
-    if(!gr_map_clear(main_project->bg_images[main_project->current_layer]))
+    if(RET_IS_NOT_OK(gr_map_clear(main_project->bg_images[main_project->current_layer])))
       error_dialog("Error", "Error: Can't clear background image for current layer.");
     else {
       project_changed();

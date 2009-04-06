@@ -39,9 +39,9 @@
               </widget>
             </child>
             <child>
-              <widget class="GtkLabel" id="label_step_size_search">
+              <widget class="GtkLabel" id="label_scale_down">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">Max step size for search (pixel):</property>
+                <property name="label" translatable="yes">Scale image down by factor:</property>
               </widget>
               <packing>
                 <property name="top_attach">2</property>
@@ -49,9 +49,10 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="label_step_size_xcorr">
+              <widget class="GtkLabel" id="label_scale_dow">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">Max step size for correlation (pixel):</property>
+                <property name="label" translatable="yes">Max step size for search
+after scaling (pixel):</property>
               </widget>
               <packing>
                 <property name="top_attach">3</property>
@@ -60,19 +61,6 @@
             </child>
             <child>
               <widget class="GtkEntry" id="entry_step_size_search">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="invisible_char">&#x25CF;</property>
-              </widget>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
-                <property name="top_attach">2</property>
-                <property name="bottom_attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkEntry" id="entry_step_size_xcorr">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">&#x25CF;</property>
@@ -107,6 +95,18 @@
                 <property name="right_attach">2</property>
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkComboBox" id="combobox_scale_down">
+                <property name="visible">True</property>
+              </widget>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">2</property>
+                <property name="top_attach">2</property>
+                <property name="bottom_attach">3</property>
+                <property name="y_options"></property>
               </packing>
             </child>
           </widget>

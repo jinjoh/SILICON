@@ -1,3 +1,24 @@
+/*                                                                              
+                                                                                
+This file is part of the IC reverse engineering tool degate.                    
+                                                                                
+Copyright 2008, 2009 by Martin Schobert                                         
+                                                                                
+Degate is free software: you can redistribute it and/or modify                  
+it under the terms of the GNU General Public License as published by            
+the Free Software Foundation, either version 3 of the License, or               
+any later version.                                                              
+                                                                                
+Degate is distributed in the hope that it will be useful,                       
+but WITHOUT ANY WARRANTY; without even the implied warranty of                  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   
+GNU General Public License for more details.                                    
+                                                                                
+You should have received a copy of the GNU General Public License               
+along with degate. If not, see <http://www.gnu.org/licenses/>.                  
+                                                                                
+*/
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -7,6 +28,7 @@
 #include <time.h>
 #include <ft2build.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include "graphics.h"
 #include "renderer.h"
@@ -18,9 +40,7 @@
 //#include "font.h"
 
 // #define FONTFILE "/usr/share/fonts/truetype/freefont/FreeSans.ttf"
-#define FONT_SIZE 12
-
-#define TM "renderer.c"
+#define FONT_SIZE 10
 
 #ifdef DEBUG
 //#define RENDERER_MEASURE_TIME
@@ -237,7 +257,7 @@ void renderer_initialize_params(render_params_t * rend) {
   }
 }
 
-ret_t render_background(RENDERER_FUNC_PARAMS) {
+ret_t render_background_old(RENDERER_FUNC_PARAMS) {
 
   ret_t ret;
   unsigned int dst_x, dst_y;
@@ -265,6 +285,61 @@ ret_t render_background(RENDERER_FUNC_PARAMS) {
 
   return RET_OK;
 }
+
+
+
+ret_t render_background(RENDERER_FUNC_PARAMS) {
+  ret_t ret;
+  double scaling_x = (max_x - min_x) / (double)dst_img->width;
+  double scaling_y = (max_y - min_y) / (double)dst_img->height;
+  image_t * bg_img = NULL;
+  double bg_pre_scaling = 0;
+  unsigned int dst_x, dst_y;
+
+  gr_map_clear(dst_img);
+  debug(TM, "scaling is %f", scaling_x);
+  
+  
+  bg_img = scalmgr_get_image(data_ptr->scaling_manager, layer, scaling_x, &bg_pre_scaling);
+  assert(bg_img != NULL);
+  if(bg_img == NULL) return RET_ERR;
+
+  debug(TM, "scaling found %f\n\n", bg_pre_scaling);
+
+  scaling_x /= bg_pre_scaling;
+  scaling_y /= bg_pre_scaling;
+
+  debug(TM, "scaling related to already scaled image is %f\n\n", scaling_x);
+
+  unsigned int bg_width = bg_img->width;
+  unsigned int bg_height = bg_img->height;
+  
+  // clipped region
+  /*  unsigned int _dst_width = (unsigned int) MIN(dst_img->width, 
+					       ((double)bg_width*bg_pre_scaling - min_x)*scaling_x);
+  unsigned int _dst_height = (unsigned int) MIN(dst_img->height, 
+						((double)bg_height*bg_pre_scaling - min_y)*scaling_y);
+						
+  debug(TM, "w = %d, h = %d", _dst_width, _dst_height);
+  */
+  unsigned int bg_min_x = min_x / bg_pre_scaling;
+  unsigned int bg_min_y = min_y / bg_pre_scaling;
+
+  unsigned int src_x, src_y;
+  for(dst_y = 0; dst_y < dst_img->height; dst_y++) {
+    src_y = bg_min_y + dst_y * scaling_y;
+
+    for(dst_x = 0; dst_x < dst_img->width; dst_x++) {
+      src_x = bg_min_x + dst_x * scaling_x;
+      if(src_x < bg_img->width && src_y < bg_img->height)
+	gr_copy_pixel_rgba(dst_img, dst_x, dst_y, bg_img, src_x, src_y);
+    }
+  }
+
+ 
+  return RET_OK;
+}
+
 
 
 

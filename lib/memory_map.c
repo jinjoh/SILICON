@@ -1,3 +1,24 @@
+/*                                                                              
+                                                                                
+This file is part of the IC reverse engineering tool degate.                    
+                                                                                
+Copyright 2008, 2009 by Martin Schobert                                         
+                                                                                
+Degate is free software: you can redistribute it and/or modify                  
+it under the terms of the GNU General Public License as published by            
+the Free Software Foundation, either version 3 of the License, or               
+any later version.                                                              
+                                                                                
+Degate is distributed in the hope that it will be useful,                       
+but WITHOUT ANY WARRANTY; without even the implied warranty of                  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   
+GNU General Public License for more details.                                    
+                                                                                
+You should have received a copy of the GNU General Public License               
+along with degate. If not, see <http://www.gnu.org/licenses/>.                  
+                                                                                
+*/
+
 #include "globals.h"
 
 #include <stdio.h>
@@ -19,8 +40,6 @@
 #else
 #define MMAP mmap
 #endif
-
-#define TM "memory_map.c"
 
 #define CHECK_XY_IN_MAP(map, x, y) (map != NULL && map->mem != NULL && x < map->width && y < map->height)
 
@@ -72,18 +91,18 @@ ret_t mm_alloc_memory(memory_map_t * map) {
  */
 ret_t mm_destroy(memory_map_t * map) {
   ret_t ret = RET_OK;
-  assert(map);
-  if(!map) return RET_INV_PTR;
+  assert(map != NULL);
+  if(map == NULL) return RET_INV_PTR;
 
-  if(map->mem) {
+  if(map->mem != NULL) {
 
     if(map->storage_type == MAP_STORAGE_TYPE_FILE) {
-      if(msync(map->mem, map->width * map->height  * map->bytes_per_elem, MS_SYNC) == -1) {
+      if(msync(map->mem, map->filesize, MS_SYNC) == -1) {
 	debug(TM, "msync() failed");
 	ret = RET_ERR;
       }
 
-      if(munmap(map->mem, map->width * map->height * map->bytes_per_elem) == -1) {
+      if(munmap(map->mem, map->filesize) == -1) {
 	debug(TM, "munmap failed");
 	ret = RET_ERR;
       }
@@ -98,14 +117,14 @@ ret_t mm_destroy(memory_map_t * map) {
 	
   if(map->fd > 0) close(map->fd);
 	
-  if(map->filename && map->is_temp_file) {
+  if(map->filename != NULL && map->is_temp_file) {
     if(unlink(map->filename) == -1) {
       debug(TM, "Can't unlink temp file");
       ret = RET_ERR;
     }
   }
 
-  if(map->filename) free(map->filename);
+  if(map->filename != NULL) free(map->filename);
 	
   free(map);
   return ret;
@@ -117,7 +136,8 @@ ret_t mm_destroy(memory_map_t * map) {
  * @returns RET_OK on success
  */
 ret_t mm_clear(memory_map_t * map) {
-  if(!map) return RET_INV_PTR;
+  assert(map != NULL);
+  if(map == NULL) return RET_INV_PTR;
   memset(map->mem, 0, map->width * map->height * map->bytes_per_elem);
   return RET_OK;
 }
@@ -175,7 +195,7 @@ ret_t mm_map_file(memory_map_t * map, const char * const project_dir, const char
   if(!map) return RET_INV_PTR;
 	
   // reset existing resources
-  if(map->mem && (munmap(map->mem, map->width * map->height * map->bytes_per_elem) == -1)) {
+  if(map->mem != NULL && (munmap(map->mem, map->width * map->height * map->bytes_per_elem) == -1)) {
     puts("munmap failed");
     return RET_ERR;
   }
@@ -200,10 +220,10 @@ ret_t mm_map_file(memory_map_t * map, const char * const project_dir, const char
   }
 	
   // get file size
-  size_t filesize = lseek(map->fd, 0, SEEK_END);
-  if(filesize < map->width * map->height * map->bytes_per_elem) {
-    filesize = map->width * map->height * map->bytes_per_elem;
-    lseek(map->fd, filesize - 1, SEEK_SET);
+  map->filesize = lseek(map->fd, 0, SEEK_END);
+  if(map->filesize < map->width * map->height * map->bytes_per_elem) {
+    map->filesize = map->width * map->height * map->bytes_per_elem;
+    lseek(map->fd, map->filesize - 1, SEEK_SET);
     if(write(map->fd, "\0", 1) != 1) {
       perror("can't open file");
       free(map->filename);
@@ -213,9 +233,9 @@ ret_t mm_map_file(memory_map_t * map, const char * const project_dir, const char
   }
 	
   // map the file into memory
-  if((map->mem = (uint8_t *) MMAP(NULL, filesize,
+  if((map->mem = (uint8_t *) MMAP(NULL, map->filesize,
 				  PROT_READ | PROT_WRITE, 
-				  MAP_FILE | MAP_PRIVATE, map->fd, 0)) == (void *)(-1)) {
+				  MAP_FILE | MAP_SHARED, map->fd, 0)) == (void *)(-1)) {
     perror("mmap failed");
     free(map->filename);
     map->filename = NULL;
@@ -231,7 +251,8 @@ ret_t mm_map_file(memory_map_t * map, const char * const project_dir, const char
 /**
  * Use storage in opend file as storage for memory map
  */
-ret_t mm_map_file_by_fd(memory_map_t * map, const char * const project_dir, int fd, const char * const filename) {
+ret_t mm_map_file_by_fd(memory_map_t * map, const char * const project_dir, int fd, 
+			const char * const filename) {
 
   assert(map != NULL);
   assert(project_dir != NULL);
@@ -251,10 +272,10 @@ ret_t mm_map_file_by_fd(memory_map_t * map, const char * const project_dir, int 
   map->filename = strdup(filename);
 
   // get file size
-  size_t filesize = lseek(map->fd, 0, SEEK_END);
-  if(filesize < map->width * map->height * map->bytes_per_elem) {
-    filesize = map->width * map->height * map->bytes_per_elem;
-    lseek(map->fd, filesize - 1, SEEK_SET);
+  map->filesize = lseek(map->fd, 0, SEEK_END);
+  if(map->filesize < map->width * map->height * map->bytes_per_elem) {
+    map->filesize = map->width * map->height * map->bytes_per_elem;
+    lseek(map->fd, map->filesize - 1, SEEK_SET);
     if(write(map->fd, "\0", 1) != 1) {
       free(map->filename);
       map->filename = NULL;
@@ -264,9 +285,9 @@ ret_t mm_map_file_by_fd(memory_map_t * map, const char * const project_dir, int 
   }
 	
   // map the file into memory
-  if((map->mem = (uint8_t *) MMAP(NULL, filesize,
+  if((map->mem = (uint8_t *) MMAP(NULL, map->filesize,
 				  PROT_READ | PROT_WRITE, 
-				  MAP_FILE | MAP_PRIVATE, map->fd, 0)) == (void *)(-1)) {
+				  MAP_FILE | MAP_SHARED, map->fd, 0)) == (void *)(-1)) {
     perror("mmap failed");
     free(map->filename);
     map->filename = NULL;
@@ -279,6 +300,59 @@ ret_t mm_map_file_by_fd(memory_map_t * map, const char * const project_dir, int 
   return RET_OK;
 }
 
+/**
+ * On 32 bit architectures it might be neccessary to temporarily unmap data files.
+ * This function should be used to unmap the data file from address space.
+ * @see mm_reactivate_mapping()
+ */
+
+ret_t mm_deactivate_mapping(memory_map_t * map) {
+  ret_t ret = RET_OK;
+  assert(map != NULL);
+  if(map == NULL) return RET_INV_PTR;
+  if(map->storage_type != MAP_STORAGE_TYPE_FILE) return RET_ERR;
+
+  if(map->mem != NULL) {
+
+    if(map->storage_type == MAP_STORAGE_TYPE_FILE) {
+      if(msync(map->mem, map->filesize, MS_SYNC) == -1) {
+	debug(TM, "msync() failed");
+	ret = RET_ERR;
+      }
+      
+      if(munmap(map->mem, map->filesize) == -1) {
+	debug(TM, "munmap failed");
+	ret = RET_ERR;
+      }
+      
+      map->mem = NULL;
+    }
+  }
+  return ret;
+}
+
+/**
+ * On 32 bit architectures it might be neccessary to temporarily unmap data files.
+ * This function should be used to map the data file again into address space.
+ * @see gr_deactivate_mapping()
+ */
+
+ret_t mm_reactivate_mapping(memory_map_t * map) {
+  assert(map != NULL);
+  if(map == NULL) return RET_INV_PTR;
+
+  if(map->fd == 0) return RET_ERR;
+  if(map->storage_type != MAP_STORAGE_TYPE_FILE) return RET_ERR;
+
+  if(map->mem == NULL)
+    if((map->mem = (uint8_t *) MMAP(NULL, map->filesize,
+				    PROT_READ | PROT_WRITE, 
+				    MAP_FILE | MAP_SHARED, map->fd, 0)) == (void *)(-1)) {
+      return RET_ERR;
+    }
+
+  return RET_OK;
+}
 
 void * mm_get_ptr(memory_map_t * map, unsigned int x, unsigned int y) {
 #ifdef DEBUG_ASSERTS_IN_FCF

@@ -1,23 +1,31 @@
-/**
-   This piece of code serves as an example on how to write a
-   plugin for degate.
+/*                                                                              
+                                                                                
+This file is part of the IC reverse engineering tool degate.                    
+                                                                                
+Copyright 2008, 2009 by Martin Schobert                                         
+                                                                                
+Degate is free software: you can redistribute it and/or modify                  
+it under the terms of the GNU General Public License as published by            
+the Free Software Foundation, either version 3 of the License, or               
+any later version.                                                              
+                                                                                
+Degate is distributed in the hope that it will be useful,                       
+but WITHOUT ANY WARRANTY; without even the implied warranty of                  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   
+GNU General Public License for more details.                                    
+                                                                                
+You should have received a copy of the GNU General Public License               
+along with degate. If not, see <http://www.gnu.org/licenses/>.                  
+                                                                                
+*/
 
+/**
    The code performs template matching by shifting a template
    over a background image. For each step the normalized
    cross correlation is calculated.
 
-   http://en.wikipedia.org/wiki/Cross-correlation#Normalized_cross-correlation
-
-   If you want to write a plugin, you should read:
-   - logic_model.h
-   - plugins.h
-   - graphics.h and memory_map.h
-
-   Please do not interact with the quadtree directly. There will be changes.
-   If you miss features, please contact me.
-
-   Martin Schobert <martin@mailbeschleuniger.de>
  */
+
 #include <iostream>
 #include <gtkmm.h>
 #include <assert.h>
@@ -27,8 +35,6 @@
 #include "plugins.h"
 #include "gui/GateSelectWin.h"
 #include "gui/TemplateMatchingParamsWin.h"
-
-#define TM "template.cc"
 
 Gtk::Dialog* pDialog = 0;
 
@@ -46,16 +52,21 @@ enum TEMPLATE_MATCHING_STATE {
 
 typedef struct {
   TEMPLATE_MATCHING_MODE matching_mode;
+
+  unsigned int min_x, min_y, max_x, max_y; // scaling applied
+
   double threshold_hc;
   double threshold_detection;
   unsigned int max_step_size_search;
-  unsigned int max_step_size_xcorr;
+  unsigned int scale_down;
   lmodel_gate_template_set_t * tmpl_list;
   project_t * project;
   unsigned int placement_layer;
 
   memory_map_t * summation_table_single;
   memory_map_t * summation_table_squared;
+  memory_map_t * summation_table_single_sd;
+  memory_map_t * summation_table_squared_sd;
 
   unsigned int objects_found;
   unsigned int objects_added;
@@ -102,10 +113,14 @@ ret_t template_matching(plugin_params_t * foo);
 
 ret_t raise_dialog_before(Gtk::Window *parent, plugin_params_t * foo);
 ret_t raise_dialog_after(Gtk::Window *parent, plugin_params_t * foo);
-ret_t imgalgo_run_template_matching(image_t * master,
-				    image_t * _template,
+ret_t imgalgo_run_template_matching(image_t * master, image_t * _template,
 				    unsigned int min_x, unsigned int min_y,
 				    unsigned int max_x, unsigned int max_y,
+
+				    image_t * sd_master, image_t * sd_template,
+				    unsigned int sd_min_x, unsigned int sd_min_y,
+				    unsigned int sd_max_x, unsigned int sd_max_y,
+
 				    int layer, 
 				    lmodel_gate_template_t * tmpl_ptr,
 				    LM_TEMPLATE_ORIENTATION orientation,
@@ -123,7 +138,7 @@ double imgalgo_calc_single_xcorr(image_t * master,
 				 memory_map_t * summation_table_single,
 				 memory_map_t * summation_table_squared,
 				 double sum_over_zero_mean_template,
-				 unsigned int x, unsigned int y, unsigned int step_size);
+				 unsigned int x, unsigned int y);
 
 double calc_mean_for_img_area(image_t * img, unsigned int min_x, unsigned int min_y, 
 			      unsigned int width, unsigned int height);
@@ -169,7 +184,8 @@ inline void mm_set_double(memory_map_t * table, unsigned int x, unsigned int y, 
 
 
 ret_t precalc_summation_tables(image_t * master_img, 
-			       memory_map_t * summation_table_single, memory_map_t * summation_table_squared) {
+			       memory_map_t * summation_table_single, 
+			       memory_map_t * summation_table_squared) {
 
 
   unsigned int x, y;
@@ -233,7 +249,9 @@ ret_t template_matching(plugin_params_t * pparams) {
 
   ret_t ret;
   image_t * master_img_gs = NULL;
+  image_t * master_img_gs_sd = NULL;
   image_t * _template = NULL;
+  image_t * _template_sd = NULL;
   double total_time_ms;
   clock_t start, finish;
 
@@ -243,11 +261,28 @@ ret_t template_matching(plugin_params_t * pparams) {
 
   if(!pparams) return RET_INV_PTR;
   matching_params->project = pparams->project;
-  matching_params->placement_layer = lmodel_get_layer_num_by_type(matching_params->project->lmodel, LM_LAYER_TYPE_LOGIC);
+  matching_params->placement_layer = lmodel_get_layer_num_by_type(matching_params->project->lmodel, 
+								  LM_LAYER_TYPE_LOGIC);
 
   unsigned int layer = pparams->project->current_layer;
   /* this is a pointer to the background image */
+  double scale_down = 0;
+
   image_t * master_img = pparams->project->bg_images[layer];
+
+  image_t * master_img_sd = scalmgr_get_image(pparams->project->scaling_manager,
+					   layer,
+					   matching_params->scale_down,
+					   &scale_down);
+  assert(scale_down == matching_params->scale_down);
+  if(scale_down != matching_params->scale_down) return RET_ERR;
+
+  matching_params->min_x = lrint((double)pparams->min_x / (double)scale_down);
+  matching_params->max_x = lrint((double)pparams->max_x / (double)scale_down);
+  matching_params->min_y = lrint((double)pparams->min_y / (double)scale_down);
+  matching_params->max_y = lrint((double)pparams->max_y / (double)scale_down);
+  if(matching_params->max_x >= master_img->width) matching_params->max_x = master_img->width - 1;
+  if(matching_params->max_y >= master_img->height) matching_params->max_y = master_img->height - 1;
 
   debug(TM, "matching on layer = %d", layer);
 
@@ -258,9 +293,22 @@ ret_t template_matching(plugin_params_t * pparams) {
    *
    ************************************************************************************/
   // we get get a lot of performance gain, if we use a grayscaled image
-  if((master_img_gs = gr_create_image( pparams->max_x - pparams->min_x, 
-				       pparams->max_y - pparams->min_y, 
-				       IMAGE_TYPE_GS)) == NULL) { ret = RET_ERR; goto error; }
+  if((master_img_gs_sd = gr_create_image(matching_params->max_x - matching_params->min_x, 
+					 matching_params->max_y - matching_params->min_y, 
+					 IMAGE_TYPE_GS)) == NULL) { ret = RET_ERR; goto error; }
+  
+  if(RET_IS_NOT_OK(ret = gr_map_temp_file(master_img_gs_sd, 
+					  pparams->project->project_dir))) goto error;
+  
+  // implicit conversion to gs
+  if(RET_IS_NOT_OK(ret = gr_copy_image(master_img_gs_sd, master_img_sd, 
+				       matching_params->min_x, matching_params->min_y,
+				       matching_params->max_x, matching_params->max_y))) goto error;
+
+  // normal version
+  if((master_img_gs = gr_create_image(pparams->max_x - pparams->min_x, 
+				      pparams->max_y - pparams->min_y, 
+				      IMAGE_TYPE_GS)) == NULL) { ret = RET_ERR; goto error; }
   
   if(RET_IS_NOT_OK(ret = gr_map_temp_file(master_img_gs, 
 					  pparams->project->project_dir))) goto error;
@@ -276,23 +324,48 @@ ret_t template_matching(plugin_params_t * pparams) {
    *
    ************************************************************************************/
 
-  if((matching_params->summation_table_single = mm_create(pparams->max_x - pparams->min_x,
-						       pparams->max_y - pparams->min_y, 
-						       sizeof(double))) == NULL) { ret = RET_ERR; goto error; }
+  if((matching_params->summation_table_single_sd = 
+      mm_create(matching_params->max_x - matching_params->min_x,
+		matching_params->max_y - matching_params->min_y, 
+		sizeof(double))) == NULL) { ret = RET_ERR; goto error; }
+  
+  if(RET_IS_NOT_OK(ret = mm_map_temp_file(matching_params->summation_table_single_sd, 
+					  pparams->project->project_dir))) goto error;
+
+
+  if((matching_params->summation_table_squared_sd = 
+      mm_create(matching_params->max_x - matching_params->min_x, 
+		matching_params->max_y - matching_params->min_y, 
+		sizeof(double))) == NULL) goto error;
+
+  if(RET_IS_NOT_OK(ret = mm_map_temp_file(matching_params->summation_table_squared_sd, 
+					  pparams->project->project_dir))) goto error;
+
+
+  if(RET_IS_NOT_OK(ret = precalc_summation_tables(master_img_gs_sd, 
+						  matching_params->summation_table_single_sd, 
+						  matching_params->summation_table_squared_sd))) goto error;
+
+
+  // normal
+
+  if((matching_params->summation_table_single = 
+      mm_create(pparams->max_x - pparams->min_x, pparams->max_y - pparams->min_y, 
+		sizeof(double))) == NULL) { ret = RET_ERR; goto error; }
   
   if(RET_IS_NOT_OK(ret = mm_map_temp_file(matching_params->summation_table_single, 
 					  pparams->project->project_dir))) goto error;
 
-  if((matching_params->summation_table_squared = mm_create(pparams->max_x - pparams->min_x,
-							pparams->max_y - pparams->min_y, 
-							sizeof(double))) == NULL) goto error;
 
-  if(RET_IS_NOT_OK(ret = mm_map_temp_file(matching_params->summation_table_squared, 
+  if((matching_params->summation_table_squared = 
+      mm_create(pparams->max_x - pparams->min_x, pparams->max_y - pparams->min_y, 
+		sizeof(double))) == NULL) goto error;
+
+  if(RET_IS_NOT_OK(ret = mm_map_temp_file(matching_params->summation_table_squared,
 					  pparams->project->project_dir))) goto error;
 
-
   if(RET_IS_NOT_OK(ret = precalc_summation_tables(master_img_gs, 
-						  matching_params->summation_table_single, 
+						  matching_params->summation_table_single,
 						  matching_params->summation_table_squared))) goto error;
 
 
@@ -308,12 +381,31 @@ ret_t template_matching(plugin_params_t * pparams) {
      *
      ************************************************************************************/
     if(_template != NULL && RET_IS_NOT_OK(gr_image_destroy(_template))) {ret = RET_ERR; goto error;}
+    if(_template_sd != NULL && RET_IS_NOT_OK(gr_image_destroy(_template_sd))) {ret = RET_ERR; goto error;}
 
+    unsigned int tmpl_pos_min_x = lrint((double)gate_template->master_image_min_x / (double)scale_down);
+    unsigned int tmpl_pos_max_x = lrint((double)gate_template->master_image_max_x / (double)scale_down);
+    unsigned int tmpl_pos_min_y = lrint((double)gate_template->master_image_min_y / (double)scale_down);
+    unsigned int tmpl_pos_max_y = lrint((double)gate_template->master_image_max_y / (double)scale_down);
+    if(tmpl_pos_max_x >= master_img->width) tmpl_pos_max_x = master_img->width - 1;
+    if(tmpl_pos_max_y >= master_img->height) tmpl_pos_max_y = master_img->height - 1;
+    
+    if((_template_sd = gr_extract_image_as_gs(master_img_sd,
+					      tmpl_pos_min_x, tmpl_pos_min_y,
+					      tmpl_pos_max_x - tmpl_pos_min_x,
+					      tmpl_pos_max_y - tmpl_pos_min_y)) == NULL) {
+      ret = RET_ERR; 
+      goto error; 
+    }
+
+    // normal
     if((_template = gr_extract_image_as_gs(master_img,
-					   gate_template->master_image_min_x,
+					   gate_template->master_image_min_x, 
 					   gate_template->master_image_min_y,
-					   gate_template->master_image_max_x - gate_template->master_image_min_x,
-					   gate_template->master_image_max_y - gate_template->master_image_min_y)) == NULL) {
+					   gate_template->master_image_max_x - 
+					   gate_template->master_image_min_x,
+					   gate_template->master_image_max_y - 
+					   gate_template->master_image_min_y)) == NULL) {
       ret = RET_ERR; 
       goto error; 
     }
@@ -321,11 +413,16 @@ ret_t template_matching(plugin_params_t * pparams) {
   
     debug(TM, "Template matching: normal");
     orientation = LM_TEMPLATE_ORIENTATION_NORMAL;
-    if(RET_IS_NOT_OK(ret = imgalgo_run_template_matching(master_img_gs, 
-							 _template,
+    if(RET_IS_NOT_OK(ret = imgalgo_run_template_matching(master_img_gs, _template,
 							 pparams->min_x, pparams->min_y,
 							 pparams->max_x - _template->width,
 							 pparams->max_y - _template->height,
+
+							 master_img_gs_sd, _template_sd,
+							 matching_params->min_x, matching_params->min_y,
+							 matching_params->max_x - _template_sd->width,
+							 matching_params->max_y - _template_sd->height,
+
 							 pparams->project->current_layer,
 							 gate_template, orientation, 
 							 matching_params))) goto error;
@@ -333,11 +430,16 @@ ret_t template_matching(plugin_params_t * pparams) {
     debug(TM, "Template matching: flipped up down");
     orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN;
     gr_flip_up_down(_template);
-    if(RET_IS_NOT_OK(ret = imgalgo_run_template_matching(master_img_gs,
-							 _template,
+    if(RET_IS_NOT_OK(ret = imgalgo_run_template_matching(master_img_gs, _template,
 							 pparams->min_x, pparams->min_y,
 							 pparams->max_x - _template->width,
 							 pparams->max_y - _template->height,
+
+							 master_img_gs_sd, _template_sd,
+							 matching_params->min_x, matching_params->min_y,
+							 matching_params->max_x - _template_sd->width,
+							 matching_params->max_y - _template_sd->height,
+
 							 pparams->project->current_layer,
 							 gate_template, orientation, 
 							 matching_params))) goto error;
@@ -345,11 +447,16 @@ ret_t template_matching(plugin_params_t * pparams) {
     debug(TM, "Template matching: flipped both");
     orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH;
     gr_flip_left_right(_template);
-    if(RET_IS_NOT_OK(ret = imgalgo_run_template_matching(master_img_gs, 			
-							 _template,
+    if(RET_IS_NOT_OK(ret = imgalgo_run_template_matching(master_img_gs, _template,
 							 pparams->min_x, pparams->min_y,
 							 pparams->max_x - _template->width,
 							 pparams->max_y - _template->height,
+
+							 master_img_gs_sd, _template_sd,
+							 matching_params->min_x, matching_params->min_y,
+							 matching_params->max_x - _template_sd->width,
+							 matching_params->max_y - _template_sd->height,
+
 							 pparams->project->current_layer,
 							 gate_template, orientation, 
 							 matching_params))) goto error;
@@ -357,11 +464,16 @@ ret_t template_matching(plugin_params_t * pparams) {
     debug(TM, "Template matching: flipped left right");
     orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT;
     gr_flip_up_down(_template);
-    if(RET_IS_NOT_OK(ret = imgalgo_run_template_matching(master_img_gs, 			
-							 _template,
+    if(RET_IS_NOT_OK(ret = imgalgo_run_template_matching(master_img_gs, _template,
 							 pparams->min_x, pparams->min_y,
 							 pparams->max_x - _template->width,
 							 pparams->max_y - _template->height,
+
+							 master_img_gs_sd, _template_sd,
+							 matching_params->min_x, matching_params->min_y,
+							 matching_params->max_x - _template_sd->width,
+							 matching_params->max_y - _template_sd->height,
+
 							 pparams->project->current_layer,
 							 gate_template, orientation, 
 							 matching_params))) goto error;
@@ -389,11 +501,25 @@ ret_t template_matching(plugin_params_t * pparams) {
  error:
   
   // free temp image
-  if(_template != NULL && RET_IS_NOT_OK(gr_image_destroy(_template))) debug(TM, "gr_image_destroy() failed");
-  if(master_img_gs != NULL && RET_IS_NOT_OK(gr_image_destroy(master_img_gs))) debug(TM, "gr_image_destroy() failed");
+  if(_template_sd != NULL && RET_IS_NOT_OK(gr_image_destroy(_template_sd))) 
+    debug(TM, "gr_image_destroy() failed");
+  if(master_img_gs_sd != NULL && RET_IS_NOT_OK(gr_image_destroy(master_img_gs_sd))) 
+    debug(TM, "gr_image_destroy() failed");
+
+  if(_template != NULL && RET_IS_NOT_OK(gr_image_destroy(_template))) 
+    debug(TM, "gr_image_destroy() failed");
+  if(master_img_gs != NULL && RET_IS_NOT_OK(gr_image_destroy(master_img_gs))) 
+    debug(TM, "gr_image_destroy() failed");
   
-  if(matching_params->summation_table_single != NULL) mm_destroy(matching_params->summation_table_single);
-  if(matching_params->summation_table_squared != NULL) mm_destroy(matching_params->summation_table_squared);
+  if(matching_params->summation_table_single != NULL) 
+    mm_destroy(matching_params->summation_table_single);
+  if(matching_params->summation_table_squared != NULL) 
+    mm_destroy(matching_params->summation_table_squared);
+
+  if(matching_params->summation_table_single_sd != NULL) 
+    mm_destroy(matching_params->summation_table_single_sd);
+  if(matching_params->summation_table_squared_sd != NULL) 
+    mm_destroy(matching_params->summation_table_squared_sd);
   
   if(RET_IS_NOT_OK(ret)) debug(TM, "There was an error.");
   
@@ -492,14 +618,16 @@ ret_t raise_dialog_before(Gtk::Window * parent, plugin_params_t * pparams) {
     tmpl_list_ptr = tmpl_list_ptr->next;
   }
 
-  TemplateMatchingParamsWin paramsWin(parent, 0.45, 0.6, 
-				      MAX(1, pparams->project->lambda), 
-				      MAX(1, (pparams->project->lambda >> 1)));
+  TemplateMatchingParamsWin paramsWin(parent, 
+				      pparams->project->scaling_manager,
+				      0.45, 0.6, 
+				      MAX(1, pparams->project->lambda >> 1), 
+				      2);
   
   if(RET_IS_NOT_OK(ret = paramsWin.run(&(matching_params->threshold_hc),
 				       &(matching_params->threshold_detection),
 				       &(matching_params->max_step_size_search),
-				       &(matching_params->max_step_size_xcorr) ))) return ret;
+				       &(matching_params->scale_down) ))) return ret;
 
 
   return RET_OK;
@@ -525,15 +653,12 @@ ret_t clear_area_in_map(memory_map_t * temp,
 }
 
 #define CALC_AND_CHECK_DIRECTION(_x, _y, v) { \
-    double curr_val =  mm_get_double(temp, _x, _y); \
-    if(curr_val <= 0) { \
-      curr_val = imgalgo_calc_single_xcorr(master, zero_mean_template, \
+    double curr_val =  imgalgo_calc_single_xcorr(master, zero_mean_template, \
 					     matching_params->summation_table_single, \
                                              matching_params->summation_table_squared, \
-					     sum_over_zero_mean_template, _x, _y, 1); \
-      mm_set_double(temp, _x, _y, curr_val); \
-      matching_params->stats_real_gamma_calcs++; \
-    } \
+					     sum_over_zero_mean_template, _x, _y); \
+    matching_params->stats_real_gamma_calcs++; \
+    \
     if(curr_max_val < curr_val) { \
       max_corr_x2 = _x; \
       max_corr_y2 = _y; \
@@ -545,7 +670,6 @@ ret_t hill_climbing(unsigned int start_x, unsigned int start_y, double xcorr_val
 		    unsigned int * max_corr_x_out, unsigned int * max_corr_y_out, double * max_xcorr_out,
 		    image_t * master,
 		    memory_map_t * zero_mean_template,
-		    memory_map_t * temp,
 		    double sum_over_zero_mean_template,
 		    template_matching_params_t * matching_params) {
 
@@ -562,15 +686,15 @@ ret_t hill_climbing(unsigned int start_x, unsigned int start_y, double xcorr_val
     
     if(max_corr_x > 1 && max_corr_y > 1) CALC_AND_CHECK_DIRECTION(max_corr_x-1, max_corr_y-1, val);
     if(max_corr_y > 1) CALC_AND_CHECK_DIRECTION(max_corr_x, max_corr_y-1, val);
-    if(max_corr_y > 1 && max_corr_x < temp->width) 
+    if(max_corr_y > 1 && max_corr_x < master->width) 
       CALC_AND_CHECK_DIRECTION(max_corr_x+1, max_corr_y-1, val);
     
     if(max_corr_x > 1) CALC_AND_CHECK_DIRECTION(max_corr_x - 1, max_corr_y, val);
-    if(max_corr_x < temp->width) CALC_AND_CHECK_DIRECTION(max_corr_x+1, max_corr_y, val);
+    if(max_corr_x < master->width) CALC_AND_CHECK_DIRECTION(max_corr_x+1, max_corr_y, val);
     
-    if(max_corr_x > 1 && max_corr_y < temp->height) CALC_AND_CHECK_DIRECTION(max_corr_x - 1, max_corr_y + 1, val);
-    if(max_corr_y < temp->height) CALC_AND_CHECK_DIRECTION(max_corr_x, max_corr_y + 1, val);
-    if(max_corr_x < temp->width && max_corr_y < temp->height) 
+    if(max_corr_x > 1 && max_corr_y < master->height) CALC_AND_CHECK_DIRECTION(max_corr_x - 1, max_corr_y + 1, val);
+    if(max_corr_y < master->height) CALC_AND_CHECK_DIRECTION(max_corr_x, max_corr_y + 1, val);
+    if(max_corr_x < master->width && max_corr_y < master->height) 
       CALC_AND_CHECK_DIRECTION(max_corr_x + 1, max_corr_y + 1, val);
     
     max_corr_x = max_corr_x2;
@@ -623,28 +747,26 @@ ret_t add_gate(template_matching_params_t * matching_params,
 }
 
 
-void adjust_step_size( unsigned int * step_size_search, unsigned int * step_size_xcorr, double val, 
+void adjust_step_size( unsigned int * step_size_search, double val, 
 		       const template_matching_params_t * const matching_params) {
   if(val > 0) {
     *step_size_search = MAX(1, rint((1.0 - (double)matching_params->max_step_size_search) * val + 
 				    matching_params->max_step_size_search));
-    *step_size_xcorr = MIN(MAX(1, (*step_size_search>>1)), matching_params->max_step_size_xcorr);
   }
   
   else {
     *step_size_search = matching_params->max_step_size_search;
-    *step_size_xcorr  = matching_params->max_step_size_xcorr;
   }
 
 }
 
 /**
- * @param x Position relative to search area
- * @param y Position relative to search area
- * @param min_x Position within complete background image.
- * @param min_y Position within complete background image.
- * @param max_x Position within complete background image.
- * @param max_y Position within complete background image.
+ * @param x Position relative to (scaled down) search area
+ * @param y Position relative to (scaled down) search area
+ * @param min_x Position within complete (scaled down) background image.
+ * @param min_y Position within complete (scaled down) background image.
+ * @param max_x Position within complete (scaled down) background image.
+ * @param max_y Position within complete (scaled down) background image.
  */
 TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y, 
 				     unsigned int step_size_search,
@@ -763,25 +885,45 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
 
 }
 
-ret_t imgalgo_run_template_matching(image_t * master, 
-				    image_t * _template,
+double subtract_mean(image_t * img, memory_map_t * zero_mean_img) {
+  
+  double mean = calc_mean_for_img_area(img, 0, 0, img->width, img->height);
+  double sum_over_zero_mean_img = 0;
+  unsigned int x, y;
+
+  for(y = 0; y < img->height; y++) 
+    for(x = 0; x < img->width; x++) {
+      double tmp = (double)gr_get_greyscale_pixval(img, x, y) - mean;
+      mm_set_double( zero_mean_img, x, y, tmp);
+      sum_over_zero_mean_img += tmp * tmp;
+    }
+
+  return sum_over_zero_mean_img;
+}
+
+ret_t imgalgo_run_template_matching(image_t * master, image_t * _template,
 				    unsigned int min_x, unsigned int min_y,
 				    unsigned int max_x, unsigned int max_y,
+
+				    image_t * sd_master, image_t * sd_template,
+				    unsigned int sd_min_x, unsigned int sd_min_y,
+				    unsigned int sd_max_x, unsigned int sd_max_y,
+
 				    int layer, lmodel_gate_template_t * tmpl_ptr,
 				    LM_TEMPLATE_ORIENTATION orientation,
 				    template_matching_params_t * matching_params) {
 
-  unsigned int x, y;
+  unsigned int x = 0, y = 0;
   ret_t ret;
-  double sum_over_zero_mean_template = 0, template_mean;
-  unsigned int step_size_search = matching_params->max_step_size_search;
-  unsigned int step_size_xcorr  = matching_params->max_step_size_xcorr;
-  TEMPLATE_MATCHING_STATE state;
+  double sum_over_zero_mean_template = 0;
   memory_map_t * zero_mean_template = NULL;
-  memory_map_t * temp = NULL;
 
-  debug(TM, "placement layer = %d", matching_params->placement_layer);
-  if(min_x >= max_x || min_y >= max_y) return RET_ERR;
+  double sum_over_zero_mean_template_sd = 0;
+  memory_map_t * zero_mean_template_sd = NULL;
+
+  unsigned int step_size_search = matching_params->max_step_size_search;
+  TEMPLATE_MATCHING_STATE state;
+  
 
   // prepare template
   if((zero_mean_template = mm_create(_template->width, _template->height, sizeof(double))) == NULL) { 
@@ -791,54 +933,37 @@ ret_t imgalgo_run_template_matching(image_t * master,
   }
   if(RET_IS_NOT_OK(ret = mm_alloc_memory(zero_mean_template))) goto error;
 
-  template_mean = calc_mean_for_img_area(_template, 0, 0, _template->width, _template->height);
 
-  for(y = 0; y < _template->height; y++) 
-    for(x = 0; x < _template->width; x++) {
-      double tmp = (double)gr_get_greyscale_pixval(_template, x, y) - template_mean;
-      mm_set_double( zero_mean_template, x, y, tmp);
-      sum_over_zero_mean_template += tmp * tmp;
-    }
-
-  /* Create a data structure for the temp space, where we can store doubles. */
-  if((temp = mm_create(max_x - min_x, max_y - min_y, sizeof(double))) == NULL) { 
-    debug(TM, "mm_create() for temp failed");
+  if((zero_mean_template_sd = mm_create(sd_template->width, sd_template->height, sizeof(double))) == NULL) { 
+    debug(TM, "mm_create() for zero_mean_template failed");
     ret = RET_ERR; 
-    goto error; 
-  }
-  
-  /* Create a temp file in the project directory. The temp file is mapped into memory. */
-  if(RET_IS_NOT_OK(ret = mm_map_temp_file(temp, matching_params->project->project_dir))) {
-    debug(TM, "mm_map_temp_file() for temp failed");
     goto error;
   }
+  if(RET_IS_NOT_OK(ret = mm_alloc_memory(zero_mean_template_sd))) goto error;
 
-  for(y = 0; y < temp->height; y ++) for(x = 0; x < temp->width; x ++) mm_set_double(temp, x, y, 0);
-    
-  x = 0;
-  y = 0;
+  sum_over_zero_mean_template = subtract_mean(_template, zero_mean_template);
+  sum_over_zero_mean_template_sd = subtract_mean(sd_template, zero_mean_template_sd);
 
 
   while((state = get_next_pos(&x, &y, step_size_search, _template,
-		     min_x, max_x, min_y, max_y, matching_params)) == TEMPLATE_MATCHING_CONTINUE) {
+			      min_x, max_x, min_y, max_y, matching_params)) == TEMPLATE_MATCHING_CONTINUE) {
 
-    if(mm_get_double(temp, x, y) == -1) continue;
-      
-    double val = imgalgo_calc_single_xcorr(master, zero_mean_template, 
-					   matching_params->summation_table_single, 
-					   matching_params->summation_table_squared, 
-					   sum_over_zero_mean_template, x, y, step_size_xcorr);
+    double val = imgalgo_calc_single_xcorr(sd_master, zero_mean_template_sd,
+					   matching_params->summation_table_single_sd,
+					   matching_params->summation_table_squared_sd,
+					   sum_over_zero_mean_template_sd, 
+					   lrint((double)x / (double)matching_params->scale_down),
+					   lrint((double)y / (double)matching_params->scale_down));
     
-    mm_set_double(temp, x, y, val);
     matching_params->stats_real_gamma_calcs++; 
-    adjust_step_size(&step_size_search, &step_size_xcorr, val, matching_params);  
+    adjust_step_size(&step_size_search, val, matching_params);  
      
     if(val >= matching_params->threshold_hc) {
       
       unsigned int max_corr_x, max_corr_y;
       double curr_max_val;
       if(RET_IS_NOT_OK(ret = hill_climbing(x, y, val, &max_corr_x, &max_corr_y, &curr_max_val,
-					   master, zero_mean_template, temp, sum_over_zero_mean_template, 
+					   master, zero_mean_template, sum_over_zero_mean_template, 
 					   matching_params))) {
 	debug(TM, "hill climbing failed");
 	goto error;
@@ -846,16 +971,6 @@ ret_t imgalgo_run_template_matching(image_t * master,
       
       if(curr_max_val >= matching_params->threshold_detection) {
 	debug(TM, "\tfound a correlation hotspot at %d,%d with v = %f", max_corr_x, max_corr_y, curr_max_val);
-	
-	// clear areas of higher correlation to prevent picking it up next time
-	double dx = (double)max_corr_x - (double)x;
-	double dy = (double)max_corr_y - (double)y;
-	unsigned int radius = 2 * sqrt(dx*dx + dy*dy) + matching_params->max_step_size_search;
-	if(RET_IS_NOT_OK(ret = clear_area_in_map(temp, max_corr_x, max_corr_y, 
-						 radius))) {
-	  debug(TM, "clear_area_in_map() failed");
-	  goto error;
-	}
 	
 	// insert
 	if(RET_IS_NOT_OK(ret = add_gate(matching_params, tmpl_ptr, orientation, 
@@ -872,8 +987,10 @@ ret_t imgalgo_run_template_matching(image_t * master,
  error:
 
   /* unmap and remove temp data */
-  if(temp != NULL && RET_IS_NOT_OK(mm_destroy(temp))) debug(TM, "mm_destroy() failed");
-  if(zero_mean_template != NULL && RET_IS_NOT_OK(mm_destroy(zero_mean_template))) debug(TM, "mm_destroy() failed");
+  if(zero_mean_template != NULL && RET_IS_NOT_OK(mm_destroy(zero_mean_template))) 
+    debug(TM, "mm_destroy() failed");
+  if(zero_mean_template_sd != NULL && RET_IS_NOT_OK(mm_destroy(zero_mean_template_sd))) 
+    debug(TM, "mm_destroy() failed");
   
   return ret;
 }
@@ -899,7 +1016,7 @@ double imgalgo_calc_single_xcorr(image_t * master,
 				 memory_map_t * summation_table_single,
 				 memory_map_t * summation_table_squared,
 				 double sum_over_zero_mean_template,
-				 unsigned int local_x, unsigned int local_y, unsigned int step_size) {
+				 unsigned int local_x, unsigned int local_y) {
 
   double template_size = zero_mean_template->width * zero_mean_template->height;
 
@@ -932,14 +1049,13 @@ double imgalgo_calc_single_xcorr(image_t * master,
   // calculate nummerator
   
   unsigned int _x, _y;
-  unsigned int factor =  step_size * step_size;
   double nummerator = 0;
 
-  for(_y = 0; _y < zero_mean_template->height; _y += step_size) {
-    for(_x = 0; _x < zero_mean_template->width; _x += step_size) {
+  for(_y = 0; _y < zero_mean_template->height; _y ++) {
+    for(_x = 0; _x < zero_mean_template->width; _x ++) {
       double f_xy = gr_get_greyscale_pixval(master, _x + local_x, _y + local_y);
       double t_xy = mm_get_double(zero_mean_template, _x, _y);
-      nummerator += (f_xy * t_xy) * factor;
+      nummerator += (f_xy * t_xy);
       
     }
   }
