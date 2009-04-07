@@ -3,7 +3,6 @@ This is a list of known bugs:
 
 Logic modell:
 
-- connection list: some connections appears multiple times
 - combination of vertical and horizontal wires don't auto-join
   
 UI:

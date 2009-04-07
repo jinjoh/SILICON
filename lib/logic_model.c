@@ -458,7 +458,7 @@ ret_t lmodel_serialize_gate_to_file(const lmodel_gate_t * const gate, lmodel_qtr
 
   // serialize gate ports
   lmodel_gate_port_t * ptr = gate->ports;
-  while(ptr) {
+  while(ptr != NULL) {
     assert(ptr->gate != NULL);
     assert(ptr->gate->gate_template != NULL);
     assert(ptr->tmpl_port != NULL);
@@ -982,11 +982,12 @@ lmodel_gate_port_t * lmodel_create_gate_port(lmodel_gate_t * gate, unsigned int 
   port->port_id = port_id;
   port->gate = gate;
 
+  /*
   if(RET_IS_NOT_OK(lmodel_update_gate_ports(gate))) {
     free(port);
     return NULL;
   }
-
+  */
   return port;
 }
 
@@ -1052,6 +1053,9 @@ ret_t lmodel_update_gate_ports(lmodel_gate_t * gate) {
   lmodel_gate_template_t * gate_tmpl = gate->gate_template;
   lmodel_gate_port_t * port_ptr = gate->ports;
 
+  debug(TM, "update gate ports for %s", 
+	gate->gate_template != NULL ? gate->gate_template->short_name : "unid gate");
+
   if(gate_tmpl == NULL) {
     // no template, but defined ports -> destroy ports
     if(port_ptr != NULL) {
@@ -1070,6 +1074,7 @@ ret_t lmodel_update_gate_ports(lmodel_gate_t * gate) {
 	lmodel_gate_port_t * present_gport = lmodel_get_port_from_gate_by_id(gate, tmpl_port_ptr->id);
 	if(present_gport == NULL) {
 	  // create a new gate port
+	  debug(TM, "there are ports, but curr port ist undef: add port %d", tmpl_port_ptr->id);
 	  lmodel_gate_port_t * new_gate_port = lmodel_create_gate_port(gate, tmpl_port_ptr);
 	  assert(new_gate_port);
 	  if(new_gate_port == NULL) return RET_MALLOC_FAILED;
@@ -1088,6 +1093,7 @@ ret_t lmodel_update_gate_ports(lmodel_gate_t * gate) {
       // ports undefined
       lmodel_gate_template_port_t * tmpl_port_ptr = gate_tmpl->ports;
       while(tmpl_port_ptr != NULL) {
+	debug(TM, "ports undefined: add port %d", tmpl_port_ptr->id);
 	lmodel_gate_port_t * new_gate_port = lmodel_create_gate_port(gate, tmpl_port_ptr);
 	assert(new_gate_port);
 	if(new_gate_port == NULL) return RET_MALLOC_FAILED;
@@ -1097,6 +1103,11 @@ ret_t lmodel_update_gate_ports(lmodel_gate_t * gate) {
     }
   }
   
+  port_ptr = gate->ports;
+  while(port_ptr != NULL) {
+    debug(TM, "gate has port with id %d", port_ptr->port_id);
+    port_ptr = port_ptr->next;
+  }
   return RET_OK;
 }
 
@@ -1163,6 +1174,7 @@ ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate, unsigned int * h
     default: return RET_ERR;
     }
 
+    debug(TM, "Create a gate");
     lmodel_gate_t * new_gate = lmodel_create_gate(lmodel, min_x, min_y, max_x, max_y, 
 						  tmpl, 
 						  strdup((char *)gate->name.buf),
@@ -1170,24 +1182,36 @@ ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate, unsigned int * h
     if(!new_gate) return RET_ERR;
     new_gate->template_orientation = template_orientation;
 
-    if(RET_IS_NOT_OK(ret = lmodel_add_gate(lmodel, layer, new_gate))) return ret;
 
     for(port_i = 0; port_i < gate->ports.list.count; port_i++) {
       long port_id;
       GatePort_t * gport = gate->ports.list.array[port_i];
       asn_INTEGER2long(&gport->port_id, &port_id);
 
-      lmodel_gate_port_t * new_gate_port = lmodel_create_gate_port(new_gate, port_id);
-      if(RET_IS_NOT_OK(ret = lmodel_add_gate_port_to_gate(new_gate, new_gate_port))) return ret;
+      debug(TM, "Parsing port of gate %d with ID %d.", obj_id, port_id);
 
-      connection_build_helper_t * bh = lmodel_create_connection_build_helper(LM_TYPE_GATE_PORT, 
-									     new_gate_port, 
-									     port_id);
-      bh->to = lmodel_import_connections(gport->connections.list.array, 
-					 gport->connections.list.count);
-      lmodel_add_connection_build_helper(lmodel, bh);
+      lmodel_gate_port_t * is_port_present = lmodel_get_port_from_gate_by_id(new_gate, port_id);
+      if(is_port_present != NULL) {
+	debug(TM, "There is a problem in the logic model. Port %d from object %d is"
+	      "defined twice. We can't ignore this.", port_id, obj_id);
+	return RET_ERR;
+      }
+      else {
+	lmodel_gate_port_t * new_gate_port = lmodel_create_gate_port(new_gate, port_id);
+	if(RET_IS_NOT_OK(ret = lmodel_add_gate_port_to_gate(new_gate, new_gate_port))) return ret;
+
+	connection_build_helper_t * bh = lmodel_create_connection_build_helper(LM_TYPE_GATE_PORT, 
+									       new_gate_port, 
+									       port_id);
+	bh->to = lmodel_import_connections(gport->connections.list.array, 
+					   gport->connections.list.count);
+	lmodel_add_connection_build_helper(lmodel, bh);
+      }
     }
-    if(RET_IS_NOT_OK(ret = lmodel_update_all_gate_ports(lmodel, tmpl))) return ret;
+    debug(TM, "Add gate to lmodel");
+    if(RET_IS_NOT_OK(ret = lmodel_add_gate(lmodel, layer, new_gate))) return ret;
+
+    //if(RET_IS_NOT_OK(ret = lmodel_update_all_gate_ports(lmodel, tmpl))) return ret;
 
 
   }
@@ -1458,14 +1482,16 @@ ret_t lmodel_connect_objects(LM_OBJECT_TYPE type1, void * obj1,
   ptr = list1_ptr;
   while(ptr != NULL) {
     assert(ptr->obj_ptr != NULL);
-    if(RET_IS_NOT_OK(ret = lmodel_connect_object(&new_list, ptr->object_type, (object_ptr_t *)ptr->obj_ptr))) return ret;
+    if(RET_IS_NOT_OK(ret = lmodel_connect_object(&new_list, ptr->object_type, 
+						 (object_ptr_t *)ptr->obj_ptr))) return ret;
     ptr = ptr->next;
   }
 
   ptr = list2_ptr;
   while(ptr != NULL) {
     assert(ptr->obj_ptr != NULL);
-    if(RET_IS_NOT_OK(ret = lmodel_connect_object(&new_list, ptr->object_type, (object_ptr_t *)ptr->obj_ptr))) return ret;
+    if(RET_IS_NOT_OK(ret = lmodel_connect_object(&new_list, ptr->object_type, 
+						 (object_ptr_t *)ptr->obj_ptr))) return ret;
     ptr = ptr->next;
   }
   
@@ -1868,15 +1894,18 @@ ret_t lmodel_decode_file(logic_model_t * const lmodel, FileContent_t * file_cont
       if(!obj) return RET_INV_PTR;
       
       if(obj->present == Object_PR_wire) {
+	
 	if(RET_IS_NOT_OK(ret = lmodel_import_wire(lmodel, &obj->choice.wire, &highest_object_id))) return ret;
       }
       else if(obj->present == Object_PR_via) {
 	if(RET_IS_NOT_OK(ret = lmodel_import_via(lmodel, &obj->choice.via, &highest_object_id))) return ret;
       }
       else if(obj->present == Object_PR_gate) {
+	debug(TM, "Parsing a gate");
 	if(RET_IS_NOT_OK(ret = lmodel_import_gate(lmodel, &obj->choice.gate, &highest_object_id))) return ret;
       }
       else if(obj->present == Object_PR_gate_template) {
+	debug(TM, "Parsing a gate template");
 	if(RET_IS_NOT_OK(ret = lmodel_import_gate_template(lmodel, &obj->choice.gate_template))) 
 	  return ret;
       }
