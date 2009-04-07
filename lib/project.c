@@ -32,6 +32,8 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 
 #include "project.h"
 #include "renderer.h"
+#include "port_color_manager.h"
+#include "scaling_manager.h"
 
 #define TEMPLATES_DAT "templates.dat"
 #define TEMPLATE_PLACEMENT_DAT "template_placements.dat"
@@ -80,10 +82,18 @@ project_t * project_create(const char * const project_dir, unsigned int width, u
     return NULL;
   }
 
+  if((ptr->port_color_manager = pcm_create()) == NULL) {
+    project_destroy(ptr);
+    return NULL;
+  }
+
   if((ptr->alignment_marker_set = amset_create(num_layers)) == NULL) {
     project_destroy(ptr);
     return NULL;
   }
+
+  ptr->project_file_version = strdup(DEGATE_VERSION);
+
   return ptr;
 }
 
@@ -142,8 +152,13 @@ ret_t project_destroy(project_t * project) {
   if(project->scaling_manager != NULL) 
     if(RET_IS_NOT_OK(ret = scalmgr_destroy(project->scaling_manager))) return ret;
 
+  if(project->port_color_manager != NULL) 
+    if(RET_IS_NOT_OK(ret = pcm_destroy(project->port_color_manager))) return ret;
+
   if(project->project_name != NULL) free(project->project_name);
   if(project->project_description != NULL) free(project->project_description);
+
+  if(project->project_file_version != NULL) free(project->project_file_version);
 
   memset(project, 0, sizeof(project_t));
   free(project);
@@ -297,6 +312,7 @@ project_t * project_load(const char * const project_dir) {
   PROJECT_READ_INT("object_id_counter", project->lmodel->object_id_counter);
   PROJECT_READ_STRING("project_name", project->project_name);
   PROJECT_READ_STRING("project_description", project->project_description);
+  PROJECT_READ_STRING("project_file_version", project->project_file_version);
 
 
   PROJECT_READ_INT("grid.offset_x", project->grid.offset_x);
@@ -360,6 +376,38 @@ project_t * project_load(const char * const project_dir) {
     amset_print(project->alignment_marker_set);
   }
 
+  // load port colors
+  if((setting = config_lookup(&cfg, "port_colors")) == NULL) {
+    printf("can't read config item port_colors\n");
+    config_destroy(&cfg);
+    project_destroy(project);
+    return NULL;
+  }
+  else {
+    int i;
+    for(i = 0; i < config_setting_length(setting); i +=5 ) {
+      const char * port_name_str = config_setting_get_string_elem(setting, i);
+      long red = config_setting_get_int_elem(setting, i+1);
+      long green = config_setting_get_int_elem(setting, i+2);
+      long blue = config_setting_get_int_elem(setting, i+3);
+      long alpha = config_setting_get_int_elem(setting, i+4);
+
+      if(RET_IS_NOT_OK(pcm_add_color_as_rgba(project->port_color_manager, port_name_str, 
+					     red, green, blue, alpha))) {
+	debug(TM, "Can't add color.");
+	config_destroy(&cfg);
+	project_destroy(project);
+	return NULL;
+      }
+
+    }
+  }
+
+
+
+
+
+  
   config_destroy(&cfg);
 
 
@@ -369,6 +417,11 @@ project_t * project_load(const char * const project_dir) {
     return NULL;
   }
 
+
+  if(RET_IS_NOT_OK(lmodel_apply_colors_to_ports(project->lmodel, project->port_color_manager))) {
+    project_destroy(project);
+    return NULL;
+  }
 
   if(RET_IS_NOT_OK(scalmgr_set_scalings(project->scaling_manager, 8, 1))) {
     project_destroy(project);
@@ -438,6 +491,7 @@ ret_t project_save(const project_t * const project) {
   PROJECT_STORE_INT(cfg.root, "object_id_counter", project->lmodel->object_id_counter);
   PROJECT_STORE_STRING(cfg.root, "project_name", project->project_name);
   PROJECT_STORE_STRING(cfg.root, "project_description", project->project_description);
+  PROJECT_STORE_STRING(cfg.root, "project_file_version", project->project_file_version);
 
   // store grid
   if((group = config_setting_add(cfg.root, "grid", CONFIG_TYPE_GROUP)) == NULL) {
@@ -476,24 +530,24 @@ ret_t project_save(const project_t * const project) {
   else return RET_ERR;
 
   // store alignment markers
-  if(project->alignment_marker_set && project->alignment_marker_set->markers) {
+  if(project->alignment_marker_set != NULL && project->alignment_marker_set->markers != NULL) {
     int i;
     if((array = config_setting_add(cfg.root, "alignment_marker_set", CONFIG_TYPE_LIST)) == NULL) {
-      puts("can't add node");
+      puts("Can't add node.");
       config_destroy(&cfg);
       return RET_ERR;    
     }
     for(i = 0; i < project->alignment_marker_set->max_markers; i++) {
       alignment_marker_t * marker = project->alignment_marker_set->markers[i];
-      if(marker) {
+      if(marker != NULL) {
 	
 	char * mtype_str = amset_marker_type_to_str(marker->marker_type);
 
-	if( ((config_setting_set_string_elem(array, -1, mtype_str)) == NULL) ||
-	    ((config_setting_set_int_elem(array, -1, marker->layer)) == NULL) ||
-	    ((config_setting_set_int_elem(array, -1, marker->x)) == NULL) ||
-	    ((config_setting_set_int_elem(array, -1, marker->y)) == NULL) ) {
-	  puts("can't add value");
+	if( (config_setting_set_string_elem(array, -1, mtype_str) == NULL) ||
+	    (config_setting_set_int_elem(array, -1, marker->layer) == NULL) ||
+	    (config_setting_set_int_elem(array, -1, marker->x) == NULL) ||
+	    (config_setting_set_int_elem(array, -1, marker->y) == NULL) ) {
+	  puts("Can't add value.");
 	  config_destroy(&cfg);
 	  free(mtype_str);
 	  return RET_ERR;
@@ -503,7 +557,32 @@ ret_t project_save(const project_t * const project) {
       }
     }
   }
-  
+
+  // store port colors
+  if(project->port_color_manager != NULL) {
+
+    if((array = config_setting_add(cfg.root, "port_colors", CONFIG_TYPE_LIST)) == NULL) {
+      puts("Can't add node.");
+      config_destroy(&cfg);
+      return RET_ERR;    
+    }
+
+    port_color_list_t * ptr = project->port_color_manager->port_color_list;
+    while(ptr != NULL) {
+      if( (config_setting_set_string_elem(array, -1, ptr->port_name) == NULL) ||
+	  (config_setting_set_int_elem(array, -1, MASK_R(ptr->color) ) == NULL) ||
+	  (config_setting_set_int_elem(array, -1, MASK_G(ptr->color) ) == NULL) ||
+	  (config_setting_set_int_elem(array, -1, MASK_B(ptr->color) ) == NULL) ||
+	  (config_setting_set_int_elem(array, -1, MASK_A(ptr->color) ) == NULL)) {
+	debug(TM, "Can't write color definition for port.");
+	config_destroy(&cfg);
+	return RET_ERR;
+      }
+      ptr = ptr->next;
+    }
+    
+  }
+
   config_write_file(&cfg, filename);
   config_destroy(&cfg);
 

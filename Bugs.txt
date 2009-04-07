@@ -3,6 +3,7 @@ This is a list of known bugs:
 
 Logic modell:
 
+- connection list: some connections appears multiple times
 - combination of vertical and horizontal wires don't auto-join
   
 UI:
@@ -10,8 +11,6 @@ UI:
 - stretching on window resize is bad
 - zoom to mouse cursor position
 - positioning ports is not on the click point (starbug)
-- remove gates/cancel ->crash
-
 
 - some toolbar widgets are not shown when using older gtk/gtkmm libraries.
 
@@ -19,5 +18,6 @@ UI:
 
 Misc.
 
+- importing images: check, if rescaling is already implemented
 - There is sth. strange, when exporting XPM images.
 - Synchronisation between rendering and plugin thread needed

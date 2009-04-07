@@ -129,7 +129,7 @@ void ConnectionInspectorWin::show() {
 
 
 void ConnectionInspectorWin::on_selection_changed() {
-  debug(TM, "sth. selected");
+
   pGotoButton->set_sensitive(true);
 }
 

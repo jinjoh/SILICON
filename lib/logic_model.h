@@ -24,6 +24,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 
 #include "globals.h"
 #include "quadtree.h"
+#include "port_color_manager.h"
 
 typedef struct lmodel_via lmodel_via_t;
 typedef struct lmodel_wire lmodel_wire_t;
@@ -394,5 +395,8 @@ ret_t lmodel_gate_template_set_color(lmodel_gate_template_t * gate_template,
 
 ret_t lmodel_gate_template_get_color(lmodel_gate_template_t * gate_template, 
 				     color_t * fill_color, color_t * frame_color);
+
+ret_t lmodel_apply_colors_to_ports(logic_model_t * lmodel, const port_color_manager_t * const pcm);
+
 #endif
  

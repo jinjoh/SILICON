@@ -2,12 +2,12 @@
 <glade-interface>
   <!-- interface-requires gtk+ 2.16 -->
   <!-- interface-naming-policy toplevel-contextual -->
-  <widget class="GtkDialog" id="gate_list_dialog">
+  <widget class="GtkDialog" id="port_colors_dialog">
     <property name="border_width">5</property>
-    <property name="title" translatable="yes">Logic gates</property>
+    <property name="title" translatable="yes">Port colors</property>
     <property name="modal">True</property>
     <property name="window_position">center-on-parent</property>
-    <property name="default_width">700</property>
+    <property name="default_width">200</property>
     <property name="default_height">400</property>
     <property name="type_hint">dialog</property>
     <property name="urgency_hint">True</property>

@@ -19,64 +19,56 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
                                                                                 
 */
 
-#ifndef __GLOBALS_H__
-#define __GLOBALS_H__
+#ifndef __PORTCOLORSWIN_H__
+#define __PORTCOLORSWIN_H__
 
-#include <stdio.h>
-#include <stdint.h>
+#include <gtkmm.h>
+#include "lib/logic_model.h"
+#include "lib/port_color_manager.h"
 
-#ifndef MIN
-#define MIN(a, b) (a < b ? a : b)
-#endif
+class PortColorsWin {
 
-#ifndef MAX
-#define MAX(a, b) (a < b ? b : a)
-#endif
+  class PortColorsModelColumns : public Gtk::TreeModelColumnRecord {
+  public:
+    
+    PortColorsModelColumns() { 
+      add(m_col_port_name); 
+      add(color_);
+    }
+    
+    Gtk::TreeModelColumn<Glib::ustring> m_col_port_name;
+    Gtk::TreeModelColumn<Gdk::Color> color_;
+  };
 
-#ifndef TRUE
-#define TRUE 1
-#endif
 
-#ifndef FALSE
-#define FALSE 0
-#endif
+ public:
+  PortColorsWin(Gtk::Window *parent, logic_model_t * lmodel, port_color_manager_t * pcm);
+  virtual ~PortColorsWin();
+  void run();
 
-#define SIGNUM(x) ((x > 0) ? 1 : (x < 0) ? -1 : 0)
+ private:
+  Gtk::Window *parent;
+  logic_model_t * lmodel;
+  port_color_manager_t * pcm;
 
-enum ret_t {
-  RET_OK = 0,
-  RET_ERR = 1,
-  RET_INV_PTR = 2,
-  RET_MALLOC_FAILED = 3,
-  RET_INV_PATH = 4,
-  RET_MATH_ERR = 5,
-  RET_CANCEL = 6
+  Gtk::Button* pEditButton;
+  Gtk::Button* pRemoveButton;
+
+  Gtk::Dialog * pDialog;
+  PortColorsModelColumns m_Columns;
+  Glib::RefPtr<Gtk::ListStore> refListStore;
+  Gtk::TreeView* pTreeView;
+
+  Gdk::Color get_color(color_t col);
+  void apply_colors();
+
+  // Signal handlers:
+  virtual void on_close_button_clicked();
+  virtual void on_add_button_clicked();
+  virtual void on_remove_button_clicked();
+  virtual void on_edit_button_clicked();
+
+  virtual void on_selection_changed();
 };
 
-#define RET_IS_OK(call_res) ((call_res) == RET_OK)
-#define RET_IS_NOT_OK(call_res) ((call_res) != RET_OK)
-
-#define TM __FILE__,__LINE__
-
-
-#ifdef DEBUG
-void debug(const char * const module, int line, const char * const format, ...);
-#else
-#define debug(module, line, format, ...) ;
-#endif
-
-#define degate_mime_type "application/degate"
-
-#if __SIZEOF_POINTER__ == 4
-#define ARCH_32
-#define MAP_FILES_ON_DEMAND
-#elif __SIZEOF_POINTER__ == 8
-#define ARCH_64
-#else
-#error "Unknown architecture"
-#endif
-
-typedef uint32_t color_t;
-
-#define DEGATE_VERSION "0.0.6"
 #endif

@@ -19,64 +19,42 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
                                                                                 
 */
 
-#ifndef __GLOBALS_H__
-#define __GLOBALS_H__
+#ifndef __PORT_COLOR_MANAGER_H__
+#define __PORT_COLOR_MANAGER_H__
 
-#include <stdio.h>
-#include <stdint.h>
+#include "globals.h"
 
-#ifndef MIN
-#define MIN(a, b) (a < b ? a : b)
-#endif
+typedef struct port_color_list port_color_list_t;
+typedef struct port_color_manager port_color_manager_t;
 
-#ifndef MAX
-#define MAX(a, b) (a < b ? b : a)
-#endif
+struct port_color_list {
+  color_t color;
+  char * port_name;
 
-#ifndef TRUE
-#define TRUE 1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#define SIGNUM(x) ((x > 0) ? 1 : (x < 0) ? -1 : 0)
-
-enum ret_t {
-  RET_OK = 0,
-  RET_ERR = 1,
-  RET_INV_PTR = 2,
-  RET_MALLOC_FAILED = 3,
-  RET_INV_PATH = 4,
-  RET_MATH_ERR = 5,
-  RET_CANCEL = 6
+  port_color_list_t * next;
 };
 
-#define RET_IS_OK(call_res) ((call_res) == RET_OK)
-#define RET_IS_NOT_OK(call_res) ((call_res) != RET_OK)
+struct port_color_manager {
+  unsigned int num_entries;
+  port_color_list_t * port_color_list;
+};
 
-#define TM __FILE__,__LINE__
+port_color_manager_t * pcm_create();
+ret_t pcm_destroy(port_color_manager_t * pcm);
+ret_t pcm_destroy_color_list(port_color_manager_t * pcm);
 
 
-#ifdef DEBUG
-void debug(const char * const module, int line, const char * const format, ...);
-#else
-#define debug(module, line, format, ...) ;
-#endif
+ret_t pcm_remove_entry(port_color_manager_t * pcm,  const char * const port_name);
 
-#define degate_mime_type "application/degate"
+ret_t pcm_add_color_as_rgba(port_color_manager_t * pcm,  const char * const port_name,
+			    uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha);
 
-#if __SIZEOF_POINTER__ == 4
-#define ARCH_32
-#define MAP_FILES_ON_DEMAND
-#elif __SIZEOF_POINTER__ == 8
-#define ARCH_64
-#else
-#error "Unknown architecture"
-#endif
+port_color_list_t * pcm_get_list_element_for_port(const port_color_manager_t * const pcm,  
+						  const char * const port_name);
 
-typedef uint32_t color_t;
+ret_t pcm_set_color_as_rgba(port_color_manager_t * pcm,  const char * const port_name,
+			    uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha);
 
-#define DEGATE_VERSION "0.0.6"
+color_t pcm_get_color_for_port(const port_color_manager_t * const pcm,  const char * const port_name);
+
 #endif

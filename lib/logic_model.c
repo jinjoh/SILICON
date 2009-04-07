@@ -2920,7 +2920,7 @@ ret_t lmodel_get_printable_string_for_obj(LM_OBJECT_TYPE object_type, void * obj
     }
     else {
       if(g->name == NULL || !strcmp(g->name, "")) snprintf(msg, len, "%s (%d)", g->gate_template->short_name, g->id);
-      else snprintf(msg, len, "%s/%s (%d)", g->gate_template->short_name, g->name, g->id);
+      else snprintf(msg, len, "%s : %s (%d)", g->gate_template->short_name, g->name, g->id);
     }
     break;
   case LM_TYPE_GATE_PORT:
@@ -2929,8 +2929,8 @@ ret_t lmodel_get_printable_string_for_obj(LM_OBJECT_TYPE object_type, void * obj
     if(gp->tmpl_port) {
       g = gp->gate;
       if(g->name == NULL || !strcmp(g->name, "")) 
-	snprintf(msg, len, "%s (%d)/%s", g->gate_template->short_name, g->id, gp->tmpl_port->port_name);
-      else snprintf(msg, len, "%s/%s (%d)/%s", g->gate_template->short_name, g->name, g->id, gp->tmpl_port->port_name);
+	snprintf(msg, len, "%s (%d) : %s", g->gate_template->short_name, g->id, gp->tmpl_port->port_name);
+      else snprintf(msg, len, "%s : %s (%d) : %s", g->gate_template->short_name, g->name, g->id, gp->tmpl_port->port_name);
     }
     
     break;
@@ -3465,4 +3465,42 @@ ret_t lmodel_gate_template_get_color(lmodel_gate_template_t * gate_template,
 
   return RET_OK;
 
+}
+
+
+ret_t lmodel_apply_colors_to_ports(logic_model_t * lmodel, const port_color_manager_t * const pcm) {
+
+  assert(lmodel != NULL);
+  assert(pcm != NULL);
+  if(lmodel == NULL || pcm == NULL) return RET_INV_PTR;
+
+  lmodel_gate_template_set_t * tmpl_ptr = lmodel->gate_template_set;
+  lmodel_gate_template_port_t * port_ptr = NULL;
+
+  if(tmpl_ptr == NULL) return RET_OK;
+
+  // reset all colors to 0
+  while(tmpl_ptr != NULL) {
+    if(tmpl_ptr->gate == NULL) return RET_INV_PTR;
+    port_ptr = tmpl_ptr->gate->ports;
+    while(port_ptr != NULL) {
+      port_ptr->color = 0;
+      port_ptr = port_ptr->next;
+    }
+    tmpl_ptr = tmpl_ptr->next;
+  }
+
+
+  tmpl_ptr = lmodel->gate_template_set;
+  while(tmpl_ptr != NULL) {
+    if(tmpl_ptr->gate == NULL) return RET_INV_PTR;
+    port_ptr = tmpl_ptr->gate->ports;
+    while(port_ptr != NULL) {
+      port_ptr->color = pcm_get_color_for_port(pcm, port_ptr->port_name);
+      port_ptr = port_ptr->next;
+    }
+    tmpl_ptr = tmpl_ptr->next;
+  }
+
+  return RET_OK;
 }

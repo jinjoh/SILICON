@@ -601,12 +601,15 @@ ret_t render_gate(renderer_t * renderer, render_params_t * render_params, image_
 	  y = (double)y / scaling_y;
 	  
 	  unsigned int port_size = (double)tmpl_port->diameter / scaling_x;
-	  
+
+	  color_t port_color = tmpl_port->color == 0 ? render_params->il_down_color : tmpl_port->color;
+	  port_color = highlight_color_by_state(port_color, ports->is_selected);
+
 	  if(RET_IS_NOT_OK(ret = draw_circle(dst_img, 
 					     x, 
 					     y, 
 					     ports->is_selected ? (port_size << 2) : port_size,
-					     highlight_color_by_state(render_params->il_down_color, ports->is_selected))))
+					     port_color)))
 	    return ret;
 	  
 	  if(tmpl_port->port_name && x + strlen(tmpl_port->port_name) * FONT_SIZE < screen_max_x) {

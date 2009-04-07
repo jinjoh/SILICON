@@ -28,6 +28,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "alignment_marker.h"
 #include "grid.h"
 #include "scaling_manager.h"
+#include "port_color_manager.h"
 
 struct project {
 
@@ -40,6 +41,7 @@ struct project {
   
   image_t ** bg_images;
   scaling_manager_t * scaling_manager;
+  port_color_manager_t * port_color_manager;
 
   logic_model_t * lmodel;
   
@@ -52,6 +54,7 @@ struct project {
   grid_t grid;
 
   alignment_marker_set_t * alignment_marker_set;
+  char * project_file_version;
 };
 
 typedef struct project project_t;

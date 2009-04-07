@@ -34,6 +34,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "NewProjectWin.h"
 #include "GridConfigWin.h"
 #include "GateListWin.h"
+#include "PortColorsWin.h"
 #include "GateConfigWin.h"
 #include "GateSelectWin.h"
 #include "PortSelectWin.h"
@@ -141,7 +142,9 @@ void MainWin::update_title() {
   }
   else {
     char _title[1000];
-    snprintf(_title, sizeof(_title), "degate -- [%s%s] [%d/%d]", 
+    snprintf(_title, sizeof(_title), "degate -- [%s%s%s%s] [%d/%d]", 
+	     strlen(main_project->project_name) > 0 ? main_project->project_name : "",
+	     strlen(main_project->project_name) > 0 ? ": " : "",
 	     main_project->project_dir,
 	     project_changed_flag == true ? "*" : "",
 	     main_project->current_layer, main_project->num_layers -1);
@@ -358,6 +361,12 @@ void MainWin::initialize_menu() {
 					    "List available gate"),
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_list));
 
+  m_refActionGroup->add(Gtk::Action::create("GatePortColors",
+					    Gtk::Stock::SELECT_COLOR,
+					    "Port colors", 
+					    "Define port colors"),
+			sigc::mem_fun(*this, &MainWin::on_menu_gate_port_colors));
+
   m_refActionGroup->add(Gtk::Action::create("GateSet",
 					    "Set gate for selection", 
 					    "Set gate for selection"),
@@ -461,6 +470,8 @@ void MainWin::initialize_menu() {
         "      <menuitem action='GateOrientation'/>"
         "      <menuitem action='GateSetAsMaster'/>"
         "      <separator/>"
+        "      <menuitem action='GatePortColors'/>"    
+        "      <separator/>"
         "      <menuitem action='GateRemoveGateByType'/>"
         "      <menuitem action='GateRemoveGateByTypeWoMaster'/>"
         "      <separator/>"
@@ -528,6 +539,7 @@ void MainWin::initialize_menu() {
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateOrientation", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", false);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GatePortColors", false);
 
   initialize_menu_render_funcs();
   initialize_menu_algorithm_funcs();
@@ -707,6 +719,7 @@ void MainWin::set_widget_sensitivity(bool state) {
   set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicConnectionInspector", state);
 
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", state);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GatePortColors", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByType", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByTypeWoMaster", state);
 
@@ -1175,10 +1188,10 @@ void MainWin::on_goto_object(LM_OBJECT_TYPE object_type, object_ptr_t * obj_ptr)
     if(RET_IS_OK(lmodel_get_view_for_object(main_project->lmodel, object_type, obj_ptr,
 					    &center_x, &center_y, &layer))) {
 
-      int old_state = lmodel_get_select_state(object_type, obj_ptr);
-      lmodel_set_select_state(object_type, obj_ptr, SELECT_STATE_DIRECT);
+      //int old_state = lmodel_get_select_state(object_type, obj_ptr);
+      //lmodel_set_select_state(object_type, obj_ptr, SELECT_STATE_DIRECT);
       center_view(center_x, center_y, layer);
-      lmodel_set_select_state(object_type, obj_ptr, old_state);
+      //lmodel_set_select_state(object_type, obj_ptr, old_state);
     }
     
   }
@@ -1456,10 +1469,33 @@ void MainWin::on_algorithms_func_clicked(int slot_pos) {
 
 }
 
+
+void MainWin::on_menu_gate_port_colors() {
+  if(main_project != NULL) {
+    PortColorsWin pcWin(this, main_project->lmodel, main_project->port_color_manager);
+    pcWin.run();
+
+    imgWin.update_screen();
+    project_changed();
+  }
+}
+
+
 void MainWin::on_menu_gate_list() {
-  if(main_project) {
+  if(main_project != NULL) {
     GateListWin glWin(this, main_project->lmodel);
     glWin.run();
+
+    imgWin.update_screen();
+    project_changed();
+
+    if(RET_IS_NOT_OK(lmodel_apply_colors_to_ports(main_project->lmodel, 
+						  main_project->port_color_manager))) {
+
+      error_dialog("Error", "Can't update port colors.");
+      return;
+    }
+
   }
 }
 
@@ -1836,14 +1872,14 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
 				     real_x, real_y, &object_type, &obj_ptr))) return;
   
   
-  if(obj_ptr) {
+  if(obj_ptr != NULL) {
     add_to_selection = true;
   }
 
   std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
 
   // try to remove a single object
-  if(obj_ptr && shift_key_pressed) {
+  if(obj_ptr != NULL && shift_key_pressed == true) {
     //debug(TM, "remove single object from selection");      
     it = selected_objects.find(std::pair<void *, LM_OBJECT_TYPE>(obj_ptr, object_type));
     if(it != selected_objects.end()) {
@@ -1855,7 +1891,7 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
   }
 
   if(shift_key_pressed == false){
-    //debug(TM, "remove complete selection");
+    debug(TM, "remove complete selection");
       
     for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
       if(RET_IS_OK(lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT))) {
@@ -1906,7 +1942,10 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
     set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", false);
     set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", imgWin.selection_active() ? true : false);
 
-    if(ciWin != NULL) ciWin->disable_inspection();
+    if(ciWin != NULL) {
+      ciWin->disable_inspection();
+
+    }
   }
 
   set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", selected_objects_are_removable() ? true : false);

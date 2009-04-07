@@ -4,10 +4,11 @@
   <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkDialog" id="gate_create_dialog">
     <property name="border_width">5</property>
+    <property name="title" translatable="yes">Edit gate</property>
     <property name="modal">True</property>
     <property name="window_position">center-on-parent</property>
     <property name="default_width">300</property>
-    <property name="default_height">400</property>
+    <property name="default_height">600</property>
     <property name="type_hint">dialog</property>
     <property name="deletable">False</property>
     <child internal-child="vbox">
@@ -45,6 +46,20 @@
                   <widget class="GtkHBox" id="hbox4">
                     <property name="visible">True</property>
                     <child>
+                      <widget class="GtkButton" id="outport_add_button">
+                        <property name="label" translatable="yes">gtk-add</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="use_stock">True</property>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="pack_type">end</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
                       <widget class="GtkButton" id="outport_remove_button">
                         <property name="label" translatable="yes">gtk-remove</property>
                         <property name="visible">True</property>
@@ -55,20 +70,6 @@
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">False</property>
-                        <property name="pack_type">end</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkButton" id="outport_add_button">
-                        <property name="label" translatable="yes">gtk-add</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <property name="use_stock">True</property>
-                      </widget>
-                      <packing>
-                        <property name="expand">False</property>
                         <property name="pack_type">end</property>
                         <property name="position">0</property>
                       </packing>
@@ -114,8 +115,8 @@
                   <widget class="GtkHBox" id="hbox3">
                     <property name="visible">True</property>
                     <child>
-                      <widget class="GtkButton" id="inport_remove_button">
-                        <property name="label" translatable="yes">gtk-remove</property>
+                      <widget class="GtkButton" id="inport_add_button">
+                        <property name="label" translatable="yes">gtk-add</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
@@ -128,8 +129,8 @@
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkButton" id="inport_add_button">
-                        <property name="label" translatable="yes">gtk-add</property>
+                      <widget class="GtkButton" id="inport_remove_button">
+                        <property name="label" translatable="yes">gtk-remove</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>

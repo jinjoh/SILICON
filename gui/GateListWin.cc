@@ -242,14 +242,6 @@ void GateListWin::on_add_button_clicked() {
     }
   }
 
-  /*
-  Gtk::TreeModel::Row row = *(refListStore->append()); 
-  row[m_Columns.m_col_short_name] = "port name";
-  row[m_Columns.m_col_description] = "fffffffoooooo";
-
-  lmodel_add_gate_template_to_gate_set(gate_set, tmpl, 0);
-  */
-
 }
 
 void GateListWin::on_remove_button_clicked() {

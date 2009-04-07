@@ -30,6 +30,7 @@ LIBS=-lstdc++ -lc -lpthread -ldl \
 	`pkg-config --print-errors --libs $(LIB_NAMES)`
 
 LIB_OBJS=lib/grid.o \
+	lib/port_color_manager.o \
 	lib/debug.o \
 	lib/plugins.o \
 	lib/alignment_marker.o \
@@ -47,6 +48,7 @@ GUI_OBJS=gui/SplashWin.o \
 	gui/GridConfigWin.o \
 	gui/GateConfigWin.o \
 	gui/GateListWin.o \
+	gui/PortColorsWin.o \
 	gui/GateSelectWin.o \
 	gui/PortSelectWin.o \
 	gui/ImageWin.o \
