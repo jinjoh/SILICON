@@ -93,7 +93,8 @@ project_t * project_create(const char * const project_dir, unsigned int width, u
   }
 
   ptr->project_file_version = strdup(DEGATE_VERSION);
-
+  ptr->project_name = strdup("");
+  ptr->project_description = strdup("");
   return ptr;
 }
 
