@@ -150,6 +150,9 @@ ret_t plugin_calc_slot(plugin_func_table_t * func_table, int slot,
   case PLUGIN_FUNC_SHUTDOWN:
     return ptr->item->shutdown ? (*(ptr->item->shutdown))(func_params) : RET_OK;
     break;
+  case PLUGIN_FUNC_CANCEL:
+    return ptr->item->cancel ? (*(ptr->item->cancel))(func_params) : RET_OK;
+    break;
   default:
     return RET_ERR;
   }

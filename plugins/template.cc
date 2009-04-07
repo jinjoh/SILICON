@@ -73,7 +73,14 @@ typedef struct {
   int seconds;
   unsigned int stats_real_gamma_calcs;
 
+  int stop_algorithm; // if it is set to 1 cancel algorithm
 } template_matching_params_t;
+
+ret_t cancel_algorithm(plugin_params_t * pparams) {
+  template_matching_params_t * matching_params = (template_matching_params_t *) pparams->data_ptr;
+  matching_params->stop_algorithm = 1;
+  return RET_OK;
+}
 
 ret_t init_template(plugin_params_t * pparams) {
   debug(TM, "init(%p) called", pparams);
@@ -154,23 +161,26 @@ plugin_func_descr_t plugin_func_descriptions[] = {
     (plugin_raise_dialog_func_t) &raise_dialog_before, // a gui dialog to call before
     (plugin_raise_dialog_func_t) &raise_dialog_after,  // a gui dialog to call after calculation
     &init_template,
-    &shutdown_template},
+    &shutdown_template,
+    &cancel_algorithm },
 
   { "Template matching along grid columns",     // name will be displayed in menu
     &template_matching_along_grid_cols, // a function that perfoms the calculation
     (plugin_raise_dialog_func_t) &raise_dialog_before, // a gui dialog to call before
     (plugin_raise_dialog_func_t) &raise_dialog_after,  // a gui dialog to call after calculation
     &init_template,
-    &shutdown_template},
+    &shutdown_template,
+    &cancel_algorithm },
 
   { "Template matching along grid rows",     // name will be displayed in menu
     &template_matching_along_grid_rows, // a function that perfoms the calculation
     (plugin_raise_dialog_func_t) &raise_dialog_before, // a gui dialog to call before
     (plugin_raise_dialog_func_t) &raise_dialog_after,  // a gui dialog to call after calculation
     &init_template,
-    &shutdown_template},
+    &shutdown_template,
+    &cancel_algorithm },
 
-  { NULL, NULL, NULL, NULL}
+  { NULL, NULL, NULL, NULL, NULL, NULL, NULL}
 };
 
 
@@ -426,10 +436,13 @@ ret_t template_matching(plugin_params_t * pparams) {
 							 pparams->project->current_layer,
 							 gate_template, orientation, 
 							 matching_params))) goto error;
-    
+
+    if(matching_params->stop_algorithm == 1) goto finish;
+
     debug(TM, "Template matching: flipped up down");
     orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN;
     gr_flip_up_down(_template);
+    gr_flip_up_down(_template_sd);
     if(RET_IS_NOT_OK(ret = imgalgo_run_template_matching(master_img_gs, _template,
 							 pparams->min_x, pparams->min_y,
 							 pparams->max_x - _template->width,
@@ -443,10 +456,12 @@ ret_t template_matching(plugin_params_t * pparams) {
 							 pparams->project->current_layer,
 							 gate_template, orientation, 
 							 matching_params))) goto error;
+    if(matching_params->stop_algorithm == 1) goto finish;
     
     debug(TM, "Template matching: flipped both");
     orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH;
     gr_flip_left_right(_template);
+    gr_flip_left_right(_template_sd);
     if(RET_IS_NOT_OK(ret = imgalgo_run_template_matching(master_img_gs, _template,
 							 pparams->min_x, pparams->min_y,
 							 pparams->max_x - _template->width,
@@ -460,10 +475,12 @@ ret_t template_matching(plugin_params_t * pparams) {
 							 pparams->project->current_layer,
 							 gate_template, orientation, 
 							 matching_params))) goto error;
+    if(matching_params->stop_algorithm == 1) goto finish;
     
     debug(TM, "Template matching: flipped left right");
     orientation = LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT;
     gr_flip_up_down(_template);
+    gr_flip_up_down(_template_sd);
     if(RET_IS_NOT_OK(ret = imgalgo_run_template_matching(master_img_gs, _template,
 							 pparams->min_x, pparams->min_y,
 							 pparams->max_x - _template->width,
@@ -478,9 +495,12 @@ ret_t template_matching(plugin_params_t * pparams) {
 							 gate_template, orientation, 
 							 matching_params))) goto error;
 
+    if(matching_params->stop_algorithm == 1) goto finish;
+
     tmpl_list_ptr = tmpl_list_ptr->next;
   }
 
+ finish:
   // stats
   finish = clock();
   matching_params->seconds = double(finish - start)/CLOCKS_PER_SEC;
@@ -945,8 +965,9 @@ ret_t imgalgo_run_template_matching(image_t * master, image_t * _template,
   sum_over_zero_mean_template_sd = subtract_mean(sd_template, zero_mean_template_sd);
 
 
-  while((state = get_next_pos(&x, &y, step_size_search, _template,
-			      min_x, max_x, min_y, max_y, matching_params)) == TEMPLATE_MATCHING_CONTINUE) {
+  while( matching_params->stop_algorithm == 0 && 
+	 (state = get_next_pos(&x, &y, step_size_search, _template,
+			       min_x, max_x, min_y, max_y, matching_params)) == TEMPLATE_MATCHING_CONTINUE) {
 
     double val = imgalgo_calc_single_xcorr(sd_master, zero_mean_template_sd,
 					   matching_params->summation_table_single_sd,
@@ -978,8 +999,11 @@ ret_t imgalgo_run_template_matching(image_t * master, image_t * _template,
 	  debug(TM, "add_gate() failed");
 	  goto error;		
 	}
+      }
+      else {
 	
       }
+
     }    
   
   }

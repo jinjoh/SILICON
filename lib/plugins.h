@@ -42,7 +42,8 @@ enum PLUGIN_FUNC_TYPE {
   PLUGIN_FUNC_AFTER_DIALOG = 1,
   PLUGIN_FUNC_CALC = 2,
   PLUGIN_FUNC_INIT = 3,
-  PLUGIN_FUNC_SHUTDOWN = 4
+  PLUGIN_FUNC_SHUTDOWN = 4,
+  PLUGIN_FUNC_CANCEL = 5
 };
 
 /* function types defined as function pointers */
@@ -58,6 +59,7 @@ typedef struct {
   plugin_raise_dialog_func_t after;
   plugin_func_t init;
   plugin_func_t shutdown;
+  plugin_func_t cancel;
   // LATER: we may need a callback pointer for a preview render function
 } plugin_func_descr_t;
 
