@@ -145,6 +145,8 @@ void ConnectionInspectorWin::show_connections(object_ptr_t * curr_obj,
   //lmodel_connection_t * conn_list = lmodel_get_all_connected_objects(connections);
   lmodel_connection_t * conn = connections; 
 
+#define MY_GREY "#808080"
+
   while(conn != NULL) {
 
     switch(conn->object_type) {
@@ -160,7 +162,7 @@ void ConnectionInspectorWin::show_connections(object_ptr_t * curr_obj,
       
       row[m_Columns.m_col_object_type] = LM_TYPE_WIRE;
       row[m_Columns.m_col_object_ptr] = (object_ptr_t *)wire;
-      row[m_Columns.color_] = conn->obj_ptr != curr_obj ? "black" : "darkgray";
+      row[m_Columns.color_] = conn->obj_ptr != curr_obj ? "black" : MY_GREY;
       break;
     case LM_TYPE_VIA:
       via = (lmodel_via_t *)conn->obj_ptr;
@@ -174,7 +176,7 @@ void ConnectionInspectorWin::show_connections(object_ptr_t * curr_obj,
       
       row[m_Columns.m_col_object_type] = LM_TYPE_VIA;
       row[m_Columns.m_col_object_ptr] = (object_ptr_t *)via;
-      row[m_Columns.color_] = conn->obj_ptr != curr_obj ? "black" : "darkgray";	
+      row[m_Columns.color_] = conn->obj_ptr != curr_obj ? "black" : MY_GREY;	
       break;
     case LM_TYPE_GATE_PORT:
       
@@ -192,7 +194,7 @@ void ConnectionInspectorWin::show_connections(object_ptr_t * curr_obj,
       
       row[m_Columns.m_col_object_type] = LM_TYPE_GATE_PORT;
       row[m_Columns.m_col_object_ptr] = (object_ptr_t *)gate_port;
-      row[m_Columns.color_] = conn->obj_ptr != curr_obj ? "black" : "darkgray";
+      row[m_Columns.color_] = conn->obj_ptr != curr_obj ? "black" : MY_GREY;
       break;
     default:
       break;

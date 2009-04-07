@@ -8,7 +8,7 @@
 
 #include "Wire.h"
 
-static asn_TYPE_member_t asn_MBR_connections_10[] = {
+static asn_TYPE_member_t asn_MBR_connections_12[] = {
 	{ ATF_POINTER, 0, 0,
 		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
 		0,
@@ -19,16 +19,16 @@ static asn_TYPE_member_t asn_MBR_connections_10[] = {
 		""
 		},
 };
-static ber_tlv_tag_t asn_DEF_connections_tags_10[] = {
+static ber_tlv_tag_t asn_DEF_connections_tags_12[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
-static asn_SET_OF_specifics_t asn_SPC_connections_specs_10 = {
+static asn_SET_OF_specifics_t asn_SPC_connections_specs_12 = {
 	sizeof(struct Wire__connections),
 	offsetof(struct Wire__connections, _asn_ctx),
 	0,	/* XER encoding is XMLDelimitedItemList */
 };
 static /* Use -fall-defs-global to expose */
-asn_TYPE_descriptor_t asn_DEF_connections_10 = {
+asn_TYPE_descriptor_t asn_DEF_connections_12 = {
 	"connections",
 	"connections",
 	SEQUENCE_OF_free,
@@ -40,16 +40,16 @@ asn_TYPE_descriptor_t asn_DEF_connections_10 = {
 	SEQUENCE_OF_encode_xer,
 	0, 0,	/* No PER support, use "-gen-PER" to enable */
 	0,	/* Use generic outmost tag fetcher */
-	asn_DEF_connections_tags_10,
-	sizeof(asn_DEF_connections_tags_10)
-		/sizeof(asn_DEF_connections_tags_10[0]), /* 1 */
-	asn_DEF_connections_tags_10,	/* Same as above */
-	sizeof(asn_DEF_connections_tags_10)
-		/sizeof(asn_DEF_connections_tags_10[0]), /* 1 */
+	asn_DEF_connections_tags_12,
+	sizeof(asn_DEF_connections_tags_12)
+		/sizeof(asn_DEF_connections_tags_12[0]), /* 1 */
+	asn_DEF_connections_tags_12,	/* Same as above */
+	sizeof(asn_DEF_connections_tags_12)
+		/sizeof(asn_DEF_connections_tags_12[0]), /* 1 */
 	0,	/* No PER visible constraints */
-	asn_MBR_connections_10,
+	asn_MBR_connections_12,
 	1,	/* Single element */
-	&asn_SPC_connections_specs_10	/* Additional specs */
+	&asn_SPC_connections_specs_12	/* Additional specs */
 };
 
 static asn_TYPE_member_t asn_MBR_Wire_1[] = {
@@ -125,10 +125,28 @@ static asn_TYPE_member_t asn_MBR_Wire_1[] = {
 		0,
 		"name"
 		},
+	{ ATF_NOFLAGS, 0, offsetof(struct Wire, col1),
+		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
+		0,
+		&asn_DEF_Color,
+		0,	/* Defer constraints checking to the member type */
+		0,	/* PER is not compiled, use -gen-PER */
+		0,
+		"col1"
+		},
+	{ ATF_NOFLAGS, 0, offsetof(struct Wire, col2),
+		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
+		0,
+		&asn_DEF_Color,
+		0,	/* Defer constraints checking to the member type */
+		0,	/* PER is not compiled, use -gen-PER */
+		0,
+		"col2"
+		},
 	{ ATF_NOFLAGS, 0, offsetof(struct Wire, connections),
 		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
 		0,
-		&asn_DEF_connections_10,
+		&asn_DEF_connections_12,
 		0,	/* Defer constraints checking to the member type */
 		0,	/* PER is not compiled, use -gen-PER */
 		0,
@@ -139,21 +157,23 @@ static ber_tlv_tag_t asn_DEF_Wire_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static asn_TYPE_tag2member_t asn_MAP_Wire_tag2el_1[] = {
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 6 }, /* from-x at 10 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 5 }, /* from-y at 11 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 4 }, /* to-x at 12 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -3, 3 }, /* to-y at 13 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -4, 2 }, /* diameter at 14 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 5, -5, 1 }, /* id at 15 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 6, -6, 0 }, /* layer at 16 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 8, 0, 0 }, /* connections at 18 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 7, 0, 0 } /* name at 17 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 6 }, /* from-x at 37 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 5 }, /* from-y at 38 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 4 }, /* to-x at 39 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -3, 3 }, /* to-y at 40 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -4, 2 }, /* diameter at 41 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 5, -5, 1 }, /* id at 42 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 6, -6, 0 }, /* layer at 43 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 8, 0, 2 }, /* col1 at 45 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 9, -1, 1 }, /* col2 at 46 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 10, -2, 0 }, /* connections at 47 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 7, 0, 0 } /* name at 44 */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_Wire_specs_1 = {
 	sizeof(struct Wire),
 	offsetof(struct Wire, _asn_ctx),
 	asn_MAP_Wire_tag2el_1,
-	9,	/* Count of tags in the map */
+	11,	/* Count of tags in the map */
 	0, 0, 0,	/* Optional elements (not needed) */
 	-1,	/* Start extensions */
 	-1	/* Stop extensions */
@@ -178,7 +198,7 @@ asn_TYPE_descriptor_t asn_DEF_Wire = {
 		/sizeof(asn_DEF_Wire_tags_1[0]), /* 1 */
 	0,	/* No PER visible constraints */
 	asn_MBR_Wire_1,
-	9,	/* Elements count */
+	11,	/* Elements count */
 	&asn_SPC_Wire_specs_1	/* Additional specs */
 };
 

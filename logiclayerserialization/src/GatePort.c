@@ -76,8 +76,8 @@ static ber_tlv_tag_t asn_DEF_GatePort_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static asn_TYPE_tag2member_t asn_MAP_GatePort_tag2el_1[] = {
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 0 }, /* port-id at 21 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 1, 0, 0 } /* connections at 22 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 0 }, /* port-id at 50 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 1, 0, 0 } /* connections at 51 */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_GatePort_specs_1 = {
 	sizeof(struct GatePort),

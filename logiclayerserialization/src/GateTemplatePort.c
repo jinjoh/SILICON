@@ -54,6 +54,15 @@ static asn_TYPE_member_t asn_MBR_GateTemplatePort_1[] = {
 		0,
 		"relative-y-coord"
 		},
+	{ ATF_NOFLAGS, 0, offsetof(struct GateTemplatePort, col),
+		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
+		0,
+		&asn_DEF_Color,
+		0,	/* Defer constraints checking to the member type */
+		0,	/* PER is not compiled, use -gen-PER */
+		0,
+		"col"
+		},
 	{ ATF_NOFLAGS, 0, offsetof(struct GateTemplatePort, diameter),
 		(ASN_TAG_CLASS_UNIVERSAL | (2 << 2)),
 		0,
@@ -68,18 +77,19 @@ static ber_tlv_tag_t asn_DEF_GateTemplatePort_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static asn_TYPE_tag2member_t asn_MAP_GateTemplatePort_tag2el_1[] = {
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 3 }, /* id at 58 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -1, 2 }, /* relative-x-coord at 61 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -2, 1 }, /* relative-y-coord at 62 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 5, -3, 0 }, /* diameter at 63 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (10 << 2)), 2, 0, 0 }, /* port-type at 60 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 1, 0, 0 } /* port-name at 59 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 3 }, /* id at 88 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -1, 2 }, /* relative-x-coord at 91 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -2, 1 }, /* relative-y-coord at 92 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 6, -3, 0 }, /* diameter at 94 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (10 << 2)), 2, 0, 0 }, /* port-type at 90 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 5, 0, 0 }, /* col at 93 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 1, 0, 0 } /* port-name at 89 */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_GateTemplatePort_specs_1 = {
 	sizeof(struct GateTemplatePort),
 	offsetof(struct GateTemplatePort, _asn_ctx),
 	asn_MAP_GateTemplatePort_tag2el_1,
-	6,	/* Count of tags in the map */
+	7,	/* Count of tags in the map */
 	0, 0, 0,	/* Optional elements (not needed) */
 	-1,	/* Start extensions */
 	-1	/* Stop extensions */
@@ -104,7 +114,7 @@ asn_TYPE_descriptor_t asn_DEF_GateTemplatePort = {
 		/sizeof(asn_DEF_GateTemplatePort_tags_1[0]), /* 1 */
 	0,	/* No PER visible constraints */
 	asn_MBR_GateTemplatePort_1,
-	6,	/* Elements count */
+	7,	/* Elements count */
 	&asn_SPC_GateTemplatePort_specs_1	/* Additional specs */
 };
 

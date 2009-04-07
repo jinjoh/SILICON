@@ -13,6 +13,7 @@
 /* Including external dependencies */
 #include <INTEGER.h>
 #include <VisibleString.h>
+#include "Color.h"
 #include <asn_SEQUENCE_OF.h>
 #include <constr_SEQUENCE_OF.h>
 #include <constr_SEQUENCE.h>
@@ -33,6 +34,8 @@ typedef struct GateTemplate {
 	INTEGER_t	 master_image_max_y;
 	VisibleString_t	 short_name;
 	VisibleString_t	 description;
+	Color_t	 fill_col;
+	Color_t	 frame_col;
 	struct GateTemplate__ports {
 		A_SEQUENCE_OF(struct GateTemplatePort) list;
 		

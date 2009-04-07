@@ -87,6 +87,35 @@ project_t * project_create(const char * const project_dir, unsigned int width, u
   return ptr;
 }
 
+/**
+ * Set a project name.
+ */
+ret_t project_set_name(project_t * const project, const char * const name) {
+  assert(project != NULL);
+  assert(name != NULL);
+  if(project == NULL || name == NULL) return RET_INV_PTR;
+
+  if(project->project_name != NULL) free(project->project_name);
+  project->project_name = strdup(name);
+
+  return RET_OK;
+}
+
+/**
+ * Set a description for a project.
+ */
+
+ret_t project_set_description(project_t * const project, const char * const descr) {
+  assert(project != NULL);
+  assert(descr != NULL);
+  if(project == NULL || descr == NULL) return RET_INV_PTR;
+
+  if(project->project_description != NULL) free(project->project_description);
+  project->project_description = strdup(descr);
+
+  return RET_OK;
+}
+
 /** 
  * Destroy a project and all objects that are referenced within a project. This includes
  * images and the logic model.
@@ -112,6 +141,9 @@ ret_t project_destroy(project_t * project) {
   
   if(project->scaling_manager != NULL) 
     if(RET_IS_NOT_OK(ret = scalmgr_destroy(project->scaling_manager))) return ret;
+
+  if(project->project_name != NULL) free(project->project_name);
+  if(project->project_description != NULL) free(project->project_description);
 
   memset(project, 0, sizeof(project_t));
   free(project);
@@ -199,6 +231,17 @@ ret_t project_init_directory(const char * const directory, int enable_mkdir) {
   }
 
 
+#define PROJECT_READ_STRING(name, variable) \
+  if((setting = config_lookup(&cfg, name)) == NULL) { \
+    printf("can't read config item %s\n", name); \
+    config_destroy(&cfg); \
+    return NULL; \
+  } \
+  else { \
+    variable = strdup(config_setting_get_string(setting)); \
+  }
+
+
 ret_t project_conv_file_to_dir(char * const filename) {
 
   char * ptr = strstr(filename, PROJECT_FILE);
@@ -252,6 +295,9 @@ project_t * project_load(const char * const project_dir) {
   PROJECT_READ_INT("pin_diameter", project->pin_diameter);
   PROJECT_READ_INT("wire_diameter", project->wire_diameter);
   PROJECT_READ_INT("object_id_counter", project->lmodel->object_id_counter);
+  PROJECT_READ_STRING("project_name", project->project_name);
+  PROJECT_READ_STRING("project_description", project->project_description);
+
 
   PROJECT_READ_INT("grid.offset_x", project->grid.offset_x);
   PROJECT_READ_INT("grid.offset_y", project->grid.offset_y);
@@ -286,6 +332,7 @@ project_t * project_load(const char * const project_dir) {
       }
     }
   }
+
 
   // load alignment markers
   if((setting = config_lookup(&cfg, "alignment_marker_set")) == NULL) {
@@ -360,6 +407,15 @@ project_t * project_load(const char * const project_dir) {
     config_setting_set_float(setting, value); \
   }
 
+#define PROJECT_STORE_STRING(_group, name, value) \
+  if((setting = config_setting_add(_group, name, CONFIG_TYPE_STRING)) == NULL) { \
+    printf("Error in project_save(): can't store %s = %s\n", name, value); \
+    config_destroy(&cfg); \
+    return RET_ERR; \
+  } \
+  else { \
+    config_setting_set_string(setting, value); \
+  }
 
 
 ret_t project_save(const project_t * const project) {
@@ -380,6 +436,8 @@ ret_t project_save(const project_t * const project) {
   PROJECT_STORE_INT(cfg.root, "pin_diameter", project->pin_diameter);
   PROJECT_STORE_INT(cfg.root, "wire_diameter", project->wire_diameter);
   PROJECT_STORE_INT(cfg.root, "object_id_counter", project->lmodel->object_id_counter);
+  PROJECT_STORE_STRING(cfg.root, "project_name", project->project_name);
+  PROJECT_STORE_STRING(cfg.root, "project_description", project->project_description);
 
   // store grid
   if((group = config_setting_add(cfg.root, "grid", CONFIG_TYPE_GROUP)) == NULL) {

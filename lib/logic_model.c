@@ -34,6 +34,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "logic_model.h"
 #include "quadtree.h"
 #include <FileContent.h>
+#include "graphics.h"
 
 #define EPSILON 0.001
 
@@ -480,6 +481,15 @@ ret_t lmodel_serialize_gate_to_file(const lmodel_gate_t * const gate, lmodel_qtr
   return RET_OK;
 }
 
+ret_t lmodel_serialize_color(Color_t * dst_col, color_t col) {
+  assert(dst_col != NULL);
+  if(dst_col == NULL) return RET_INV_PTR;
+  dst_col->red = MASK_R(col);
+  dst_col->green = MASK_G(col);
+  dst_col->blue = MASK_B(col);
+  dst_col->alpha = MASK_A(col);
+  return RET_OK;
+}
 
 ret_t lmodel_serialize_wire_to_file(const lmodel_wire_t * const wire, lmodel_qtree_ser_data_t * ser_data) {
   ret_t ret;
@@ -498,7 +508,15 @@ ret_t lmodel_serialize_wire_to_file(const lmodel_wire_t * const wire, lmodel_qtr
   OCTET_STRING_fromBuf(&object->choice.wire.name, wire->name, -1);
   asn_long2INTEGER(&(object->choice.wire.layer), ser_data->layer);
   
-  
+  if(RET_IS_NOT_OK(ret = lmodel_serialize_color(&(object->choice.wire.col1), wire->color1))) {
+    debug(TM, "Can't serialize wire color");
+    return ret;
+  }
+  if(RET_IS_NOT_OK(ret = lmodel_serialize_color(&(object->choice.wire.col2), wire->color2))) {
+    debug(TM, "Can't serialize wire color");
+    return ret;
+  }
+
   if(wire->connections &&
      RET_IS_NOT_OK(ret = lmodel_serialize_connections(wire->connections, 
 						      &object->choice.wire.connections.list)))
@@ -523,6 +541,11 @@ ret_t lmodel_serialize_via_to_file(const lmodel_via_t * const via, lmodel_qtree_
 
   OCTET_STRING_fromBuf(&object->choice.via.name, via->name, -1);
 
+  if(RET_IS_NOT_OK(ret = lmodel_serialize_color(&(object->choice.via.col), via->color))) {
+    debug(TM, "Can't serialize via color");
+    return ret;
+  }
+
   switch(via->direction) {
   case LM_VIA_UP: 
     asn_long2INTEGER(&(object->choice.via.direction), ViaDirection_up); 
@@ -545,8 +568,9 @@ ret_t lmodel_serialize_via_to_file(const lmodel_via_t * const via, lmodel_qtree_
   return RET_OK;
 }
 
-ret_t lmodel_serialize_gate_template_to_file(const lmodel_gate_template_t * const tmpl, FileContent_t * file_content) {
-
+ret_t lmodel_serialize_gate_template_to_file(const lmodel_gate_template_t * const tmpl, 
+					     FileContent_t * file_content) {
+  ret_t ret;
   Object_t *object;
   lmodel_gate_template_port_t * gport_list;
   assert(tmpl);
@@ -567,6 +591,17 @@ ret_t lmodel_serialize_gate_template_to_file(const lmodel_gate_template_t * cons
   OCTET_STRING_fromBuf(&object->choice.gate_template.short_name, tmpl->short_name, -1);
   OCTET_STRING_fromBuf(&object->choice.gate_template.description, tmpl->description, -1);
 
+  if(RET_IS_NOT_OK(ret = lmodel_serialize_color(&(object->choice.gate_template.frame_col), 
+						tmpl->frame_color))) {
+    debug(TM, "Can't serialize gate template's frame color");
+    return ret;
+  }
+  if(RET_IS_NOT_OK(ret = lmodel_serialize_color(&(object->choice.gate_template.fill_col), 
+						tmpl->fill_color))) {
+    debug(TM, "Can't serialize gate template's fill color");
+    return ret;
+  }
+
   gport_list = tmpl->ports;
   while(gport_list != NULL) {
 
@@ -581,7 +616,11 @@ ret_t lmodel_serialize_gate_template_to_file(const lmodel_gate_template_t * cons
     else
       asn_long2INTEGER(&gport->port_type, PortType_out);
 
-    
+    if(RET_IS_NOT_OK(ret = lmodel_serialize_color(&gport->col, gport_list->color))) {
+      debug(TM, "Can't serialize gate template's port color");
+      return ret;
+    }
+
     ASN_SEQUENCE_ADD(&object->choice.gate_template.ports.list, gport);
 
     gport_list = gport_list->next;
@@ -829,9 +868,19 @@ ret_t lmodel_add_connection_build_helper(logic_model_t * lmodel, connection_buil
   return RET_OK;
 }
 
+ret_t lmodel_import_color(Color_t * col, color_t * out_col) {
+  
+  *out_col = MERGE_CHANNELS((col->red & 0xff), 
+			    (col->green & 0xff), 
+			    (col->blue & 0xff), 
+			    (col->alpha & 0xff));
+  
+  return RET_OK;
+}
 
 ret_t lmodel_import_wire(logic_model_t * lmodel, Wire_t * wire, unsigned int * highest_object_id) {
   long from_x, from_y, to_x, to_y, diameter, obj_id, layer;
+  color_t col1, col2;
   ret_t ret;
   assert(lmodel != NULL);
   assert(wire != NULL);
@@ -845,7 +894,9 @@ ret_t lmodel_import_wire(logic_model_t * lmodel, Wire_t * wire, unsigned int * h
      asn_INTEGER2long(&wire->to_y, &to_y) != -1 &&
      asn_INTEGER2long(&wire->diameter, &diameter) != -1 &&
      asn_INTEGER2long(&wire->id, &obj_id) != -1 &&
-     asn_INTEGER2long(&wire->layer, &layer) != -1) {
+     asn_INTEGER2long(&wire->layer, &layer) != -1 &&
+     RET_IS_OK(lmodel_import_color(&wire->col1, &col1)) &&
+     RET_IS_OK(lmodel_import_color(&wire->col2, &col2)) ) {
 
     if((unsigned long)obj_id > *highest_object_id) *highest_object_id = obj_id;
 
@@ -855,6 +906,9 @@ ret_t lmodel_import_wire(logic_model_t * lmodel, Wire_t * wire, unsigned int * h
 						  obj_id);
 
     if(!new_wire) return RET_ERR;
+    new_wire->color1 = col1;
+    new_wire->color2 = col2;
+
     if(RET_IS_NOT_OK(ret = lmodel_add_wire(lmodel, layer, new_wire))) return ret;
     
     connection_build_helper_t * bh = lmodel_create_connection_build_helper(LM_TYPE_WIRE, new_wire, 0);
@@ -873,6 +927,7 @@ ret_t lmodel_import_wire(logic_model_t * lmodel, Wire_t * wire, unsigned int * h
 
 ret_t lmodel_import_via(logic_model_t * lmodel, Via_t * via, unsigned int * highest_object_id) {
   long x, y, diameter, obj_id, direction, layer;
+  color_t col;
   ret_t ret;
   assert(lmodel != NULL);
   assert(via != NULL);
@@ -885,7 +940,8 @@ ret_t lmodel_import_via(logic_model_t * lmodel, Via_t * via, unsigned int * high
      asn_INTEGER2long(&via->diameter, &diameter) != -1 &&
      asn_INTEGER2long(&via->direction, &direction) != -1 &&
      asn_INTEGER2long(&via->id, &obj_id) != -1 &&
-     asn_INTEGER2long(&via->layer, &layer) != -1) {
+     asn_INTEGER2long(&via->layer, &layer) != -1 &&
+     RET_IS_OK(lmodel_import_color(&via->col, &col))) {
 
     if((unsigned long)obj_id > *highest_object_id) *highest_object_id = obj_id;
     
@@ -900,6 +956,7 @@ ret_t lmodel_import_via(logic_model_t * lmodel, Via_t * via, unsigned int * high
 					       strdup((char *)via->name.buf),
 					       obj_id);
     if(!new_via) return RET_ERR;
+    new_via->color = col;
     if(RET_IS_NOT_OK(ret = lmodel_add_via(lmodel, layer, new_via))) return ret;
 
     connection_build_helper_t * bh = lmodel_create_connection_build_helper(LM_TYPE_VIA, new_via, 0);
@@ -1079,8 +1136,7 @@ ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate, unsigned int * h
      asn_INTEGER2long(&gate->gate_id, &gate_id) != -1 &&
      asn_INTEGER2long(&gate->id, &obj_id) != -1 &&
      asn_INTEGER2long(&gate->layer, &layer) != -1 &&
-     asn_INTEGER2long(&gate->master_orientation, &master_orientation) != -1
-     ) {
+     asn_INTEGER2long(&gate->master_orientation, &master_orientation) != -1) {
 
     if((unsigned long)obj_id > *highest_object_id) *highest_object_id = obj_id;
     
@@ -1145,6 +1201,7 @@ ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate, unsigned int * h
 
 ret_t lmodel_import_gate_template(logic_model_t * lmodel, GateTemplate_t * gate_template) {
   long gate_id, min_x, min_y, max_x, max_y;
+  color_t col1, col2;
   ret_t ret;
 
   assert(lmodel != NULL);
@@ -1155,13 +1212,17 @@ ret_t lmodel_import_gate_template(logic_model_t * lmodel, GateTemplate_t * gate_
      asn_INTEGER2long(&gate_template->master_image_min_y, &min_y) != -1 &&
      asn_INTEGER2long(&gate_template->master_image_max_x, &max_x) != -1 &&
      asn_INTEGER2long(&gate_template->master_image_max_y, &max_y) != -1 &&
-     asn_INTEGER2long(&gate_template->gate_id, &gate_id) != -1) {
+     asn_INTEGER2long(&gate_template->gate_id, &gate_id) != -1 &&
+     RET_IS_OK(lmodel_import_color(&gate_template->frame_col, &col1)) && 
+     RET_IS_OK(lmodel_import_color(&gate_template->fill_col, &col2))) {
     
     int j;
     lmodel_gate_template_t * tmpl = lmodel_create_gate_template();
     assert(tmpl);
     if(!tmpl) return RET_ERR;
-    
+    tmpl->frame_color = col1;
+    tmpl->fill_color = col2;
+
     if(RET_IS_NOT_OK(ret = lmodel_gate_template_set_master_region(tmpl, 
 								  min_x, min_y, 
 								  max_x, max_y))) return ret;
@@ -1183,12 +1244,14 @@ ret_t lmodel_import_gate_template(logic_model_t * lmodel, GateTemplate_t * gate_
       asn_INTEGER2long(&encoded_port->relative_y_coord, &y_coord);
       asn_INTEGER2long(&encoded_port->diameter, &diameter);
       asn_INTEGER2long(&encoded_port->port_type, &port_type);
-      
+ 
+      lmodel_import_color(&encoded_port->col, &col1);
+
       gport->id = id;
       gport->relative_x_coord = x_coord;
       gport->relative_y_coord = y_coord;
       gport->diameter = diameter;
-      
+      gport->color = col1;
       gport->port_name = strdup((char *)encoded_port->port_name.buf);
       gport->port_type =  port_type == PortType_in ? LM_PT_IN : LM_PT_OUT;
       
@@ -1205,7 +1268,7 @@ ret_t lmodel_import_gate_template(logic_model_t * lmodel, GateTemplate_t * gate_
     }
   }
   else {
-    debug(TM, "Can't decode gate object");
+    debug(TM, "Can't decode gate template object");
     return RET_ERR;
   }
 
@@ -1890,7 +1953,8 @@ ret_t lmodel_load_files(logic_model_t * const lmodel, const char * const project
 
     if(ptr-buf > 0 || size != 0) {
       // try to decode data
-      rval = asn_DEF_FileContent.ber_decoder(0, &asn_DEF_FileContent, (void **)&file_content, buf, size + (ptr - buf), 0);
+      rval = asn_DEF_FileContent.ber_decoder(0, &asn_DEF_FileContent, 
+					     (void **)&file_content, buf, size + (ptr - buf), 0);
       if(rval.code == RC_OK) {
 	debug(TM, "BER decoding ok");
 	if(RET_IS_NOT_OK(lmodel_decode_file(lmodel, file_content))) {
@@ -2032,7 +2096,7 @@ lmodel_via_t * lmodel_create_via(logic_model_t * const lmodel,
   via->diameter = diameter;
   via->direction = direction;
   via->name = name ? name : strdup("");
-  via->id = !obj_id ? obj_id : lmodel->object_id_counter++;
+  via->id = obj_id ? obj_id : lmodel->object_id_counter++;
 
   return via;
 }
@@ -3365,4 +3429,40 @@ ret_t lmodel_get_view_for_object(const logic_model_t * const lmodel,
   }
 
   return RET_ERR;
+}
+
+/**
+ * Set frame and fill color for a gate template.
+ */
+ret_t lmodel_gate_template_set_color(lmodel_gate_template_t * gate_template, 
+				     color_t fill_color, color_t frame_color) {
+  assert(gate_template != NULL);
+  if(gate_template == NULL) return RET_INV_PTR;
+
+  gate_template->fill_color = fill_color;
+  gate_template->frame_color = frame_color;
+  return RET_OK;
+}
+
+/**
+ * Get fill and frame color for a gate template.
+ *
+ * @param gate_template The gate template.
+ * @param fill_color Pointer to a variable for the fill color.
+ * @param frame_color Pointer to a variable for the frame color
+ */
+ret_t lmodel_gate_template_get_color(lmodel_gate_template_t * gate_template, 
+				     color_t * fill_color, color_t * frame_color) {
+
+  assert(gate_template != NULL);
+  assert(fill_color != NULL);
+  assert(frame_color != NULL);
+
+  if(gate_template == NULL || fill_color == NULL || frame_color == NULL) return RET_INV_PTR;
+
+  *fill_color = gate_template->fill_color;
+  *frame_color = gate_template->frame_color;
+
+  return RET_OK;
+
 }

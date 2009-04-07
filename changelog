@@ -6,9 +6,10 @@ degate (0.0.6) unstable; urgency=low
   * gate list / gate selection: sortable rows, more attributes displayed
   * dedicated toolbar icons added
   * open projects via command line
-  * bugfix in memory management: memory mapped files were not correctly deallocated
-  * template matching: select multiple gate for matching
+  * added scaling manager: handle prescaled images (bicubical scaling)
+  * template matching: select multiple gates for matching, work on scaled images
   * more API documentation
+  * project attributes added: project name and project descr.
 	
  -- Martin Schobert <martin@weltregierung.de>  Wed, 30 Mar 2009 12:00:00 +0100
 

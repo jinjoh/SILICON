@@ -13,6 +13,7 @@
 /* Including external dependencies */
 #include <INTEGER.h>
 #include <VisibleString.h>
+#include "Color.h"
 #include <asn_SEQUENCE_OF.h>
 #include <constr_SEQUENCE_OF.h>
 #include <constr_SEQUENCE.h>
@@ -34,6 +35,8 @@ typedef struct Wire {
 	INTEGER_t	 id;
 	INTEGER_t	 layer;
 	VisibleString_t	 name;
+	Color_t	 col1;
+	Color_t	 col2;
 	struct Wire__connections {
 		A_SEQUENCE_OF(struct LogicModelConnection) list;
 		

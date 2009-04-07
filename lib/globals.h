@@ -76,4 +76,6 @@ void debug(const char * const module, int line, const char * const format, ...);
 #error "Unknown architecture"
 #endif
 
+typedef uint32_t color_t;
+
 #endif

@@ -14,6 +14,7 @@
 #include <INTEGER.h>
 #include "ViaDirection.h"
 #include <VisibleString.h>
+#include "Color.h"
 #include <asn_SEQUENCE_OF.h>
 #include <constr_SEQUENCE_OF.h>
 #include <constr_SEQUENCE.h>
@@ -34,6 +35,7 @@ typedef struct Via {
 	INTEGER_t	 id;
 	INTEGER_t	 layer;
 	VisibleString_t	 name;
+	Color_t	 col;
 	struct Via__connections {
 		A_SEQUENCE_OF(struct LogicModelConnection) list;
 		

@@ -542,8 +542,11 @@ ret_t render_gate(renderer_t * renderer, render_params_t * render_params, image_
   unsigned int screen_max_y = gate->max_y < max_y ? (unsigned int)((gate->max_y - min_y) / scaling_y) : dst_img->height - 1;
 
   // render filled rectangle
+  color_t col = gate->gate_template != NULL ? gate->gate_template->fill_color : 0;
+  if(col == 0) col = render_params->gate_area_color;
+
   draw_rectangle(dst_img, screen_min_x, screen_min_y, screen_max_x, screen_max_y, 
-		 highlight_color_by_state(render_params->gate_area_color, gate->is_selected));
+		 highlight_color_by_state(col, gate->is_selected));
 
   if(gate->name && screen_max_x - screen_min_x > strlen(gate->name) * FONT_SIZE) {
     draw_string(renderer, render_params, dst_img,

@@ -1040,7 +1040,8 @@ void MainWin::on_project_load_finished() {
 void MainWin::project_open_thread(Glib::ustring project_dir) {
   main_project = project_load(project_dir.c_str());
 #ifdef MAP_FILES_ON_DEMAND
-  if(RET_IS_NOT_OK(gr_reactivate_mapping(main_project->bg_images[main_project->current_layer]))) {
+  if(main_project != NULL && 
+     RET_IS_NOT_OK(gr_reactivate_mapping(main_project->bg_images[main_project->current_layer]))) {
     debug(TM, "mapping image failed");
   }
 #endif

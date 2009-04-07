@@ -8,7 +8,7 @@
 
 #include "Via.h"
 
-static asn_TYPE_member_t asn_MBR_connections_9[] = {
+static asn_TYPE_member_t asn_MBR_connections_10[] = {
 	{ ATF_POINTER, 0, 0,
 		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
 		0,
@@ -19,16 +19,16 @@ static asn_TYPE_member_t asn_MBR_connections_9[] = {
 		""
 		},
 };
-static ber_tlv_tag_t asn_DEF_connections_tags_9[] = {
+static ber_tlv_tag_t asn_DEF_connections_tags_10[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
-static asn_SET_OF_specifics_t asn_SPC_connections_specs_9 = {
+static asn_SET_OF_specifics_t asn_SPC_connections_specs_10 = {
 	sizeof(struct Via__connections),
 	offsetof(struct Via__connections, _asn_ctx),
 	0,	/* XER encoding is XMLDelimitedItemList */
 };
 static /* Use -fall-defs-global to expose */
-asn_TYPE_descriptor_t asn_DEF_connections_9 = {
+asn_TYPE_descriptor_t asn_DEF_connections_10 = {
 	"connections",
 	"connections",
 	SEQUENCE_OF_free,
@@ -40,16 +40,16 @@ asn_TYPE_descriptor_t asn_DEF_connections_9 = {
 	SEQUENCE_OF_encode_xer,
 	0, 0,	/* No PER support, use "-gen-PER" to enable */
 	0,	/* Use generic outmost tag fetcher */
-	asn_DEF_connections_tags_9,
-	sizeof(asn_DEF_connections_tags_9)
-		/sizeof(asn_DEF_connections_tags_9[0]), /* 1 */
-	asn_DEF_connections_tags_9,	/* Same as above */
-	sizeof(asn_DEF_connections_tags_9)
-		/sizeof(asn_DEF_connections_tags_9[0]), /* 1 */
+	asn_DEF_connections_tags_10,
+	sizeof(asn_DEF_connections_tags_10)
+		/sizeof(asn_DEF_connections_tags_10[0]), /* 1 */
+	asn_DEF_connections_tags_10,	/* Same as above */
+	sizeof(asn_DEF_connections_tags_10)
+		/sizeof(asn_DEF_connections_tags_10[0]), /* 1 */
 	0,	/* No PER visible constraints */
-	asn_MBR_connections_9,
+	asn_MBR_connections_10,
 	1,	/* Single element */
-	&asn_SPC_connections_specs_9	/* Additional specs */
+	&asn_SPC_connections_specs_10	/* Additional specs */
 };
 
 static asn_TYPE_member_t asn_MBR_Via_1[] = {
@@ -116,10 +116,19 @@ static asn_TYPE_member_t asn_MBR_Via_1[] = {
 		0,
 		"name"
 		},
+	{ ATF_NOFLAGS, 0, offsetof(struct Via, col),
+		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
+		0,
+		&asn_DEF_Color,
+		0,	/* Defer constraints checking to the member type */
+		0,	/* PER is not compiled, use -gen-PER */
+		0,
+		"col"
+		},
 	{ ATF_NOFLAGS, 0, offsetof(struct Via, connections),
 		(ASN_TAG_CLASS_UNIVERSAL | (16 << 2)),
 		0,
-		&asn_DEF_connections_9,
+		&asn_DEF_connections_10,
 		0,	/* Defer constraints checking to the member type */
 		0,	/* PER is not compiled, use -gen-PER */
 		0,
@@ -130,20 +139,21 @@ static ber_tlv_tag_t asn_DEF_Via_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static asn_TYPE_tag2member_t asn_MAP_Via_tag2el_1[] = {
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 4 }, /* x at 46 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 3 }, /* y at 47 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 2 }, /* diameter at 48 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -3, 1 }, /* id at 50 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 5, -4, 0 }, /* layer at 51 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (10 << 2)), 3, 0, 0 }, /* direction at 49 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 7, 0, 0 }, /* connections at 53 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 6, 0, 0 } /* name at 52 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 4 }, /* x at 75 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 3 }, /* y at 76 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 2 }, /* diameter at 77 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -3, 1 }, /* id at 79 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 5, -4, 0 }, /* layer at 80 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (10 << 2)), 3, 0, 0 }, /* direction at 78 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 7, 0, 1 }, /* col at 82 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 8, -1, 0 }, /* connections at 83 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 6, 0, 0 } /* name at 81 */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_Via_specs_1 = {
 	sizeof(struct Via),
 	offsetof(struct Via, _asn_ctx),
 	asn_MAP_Via_tag2el_1,
-	8,	/* Count of tags in the map */
+	9,	/* Count of tags in the map */
 	0, 0, 0,	/* Optional elements (not needed) */
 	-1,	/* Start extensions */
 	-1	/* Stop extensions */
@@ -168,7 +178,7 @@ asn_TYPE_descriptor_t asn_DEF_Via = {
 		/sizeof(asn_DEF_Via_tags_1[0]), /* 1 */
 	0,	/* No PER visible constraints */
 	asn_MBR_Via_1,
-	8,	/* Elements count */
+	9,	/* Elements count */
 	&asn_SPC_Via_specs_1	/* Additional specs */
 };
 

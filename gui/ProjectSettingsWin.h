@@ -41,6 +41,8 @@ class ProjectSettingsWin  {
 
   Gtk::Window *parent;
   Gtk::Dialog* pDialog;
+  Gtk::Entry * entry_project_name;
+  Gtk::Entry * entry_project_description;
   Gtk::Entry * entry_lambda;
   Gtk::Entry * entry_wire_diameter;
   Gtk::Entry * entry_via_diameter;

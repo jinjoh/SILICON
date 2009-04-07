@@ -106,6 +106,50 @@ GateConfigWin::GateConfigWin(Gtk::Window *parent,
 	pTreeView_in_ports->append_column_editable("Port Name", m_Columns.m_col_text);
       }
 
+      color_t frame_color = 0, fill_color = 0;
+      if(RET_IS_NOT_OK(lmodel_gate_template_get_color(gate_template, &fill_color, &frame_color))) {
+	debug(TM, "Can't get color definitions");
+      }
+
+      refXml->get_widget("colorbutton_fill_color", colorbutton_fill_color);
+      if(colorbutton_fill_color != NULL) {
+	Gdk::Color c;
+	if(fill_color != 0) {
+	  c.set_red(MASK_R(fill_color) << 8);
+	  c.set_green(MASK_G(fill_color) << 8);
+	  c.set_blue(MASK_B(fill_color) << 8);
+	  colorbutton_fill_color->set_alpha(MASK_A(fill_color) << 8);
+	  colorbutton_fill_color->set_color(c);
+	}
+	else {
+	  c.set_red(0x30 << 8);
+	  c.set_green(0x30 << 8);
+	  c.set_blue(0x30 << 8);
+	  colorbutton_fill_color->set_alpha(0xa0 << 8);
+	  colorbutton_fill_color->set_color(c);
+	}
+      }
+
+      refXml->get_widget("colorbutton_frame_color", colorbutton_frame_color);
+      if(colorbutton_frame_color != NULL) {
+	Gdk::Color c;
+	if(frame_color != 0) {
+	  c.set_red(MASK_R(frame_color) << 8);
+	  c.set_green(MASK_G(frame_color) << 8);
+	  c.set_blue(MASK_B(frame_color) << 8);
+	  colorbutton_frame_color->set_alpha(MASK_A(frame_color) << 8);
+	  colorbutton_frame_color->set_color(c);
+	}
+	else {
+	  c.set_red(0xa0 << 8);
+	  c.set_green(0xa0 << 8);
+	  c.set_blue(0xa0 << 8);
+	  colorbutton_fill_color->set_alpha(0x7f << 8);
+	  colorbutton_fill_color->set_color(c);
+	}
+      }
+
+
       lmodel_gate_template_port_t * ptr = gate_template->ports;
       while(ptr) {
 	Gtk::TreeModel::Row row;
@@ -153,6 +197,20 @@ void GateConfigWin::on_ok_button_clicked() {
 				entry_short_name->get_text().c_str(),
 				entry_description->get_text().c_str());
 
+
+  Gdk::Color fill_color = colorbutton_fill_color->get_color();
+  Gdk::Color frame_color = colorbutton_frame_color->get_color();
+
+  lmodel_gate_template_set_color(gate_template,
+				 MERGE_CHANNELS(fill_color.get_red() >> 8,
+						fill_color.get_green() >> 8,
+						fill_color.get_blue() >> 8,
+						colorbutton_fill_color->get_alpha() >> 8),
+				 MERGE_CHANNELS(frame_color.get_red() >> 8,
+						frame_color.get_green() >> 8,
+						frame_color.get_blue() >> 8,
+						colorbutton_frame_color->get_alpha() >> 8));
+  
 
   // get ports
   typedef Gtk::TreeModel::Children type_children;

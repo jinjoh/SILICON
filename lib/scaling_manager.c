@@ -389,7 +389,6 @@ ret_t scalmgr_recreate_scalings(scaling_manager_t * sm) {
  */
 ret_t scalmgr_set_scalings(scaling_manager_t * sm, unsigned int zoom_out_factor, 
 			  unsigned int zoom_in_factor) {
-  ret_t ret;
 
   assert(sm != NULL);
   assert(sm->bg_images[0] != NULL);

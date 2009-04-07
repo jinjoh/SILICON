@@ -14,6 +14,7 @@
 #include <INTEGER.h>
 #include <VisibleString.h>
 #include "PortType.h"
+#include "Color.h"
 #include <constr_SEQUENCE.h>
 
 #ifdef __cplusplus
@@ -27,6 +28,7 @@ typedef struct GateTemplatePort {
 	PortType_t	 port_type;
 	INTEGER_t	 relative_x_coord;
 	INTEGER_t	 relative_y_coord;
+	Color_t	 col;
 	INTEGER_t	 diameter;
 	
 	/* Context for parsing across buffer boundaries */

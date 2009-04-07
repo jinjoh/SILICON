@@ -4,8 +4,6 @@ template matching:
   should improve performance on multi core processors. (Function add_gate() is
   a critical section.
 
-- bicubical resampling
-
 project:
 
 - wizard for creating a project (set layer type / import image)
@@ -30,6 +28,8 @@ UI:
 - "Select all gates in region"
 - "Select all wires in region"
 - "Select all via in region"
+
+- project should have a name
 
 renderer:
 

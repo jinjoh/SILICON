@@ -21,6 +21,13 @@
 ObjectSetModule DEFINITIONS ::=
 BEGIN
 
+Color ::= SEQUENCE {
+	red INTEGER (0 .. 255),
+	green INTEGER (0 .. 255),
+	blue INTEGER (0 .. 255),
+	alpha INTEGER (0 .. 255)
+}
+
 LogicModelConnection ::= SEQUENCE {
 	object-id INTEGER,
 	sub-id INTEGER
@@ -35,6 +42,8 @@ Wire ::= SEQUENCE {
 	id INTEGER,
 	layer INTEGER,
 	name VisibleString,
+	col1 Color,
+	col2 Color,
 	connections SEQUENCE OF LogicModelConnection }
 
 GatePort ::= SEQUENCE {
@@ -70,6 +79,7 @@ Via ::= SEQUENCE {
 	id INTEGER,
 	layer INTEGER,
 	name VisibleString,
+	col Color,
 	connections SEQUENCE OF LogicModelConnection }
 
 PortType ::= ENUMERATED { in(0), out(1) }
@@ -80,6 +90,7 @@ GateTemplatePort ::= SEQUENCE {
 	port-type PortType,
 	relative-x-coord INTEGER,
 	relative-y-coord INTEGER,
+	col Color,
 	diameter INTEGER}
 
 GateTemplate ::= SEQUENCE {
@@ -90,6 +101,8 @@ GateTemplate ::= SEQUENCE {
 	master-image-max-y INTEGER,
 	short-name VisibleString,
 	description VisibleString,
+	fill-col Color,
+	frame-col Color,
 	ports SEQUENCE OF GateTemplatePort }
 
 Object ::= CHOICE {	

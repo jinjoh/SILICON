@@ -76,6 +76,16 @@ ProjectSettingsWin::ProjectSettingsWin(Gtk::Window *parent, project_t * project)
 
     char str[100];
 
+    refXml->get_widget("entry_project_name", entry_project_name);
+    if(entry_project_name != NULL) {
+      entry_project_name->set_text(project->project_name);
+    }
+
+    refXml->get_widget("entry_project_description", entry_project_description);
+    if(entry_project_description != NULL) {
+      entry_project_description->set_text(project->project_description);
+    }
+
     refXml->get_widget("entry_lambda", entry_lambda);
     if(entry_lambda) {
       snprintf(str, sizeof(str), "%d", project->lambda);
@@ -104,6 +114,9 @@ bool ProjectSettingsWin::run() {
   pDialog->run();
   if(ok_clicked) {
     long r;
+    project_set_name(project, entry_project_name->get_text().c_str());
+    project_set_description(project, entry_project_description->get_text().c_str());
+
     if((r = atol(entry_lambda->get_text().c_str())) > 0)
       project->lambda = r;
     if((r = atol(entry_via_diameter->get_text().c_str())) > 0)

@@ -65,7 +65,10 @@ class GateConfigWin  {
 
   Gtk::Entry * entry_short_name;
   Gtk::Entry * entry_description;
-  
+
+  Gtk::ColorButton * colorbutton_fill_color;
+  Gtk::ColorButton * colorbutton_frame_color;
+
   // Signal handlers:
   virtual void on_ok_button_clicked();
   virtual void on_cancel_button_clicked();

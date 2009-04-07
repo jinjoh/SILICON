@@ -43,17 +43,18 @@ struct render_params {
   scaling_manager_t * scaling_manager;
 
   // color switches
-  uint32_t gate_pin_color;
-  uint32_t gate_area_color;
-  uint32_t wire_color;
-  uint32_t il_up_color;
-  uint32_t il_down_color;
-  uint32_t grid_color;
+  color_t gate_pin_color;
+  color_t gate_area_color;
+  color_t wire_color;
+  color_t il_up_color;
+  color_t il_down_color;
+  color_t grid_color;
   
-  uint32_t marker_color_m1_up;
-  uint32_t marker_color_m1_down;
-  uint32_t marker_color_m2_up;
-  uint32_t marker_color_m2_down;
+  color_t marker_color_m1_up;
+  color_t marker_color_m1_down;
+  color_t marker_color_m2_up;
+  color_t marker_color_m2_down;
+
   unsigned int alignment_marker_size;
 
   // for image algorithms

@@ -1,4 +1,5 @@
 ASN_MODULE_SOURCES=	\
+	src/Color.c \
 	src/LogicModelConnection.c \
 	src/Wire.c	\
 	src/Gate.c	\
@@ -13,6 +14,7 @@ ASN_MODULE_SOURCES=	\
 	src/FileContent.c 
 
 ASN_MODULE_HEADERS=	\
+	src/Color.h \
 	src/LogicModelConnection.h \
 	src/Wire.h	\
 	src/Gate.h	\

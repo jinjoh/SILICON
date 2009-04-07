@@ -37,6 +37,9 @@ class GateListWin {
       add(m_col_height);
       add(m_col_short_name); 
       add(m_col_description); 
+      add(color_fill_);
+      add(color_frame_);
+      add(padding_);
     }
     
     Gtk::TreeModelColumn<int> m_col_id;
@@ -45,7 +48,9 @@ class GateListWin {
     Gtk::TreeModelColumn<int> m_col_height;
     Gtk::TreeModelColumn<Glib::ustring> m_col_short_name;
     Gtk::TreeModelColumn<Glib::ustring> m_col_description;
-
+    Gtk::TreeModelColumn<Gdk::Color> color_fill_; 
+    Gtk::TreeModelColumn<Gdk::Color> color_frame_; 
+    Gtk::TreeModelColumn<int> padding_; 
   };
 
 
@@ -54,7 +59,7 @@ class GateListWin {
   virtual ~GateListWin();
   void run();
 
-  private:
+ private:
   Gtk::Window *parent;
   logic_model_t * lmodel;
 
@@ -62,6 +67,9 @@ class GateListWin {
   GateListModelColumns m_Columns;
   Glib::RefPtr<Gtk::ListStore> refListStore;
   Gtk::TreeView* pTreeView;
+
+  Gdk::Color get_fill_color(lmodel_gate_template_t * tmpl);
+  Gdk::Color get_frame_color(lmodel_gate_template_t * tmpl);
 
   // Signal handlers:
   virtual void on_close_button_clicked();

@@ -102,6 +102,7 @@ struct lmodel_gate_template_port {
   unsigned int relative_x_coord;
   unsigned int relative_y_coord;
   unsigned int diameter;
+  color_t color;
   lmodel_gate_template_port_t * next;
 };
 
@@ -114,7 +115,8 @@ struct lmodel_gate_template {
   unsigned int master_image_max_y;
   char * short_name;
   char * description;
-  
+  color_t fill_color; 
+  color_t frame_color; 
   unsigned int reference_counter;
   lmodel_gate_template_port_t * ports;
 };
@@ -141,7 +143,7 @@ struct lmodel_via {
   unsigned int id;  // object id
   LM_VIA_DIR direction;
   int is_selected;
-
+  color_t color;
   lmodel_connection_t * connections;
   char * name;
 };
@@ -151,6 +153,8 @@ struct lmodel_wire {
   unsigned int diameter;
   unsigned int id; // object id
   int is_selected;
+  color_t color1;
+  color_t color2;
 
   lmodel_connection_t * connections;
   char * name;
@@ -384,5 +388,11 @@ int lmodel_gate_is_master(const lmodel_gate_t * const gate);
 ret_t lmodel_get_view_for_object(const logic_model_t * const lmodel, 
 				 LM_OBJECT_TYPE object_type, const object_ptr_t * const obj_ptr,
 				 unsigned int * center_x, unsigned int * center_y, unsigned int * layer);
+
+ret_t lmodel_gate_template_set_color(lmodel_gate_template_t * gate_template, 
+				     color_t fill_color, color_t frame_color);
+
+ret_t lmodel_gate_template_get_color(lmodel_gate_template_t * gate_template, 
+				     color_t * fill_color, color_t * frame_color);
 #endif
  

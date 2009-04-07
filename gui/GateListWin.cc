@@ -115,6 +115,21 @@ GateListWin::GateListWin(Gtk::Window *parent, logic_model_t * lmodel) {
 	pColumn = pTreeView->get_column(5);
 	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_description);
 
+	Gtk::CellRendererText * pRenderer = Gtk::manage( new Gtk::CellRendererText()); 
+	pTreeView->append_column("Fill color", *pRenderer);
+	pColumn = pTreeView->get_column(6);
+	pColumn->add_attribute(*pRenderer, "background-gdk", m_Columns.color_fill_); 
+	pColumn->add_attribute(*pRenderer, "xpad", m_Columns.padding_); 
+	pColumn->add_attribute(*pRenderer, "ypad", m_Columns.padding_); 
+
+	pRenderer = Gtk::manage( new Gtk::CellRendererText()); 
+	pTreeView->append_column("Frame color", *pRenderer);
+	pColumn = pTreeView->get_column(7);
+	pColumn->add_attribute(*pRenderer, "background-gdk", m_Columns.color_frame_); 
+	pColumn->add_attribute(*pRenderer, "xpad", m_Columns.padding_); 
+	pColumn->add_attribute(*pRenderer, "ypad", m_Columns.padding_); 
+
+
       }
 
       lmodel_gate_template_set_t * ptr = lmodel->gate_template_set;
@@ -133,6 +148,9 @@ GateListWin::GateListWin(Gtk::Window *parent, logic_model_t * lmodel) {
 	  if(ptr->gate->short_name) row[m_Columns.m_col_short_name] = ptr->gate->short_name;
 	  if(ptr->gate->description) row[m_Columns.m_col_description] = ptr->gate->description;
 
+	  row[m_Columns.color_fill_] = get_fill_color(ptr->gate);
+	  row[m_Columns.color_frame_] = get_frame_color(ptr->gate);
+	  row[m_Columns.padding_] = 5;
 	}
 
 	ptr = ptr->next;
@@ -143,6 +161,50 @@ GateListWin::GateListWin(Gtk::Window *parent, logic_model_t * lmodel) {
       std::cout << "Error: can't find gate_list_dialog" << std::endl;
     }
 
+}
+
+Gdk::Color GateListWin::get_fill_color(lmodel_gate_template_t * tmpl) {
+
+  Gdk::Color c;
+  color_t frame_color, fill_color;
+  if(RET_IS_NOT_OK(lmodel_gate_template_get_color(tmpl, &fill_color, &frame_color))) {
+    debug(TM, "Can't get color definitions");
+  }
+
+  if(fill_color != 0) {
+    c.set_red(MASK_R(fill_color) << 8);
+    c.set_green(MASK_G(fill_color) << 8);
+    c.set_blue(MASK_B(fill_color) << 8);
+  }
+  else {
+    c.set_red(0x30 << 8);
+    c.set_green(0x30 << 8);
+    c.set_blue(0x30 << 8);
+  }
+
+  return c;
+}
+
+Gdk::Color GateListWin::get_frame_color(lmodel_gate_template_t * tmpl) {
+
+  Gdk::Color c;
+  color_t frame_color, fill_color;
+  if(RET_IS_NOT_OK(lmodel_gate_template_get_color(tmpl, &fill_color, &frame_color))) {
+    debug(TM, "Can't get color definitions");
+  }
+
+  if(frame_color != 0) {
+    c.set_red(MASK_R(frame_color) << 8);
+    c.set_green(MASK_G(frame_color) << 8);
+    c.set_blue(MASK_B(frame_color) << 8);
+  }
+  else {
+    c.set_red(0xa0 << 8);
+    c.set_green(0xa0 << 8);
+    c.set_blue(0xa0 << 8);
+  }
+
+  return c;
 }
 
 GateListWin::~GateListWin() {
@@ -173,6 +235,9 @@ void GateListWin::on_add_button_clicked() {
       row[m_Columns.m_col_height] = tmpl->master_image_max_y - tmpl->master_image_min_y;
       row[m_Columns.m_col_short_name] = tmpl->short_name;
       row[m_Columns.m_col_description] = tmpl->description;
+
+      row[m_Columns.color_fill_] = get_fill_color(tmpl);
+      row[m_Columns.color_frame_] = get_frame_color(tmpl);
 
     }
   }
@@ -253,6 +318,9 @@ void GateListWin::on_edit_button_clicked() {
 	row[m_Columns.m_col_height] = tmpl->master_image_max_y - tmpl->master_image_min_y;
 	row[m_Columns.m_col_short_name] = tmpl->short_name;
 	row[m_Columns.m_col_description] = tmpl->description;
+
+	row[m_Columns.color_fill_] = get_fill_color(tmpl);
+	row[m_Columns.color_frame_] = get_frame_color(tmpl);
       }
     }
   }

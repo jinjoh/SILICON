@@ -33,7 +33,9 @@ struct project {
 
   unsigned int width, height;
   int num_layers;
-  
+  char * project_name;
+  char * project_description;
+
   char * project_dir;
   
   image_t ** bg_images;
@@ -41,8 +43,6 @@ struct project {
 
   logic_model_t * lmodel;
   
-  //  gate_template_set_t * gset; // set of templates
-
   int current_layer;
 
   unsigned int pin_diameter;
@@ -66,5 +66,8 @@ ret_t project_map_background_memfiles(project_t * const project);
 ret_t project_save(const project_t * const project);
 
 ret_t project_cleanup(const char * const project_dir);
+
+ret_t project_set_name(project_t * const project, const char * const name);
+ret_t project_set_description(project_t * const project, const char * const descr);
 
 #endif
