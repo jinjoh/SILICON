@@ -108,7 +108,7 @@ image_t * scalmgr_get_image(scaling_manager_t * sm, unsigned int layer, double s
   if(sm == NULL || scaling_found == NULL || layer >= sm->num_layers) return NULL;
   
   unsigned int factor;
-
+  
   if(scaling > 1 && sm->zoom_out_images != NULL){
     image_list_t * ptr = sm->zoom_out_images;
 
@@ -117,24 +117,17 @@ image_t * scalmgr_get_image(scaling_manager_t * sm, unsigned int layer, double s
 
     while(ptr != NULL) {
       if(ptr->layer == layer && ptr->zoom == factor) {
-	debug(TM, "return prescaled image");
-
-	if(scaling < 1) *scaling_found = 1.0/factor;
-	else *scaling_found = factor;
+	*scaling_found = factor;
 	return ptr->image;
       }
       ptr = ptr->next;
     }
   }
-  else {
-    debug(TM, "return normal image");
-    assert(sm->bg_images[layer] != NULL);
-    *scaling_found = 1;
-    return sm->bg_images[layer];
-  }
-  
-  assert( 1 == 0);
-  return NULL;
+
+  //debug(TM, "return normal image");
+  assert(sm->bg_images[layer] != NULL);
+  *scaling_found = 1;
+  return sm->bg_images[layer];
 }
 
 image_list_t * scalmgr_create_list(unsigned int layer, unsigned int zoom, image_t * image) {
@@ -234,7 +227,6 @@ ret_t scalmgr_load_scalings_for_layer(scaling_manager_t * sm, unsigned int max_f
 
   unsigned int zoom_i;
   ret_t ret;
-  image_list_t * list = NULL;
 
   debug(TM, "load scaled images for layer %d - maxzoom = %d", layer, max_factor);
   assert(sm != NULL);
@@ -287,8 +279,8 @@ ret_t scalmgr_load_scalings_for_layer(scaling_manager_t * sm, unsigned int max_f
     }
     
     // add to list
-    if(list != NULL) list_elem->next = list;
-    list = list_elem;
+    list_elem->next = sm->zoom_out_images;
+    sm->zoom_out_images = list_elem;
   }
 
 #ifdef MAP_FILES_ON_DEMAND
@@ -300,7 +292,6 @@ ret_t scalmgr_load_scalings_for_layer(scaling_manager_t * sm, unsigned int max_f
   if(RET_IS_NOT_OK(ret = gr_deactivate_mapping(sm->bg_images[layer]))) return ret;
 #endif
   
-  sm->zoom_out_images = list;
 
   return RET_OK;
   
@@ -318,7 +309,6 @@ ret_t scalmgr_load_scalings(scaling_manager_t * sm) {
 
     if(RET_IS_NOT_OK(ret = scalmgr_load_scalings_for_layer(sm, sm->zoom_out_factor, layer)))
       return ret;
-
   }
 
   debug(TM, "Loading images done.");
