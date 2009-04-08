@@ -133,17 +133,10 @@ ret_t imgalgo_run_template_matching(image_t * master, image_t * _template,
 				    LM_TEMPLATE_ORIENTATION orientation,
 				    template_matching_params_t * matching_params);
 
-ret_t imgalgo_calc_xcorr(image_t * master, 
-			 memory_map_t * zero_mean_template, 
-			 memory_map_t * summation_table_single,
-			 memory_map_t * summation_table_squared,
-			 double sum_over_zero_mean_template,
-			 memory_map_t * result_map);
-
-double imgalgo_calc_single_xcorr(image_t * master, 
-				 memory_map_t * zero_mean_template, 
-				 memory_map_t * summation_table_single,
-				 memory_map_t * summation_table_squared,
+double imgalgo_calc_single_xcorr(const image_t * const master, 
+				 memory_map_t * const zero_mean_template, 
+				 memory_map_t * const summation_table_single,
+				 memory_map_t * const summation_table_squared,
 				 double sum_over_zero_mean_template,
 				 unsigned int x, unsigned int y);
 
@@ -1032,10 +1025,10 @@ double calc_mean_for_img_area(image_t * img, unsigned int min_x, unsigned int mi
 }
 
 
-double imgalgo_calc_single_xcorr(image_t * master, 
-				 memory_map_t * zero_mean_template, 
-				 memory_map_t * summation_table_single,
-				 memory_map_t * summation_table_squared,
+double imgalgo_calc_single_xcorr(const image_t * const master, 
+				 memory_map_t * const zero_mean_template, 
+				 memory_map_t * const summation_table_single,
+				 memory_map_t * const summation_table_squared,
 				 double sum_over_zero_mean_template,
 				 unsigned int local_x, unsigned int local_y) {
 
@@ -1076,7 +1069,7 @@ double imgalgo_calc_single_xcorr(image_t * master,
     for(_x = 0; _x < zero_mean_template->width; _x ++) {
       double f_xy = gr_get_greyscale_pixval(master, _x + local_x, _y + local_y);
       double t_xy = mm_get_double(zero_mean_template, _x, _y);
-      nummerator += (f_xy * t_xy);
+      nummerator += f_xy * t_xy;
       
     }
   }

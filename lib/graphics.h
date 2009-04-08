@@ -103,7 +103,7 @@ ret_t gr_import_background_image(image_t * img,
 void gr_set_pixval(image_t * img, unsigned int x, unsigned int y, uint32_t pix);
 uint32_t gr_get_pixval(image_t * img, unsigned int x, unsigned int y);
 
-uint8_t gr_get_greyscale_pixval(image_t * img, unsigned int x, unsigned int y);
+uint8_t gr_get_greyscale_pixval(const image_t * const img, unsigned int x, unsigned int y);
 void gr_set_greyscale_pixval(image_t * img, unsigned int x, unsigned int y, uint8_t gs_val);
 
 void gr_copy_pixel(image_t * dst_img, unsigned int dst_x, unsigned int dst_y,

@@ -463,7 +463,7 @@ void gr_set_pixval(image_t * img, unsigned int x, unsigned int y, uint32_t pix) 
 /**
  * Works like the gr_get_pixval() function, but returns greyscaled pixel value.
  */
-uint8_t gr_get_greyscale_pixval(image_t * img, unsigned int x, unsigned int y) {
+uint8_t gr_get_greyscale_pixval(const image_t * const img, unsigned int x, unsigned int y) {
   if(img->image_type == IMAGE_TYPE_RGBA) {
     uint32_t * ptr = (uint32_t *)mm_get_ptr(img->map, x, y);
     return RGBA_TO_GS(ptr);
