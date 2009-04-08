@@ -1700,6 +1700,12 @@ void MainWin::on_menu_gate_set() {
 void MainWin::on_menu_gate_create_by_selection() {
   if(imgWin.selection_active() && main_project) {
 
+    int layer = lmodel_get_layer_num_by_type(main_project->lmodel, LM_LAYER_TYPE_LOGIC);
+    if(layer == -1) {
+      error_dialog("Error", "There is no logic layer defined. Please define layer types.");
+      return;
+    }
+
     lmodel_gate_template_t * tmpl = lmodel_create_gate_template();
     assert(tmpl);
 
@@ -1718,35 +1724,31 @@ void MainWin::on_menu_gate_create_by_selection() {
 	error_dialog("Error", "Can't add gate template to logic model.");
       }
       else {
-	int layer = lmodel_get_layer_num_by_type(main_project->lmodel, LM_LAYER_TYPE_LOGIC);
-	if(layer == -1) {
-	  error_dialog("Error", "There is no logic layer defined. Please define layer types.");
+	
+
+	lmodel_gate_t * new_gate = lmodel_create_gate(main_project->lmodel, 
+						      imgWin.get_selection_min_x(), 
+						      imgWin.get_selection_min_y(), 
+						      imgWin.get_selection_max_x(), 
+						      imgWin.get_selection_max_y(), 
+						      tmpl, NULL, 0);
+	
+	assert(new_gate);
+	if(RET_IS_NOT_OK(lmodel_set_template_for_gate(main_project->lmodel, new_gate, tmpl))) {
+	  error_dialog("Error", "Can't set gates template.");
 	}
+	if(RET_IS_NOT_OK(lmodel_set_gate_orientation(new_gate, LM_TEMPLATE_ORIENTATION_NORMAL))) {
+	  error_dialog("Error", "Can't set orientation.");
+	}
+	
+	if(RET_IS_NOT_OK(lmodel_add_gate(main_project->lmodel, layer, new_gate)))
+	  error_dialog("Error", "Can't add gate to logic model.");
 	else {
-
-	  lmodel_gate_t * new_gate = lmodel_create_gate(main_project->lmodel, 
-							imgWin.get_selection_min_x(), 
-							imgWin.get_selection_min_y(), 
-							imgWin.get_selection_max_x(), 
-							imgWin.get_selection_max_y(), 
-							tmpl, NULL, 0);
-
-	  assert(new_gate);
-	  if(RET_IS_NOT_OK(lmodel_set_template_for_gate(main_project->lmodel, new_gate, tmpl))) {
-	    error_dialog("Error", "Can't set gates template.");
-	  }
-	  if(RET_IS_NOT_OK(lmodel_set_gate_orientation(new_gate, LM_TEMPLATE_ORIENTATION_NORMAL))) {
-	    error_dialog("Error", "Can't set orientation.");
-	  }
-
-	  if(RET_IS_NOT_OK(lmodel_add_gate(main_project->lmodel, layer, new_gate)))
-	    error_dialog("Error", "Can't add gate to logic model.");
-	  else {
-	    imgWin.reset_selection();
-	    imgWin.update_screen();
-	  }
-	  project_changed();
+	  imgWin.reset_selection();
+	  imgWin.update_screen();
 	}
+	project_changed();
+	
       }
     }
   }
