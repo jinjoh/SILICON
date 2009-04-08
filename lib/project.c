@@ -39,7 +39,8 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #define TEMPLATE_PLACEMENT_DAT "template_placements.dat"
 #define PROJECT_FILE "project.prj"
 
-project_t * project_create(const char * const project_dir, unsigned int width, unsigned int height, int num_layers) {
+project_t * project_create(const char * const project_dir, 
+			   unsigned int width, unsigned int height, int num_layers) {
 
   project_t * ptr = (project_t *)malloc(sizeof(project_t));
   if(!ptr) return NULL;
@@ -78,6 +79,11 @@ project_t * project_create(const char * const project_dir, unsigned int width, u
 
   if((ptr->scaling_manager = scalmgr_create(num_layers, ptr->bg_images,
 					    project_dir)) == NULL) {
+    project_destroy(ptr);
+    return NULL;
+  }
+
+  if(RET_IS_NOT_OK(scalmgr_set_scalings(ptr->scaling_manager, 8))) {
     project_destroy(ptr);
     return NULL;
   }
@@ -403,13 +409,14 @@ project_t * project_load(const char * const project_dir) {
 
     }
   }
-
-
-
-
-
   
   config_destroy(&cfg);
+
+
+  if(RET_IS_NOT_OK(scalmgr_load_scalings(project->scaling_manager))) {
+    project_destroy(project);
+    return NULL;
+  }
 
 
   if(RET_IS_NOT_OK(lmodel_load_files(project->lmodel, base_dir, num_layers))) {
@@ -420,11 +427,6 @@ project_t * project_load(const char * const project_dir) {
 
 
   if(RET_IS_NOT_OK(lmodel_apply_colors_to_ports(project->lmodel, project->port_color_manager))) {
-    project_destroy(project);
-    return NULL;
-  }
-
-  if(RET_IS_NOT_OK(scalmgr_set_scalings(project->scaling_manager, 8, 1))) {
     project_destroy(project);
     return NULL;
   }

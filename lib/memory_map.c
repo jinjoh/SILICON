@@ -130,6 +130,28 @@ ret_t mm_destroy(memory_map_t * map) {
   return ret;
 }
 
+/**
+ * Destroy a memory map. If memory was mapped from file, the file gets unlinked.
+ */
+ret_t mm_destroy_and_unlink(memory_map_t * map) {
+  ret_t ret = RET_OK;
+  char filename[PATH_MAX];
+  assert(map != NULL);
+  assert(map->filename != NULL);
+  assert(map->fd > 0);
+  if(map == NULL || map->filename == NULL) return RET_INV_PTR;
+  if(map->fd <= 0) return RET_ERR;
+
+  strncpy(filename, map->filename, sizeof(filename));
+  if(RET_IS_NOT_OK(ret = mm_destroy(map))) return ret;
+
+  if(unlink(map->filename) == -1) {
+    debug(TM, "Can't unlink file %s", filename);
+    ret = RET_ERR;
+  }
+  return ret;
+}
+
 
 /**
  * Clear map data.

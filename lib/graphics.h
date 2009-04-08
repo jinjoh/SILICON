@@ -76,6 +76,7 @@ image_t * gr_extract_image_as_gs(image_t * img,
 ret_t gr_alloc_memory(image_t * img);
 
 ret_t gr_image_destroy(image_t * img);
+ret_t gr_destroy_and_unlink(image_t * img);
 
 ret_t gr_map_clear(image_t * img);
 

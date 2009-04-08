@@ -35,22 +35,19 @@ struct image_list {
 };
 
 typedef struct scaling_manager {
-  unsigned int zoom_in_factor;
   unsigned int zoom_out_factor;
 
   unsigned int num_layers;
   char * project_dir;
   image_t ** bg_images;
   image_list_t * zoom_out_images;
-  image_list_t * zoom_in_images;
 } scaling_manager_t;
 
 scaling_manager_t * scalmgr_create(int num_layers, image_t ** bg_images,
 				   const char * const project_dir);
 ret_t scalmgr_destroy(scaling_manager_t * sm);
 
-ret_t scalmgr_set_scalings(scaling_manager_t * sm, unsigned int zoom_out_factor, 
-			   unsigned int zoom_in_factor);
+ret_t scalmgr_set_scalings(scaling_manager_t * sm, unsigned int zoom_out_factor);
 
 image_t * scalmgr_get_image(scaling_manager_t * sm, unsigned int layer, double scaling, 
 			    double * scaling_found);
@@ -58,9 +55,11 @@ image_t * scalmgr_get_image(scaling_manager_t * sm, unsigned int layer, double s
 ret_t scalmgr_map_files_for_layer(scaling_manager_t * sm, unsigned int layer);
 ret_t scalmgr_unmap_files_for_layer(scaling_manager_t * sm, unsigned int layer);
 
-unsigned int scalmgr_get_max_zoom_in_factor(scaling_manager_t * sm);
 unsigned int scalmgr_get_max_zoom_out_factor(scaling_manager_t * sm);
 
 ret_t scalmgr_recreate_scalings(scaling_manager_t * sm);
+ret_t scalmgr_recreate_scalings_for_layer(scaling_manager_t * sm, unsigned int layer);
+
+ret_t scalmgr_load_scalings(scaling_manager_t * sm);
 
 #endif

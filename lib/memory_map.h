@@ -49,6 +49,7 @@ typedef struct memory_map memory_map_t;
 memory_map_t * mm_create(unsigned int width, unsigned int height, unsigned int bytes_per_elem);
 ret_t mm_alloc_memory(memory_map_t * map);
 ret_t mm_destroy(memory_map_t * map);
+ret_t mm_destroy_and_unlink(memory_map_t * map);
 ret_t mm_clear(memory_map_t * map);
 ret_t mm_clear_area(memory_map_t * map, unsigned int min_x, unsigned int min_y, 
 		    unsigned int width, unsigned int height);

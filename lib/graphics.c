@@ -126,6 +126,23 @@ ret_t gr_image_destroy(image_t * img) {
   return ret;
 }
 
+/**
+ * Destroy an image. If the image is stored in a file, the file gets unlinked.
+ */
+
+ret_t gr_destroy_and_unlink(image_t * img) {
+  assert(img != NULL);
+  if(img == NULL) return RET_INV_PTR;
+  
+  ret_t ret = mm_destroy_and_unlink(img->map);
+  if(RET_IS_OK(ret)) {
+    memset(img, 0, sizeof(image_t));
+    free(img);
+  }
+  return ret;
+}
+
+
 /** Extract subimage of size width x height form image img. Interval boundaries are
  * included. It allocates memory the new image.
  * @returns pointer to new image.

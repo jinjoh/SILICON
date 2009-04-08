@@ -1000,9 +1000,6 @@ ret_t imgalgo_run_template_matching(image_t * master, image_t * _template,
 	  goto error;		
 	}
       }
-      else {
-	
-      }
 
     }    
   

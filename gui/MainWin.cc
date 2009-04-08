@@ -142,6 +142,8 @@ void MainWin::update_title() {
   }
   else {
     char _title[1000];
+    assert(main_project->project_name != NULL);
+
     snprintf(_title, sizeof(_title), "degate -- [%s%s%s%s] [%d/%d]", 
 	     strlen(main_project->project_name) > 0 ? main_project->project_name : "",
 	     strlen(main_project->project_name) > 0 ? ": " : "",
@@ -830,8 +832,17 @@ void MainWin::on_menu_project_new() {
 	dialog.run();
       }
       else {
+
+#ifdef MAP_FILES_ON_DEMAND
+	if(main_project != NULL && 
+	   RET_IS_NOT_OK(gr_reactivate_mapping(main_project->bg_images[main_project->current_layer]))) {
+	  debug(TM, "mapping image failed");
+	}
+#endif
+
 	update_gui_for_loaded_project();
 	set_project_changed_state(false);
+	set_layer(0);
       }
       on_menu_project_save();
 
@@ -1793,14 +1804,14 @@ void MainWin::on_selection_revoked() {
 }
 
 void MainWin::on_mouse_scroll_down(unsigned int center_x, unsigned int center_y) {
-  //zoom_in(center_x, center_y);
-  on_menu_view_zoom_in();
+  zoom_in(center_x, center_y);
+  //on_menu_view_zoom_in();
 
 }
 
 void MainWin::on_mouse_scroll_up(unsigned int center_x, unsigned int center_y) {
-  //zoom_out(center_x, center_y);
-  on_menu_view_zoom_out();
+  zoom_out(center_x, center_y);
+  //on_menu_view_zoom_out();
 }
 
 bool MainWin::on_imgwin_clicked(GdkEventButton * event) {
@@ -2261,7 +2272,8 @@ void MainWin::on_menu_layer_import_background() {
   switch(result) {
   case(Gtk::RESPONSE_OK):
 
-    ipWin = new InProgressWin(this, "Importing", "Please wait while importing background image(s).");
+    ipWin = new InProgressWin(this, "Importing", 
+			      "Please wait while importing background image and calculate the prescaled images.");
     ipWin->show();
     project_changed();
     signal_bg_import_finished_.connect(sigc::mem_fun(*this, &MainWin::on_background_import_finished));
@@ -2292,8 +2304,17 @@ void MainWin::background_import_thread(Glib::ustring bg_filename) {
     debug(TM, "Can't import image file");
   }
   else {
-    if(RET_IS_NOT_OK(scalmgr_recreate_scalings(main_project->scaling_manager)))
+    if(RET_IS_NOT_OK(scalmgr_recreate_scalings_for_layer(main_project->scaling_manager, 
+							 main_project->current_layer)))
       debug(TM, "Can't recreate scaled images.");
+
+#ifdef MAP_FILES_ON_DEMAND
+	if(main_project != NULL && 
+	   RET_IS_NOT_OK(gr_reactivate_mapping(main_project->bg_images[main_project->current_layer]))) {
+	  debug(TM, "mapping image failed");
+	}
+#endif
+
   }
 
   signal_bg_import_finished_();

@@ -17,6 +17,5 @@ UI:
 
 Misc.
 
-- importing images: check, if rescaling is already implemented
 - There is sth. strange, when exporting XPM images.
 - Synchronisation between rendering and plugin thread needed

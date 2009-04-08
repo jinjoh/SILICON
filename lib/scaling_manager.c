@@ -25,10 +25,6 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include <limits.h>
 #include <sys/stat.h>
 
-enum ZOOMING {
-  ZOOM_IN = 1,
-  ZOOM_OUT = 2
-};
 
 #include "scaling_manager.h"
 
@@ -112,40 +108,31 @@ image_t * scalmgr_get_image(scaling_manager_t * sm, unsigned int layer, double s
   if(sm == NULL || scaling_found == NULL || layer >= sm->num_layers) return NULL;
   
   unsigned int factor;
-  image_list_t * ptr = NULL;
 
-  if(scaling < 1) { // zoom in
-    //debug(TM, "zoom factor is %d", lrint(1.0/scaling));
-    factor = get_nearest_power_of_two(lrint(1.0/scaling));
-    //debug(TM, "zoom factor -> %d", factor);
-    if(factor > sm->zoom_in_factor) factor = sm->zoom_in_factor;
-    ptr = sm->zoom_in_images;
-  }
-  else if(scaling > 1){
+  if(scaling > 1 && sm->zoom_out_images != NULL){
+    image_list_t * ptr = sm->zoom_out_images;
+
     factor = get_nearest_power_of_two(lrint(scaling));
     if(factor > sm->zoom_out_factor) factor = sm->zoom_out_factor;
-    ptr = sm->zoom_out_images;
-  }
-  else factor = 1;
 
-  if(factor == 1) {
-    //debug(TM, "return normal image");
+    while(ptr != NULL) {
+      if(ptr->layer == layer && ptr->zoom == factor) {
+	debug(TM, "return prescaled image");
+
+	if(scaling < 1) *scaling_found = 1.0/factor;
+	else *scaling_found = factor;
+	return ptr->image;
+      }
+      ptr = ptr->next;
+    }
+  }
+  else {
+    debug(TM, "return normal image");
     assert(sm->bg_images[layer] != NULL);
     *scaling_found = 1;
     return sm->bg_images[layer];
   }
   
-  //debug(TM, "looking for image on layer %d with scaling of %d", layer, factor);
-  while(ptr != NULL) {
-    if(ptr->layer == layer && ptr->zoom == factor) {
-
-      if(scaling < 1) *scaling_found = 1.0/factor;
-      else *scaling_found = factor;
-      return ptr->image;
-    }
-    ptr = ptr->next;
-  }
-
   assert( 1 == 0);
   return NULL;
 }
@@ -188,104 +175,98 @@ ret_t scalmgr_destroy_scalings(scaling_manager_t * sm) {
     if(sm->zoom_out_images != NULL && 
        RET_IS_NOT_OK(ret = scalmgr_destroy_image_list(sm->zoom_out_images))) return ret;
     sm->zoom_out_images = NULL;
-    sm->zoom_in_factor = 1;
-  }
-
-  if(sm->zoom_in_factor >= 2) {
-    if(sm->zoom_in_images != NULL &&
-       RET_IS_NOT_OK(ret = scalmgr_destroy_image_list(sm->zoom_in_images))) return ret;
-    sm->zoom_in_images = NULL;
-    sm->zoom_out_factor = 1;
   }
 
   return RET_OK;
 }
 
-ret_t scalmgr_create_scalings(scaling_manager_t * sm, unsigned int max_factor, 
-			      ZOOMING zoom,
-			      image_list_t ** store_to_list) {
+image_list_t * scalmgr_get_list_elem(image_list_t * img_list, 
+				     unsigned int zoom_factor, unsigned int layer) {
+  image_list_t * ptr = img_list;
 
-  assert(store_to_list != NULL);
-  assert(sm != NULL);
-  if(store_to_list == NULL || sm == NULL) return RET_INV_PTR;
+  while(ptr != NULL) {
+    if(ptr->zoom == zoom_factor && ptr->layer == layer) return ptr;
+    ptr = ptr->next;
+  }
+  return NULL;
+}
 
-  if(max_factor < 2) return RET_OK;
-  
-  unsigned int zoom_i;
-  ret_t ret;
-  image_list_t * list = NULL;
-  unsigned int layer;
+
+image_t * scalmgr_create_scaled_image(scaling_manager_t * sm,
+				      image_t * master_img, unsigned int width, unsigned int height,
+				      unsigned int layer, unsigned int zoom_i) {
+  image_t * img = NULL;
   char filename[PATH_MAX];
   char fq_filename[PATH_MAX];
   struct stat stat_buf;
 
-  for(layer = 0; layer < sm->num_layers; layer++) {
+  debug(TM, "\tcreate image");
+  if((img = gr_create_image(width, height, IMAGE_TYPE_RGBA)) == NULL) {
+    return NULL;
+  }
+    
+  snprintf(filename, sizeof(filename), "scaled_layer_%02d.%d.dat", layer, zoom_i);
+  snprintf(fq_filename, sizeof(fq_filename), "%s/%s", sm->project_dir, filename);
+  int file_exists = stat(fq_filename, &stat_buf);
+    
+  // map file
+  debug(TM, "\tmap image from file %s", filename);
+  if(!RET_IS_OK(gr_map_file(img, sm->project_dir, filename))) {
+    debug(TM, "mapping failed: %s", filename);
+    return NULL;
+  }
+    
+  // scale
+  if(file_exists == -1) { // does not exists
+    debug(TM, "\tfile does not exists - scaling image");
+      
+    if(RET_IS_NOT_OK(gr_scale_image(master_img, img))) {
+      debug(TM, "scaling failed: %s", filename);
+      return NULL;
+    }
+  }
+  
+  return img;
+}
 
-    unsigned int width = sm->bg_images[0]->width;
-    unsigned int height = sm->bg_images[0]->height;
+ret_t scalmgr_load_scalings_for_layer(scaling_manager_t * sm, unsigned int max_factor, 
+				      unsigned int layer) {
+
+  unsigned int zoom_i;
+  ret_t ret;
+  image_list_t * list = NULL;
+
+  debug(TM, "load scaled images for layer %d - maxzoom = %d", layer, max_factor);
+  assert(sm != NULL);
+  if(sm == NULL) return RET_INV_PTR;
+
+  if(max_factor < 2) return RET_OK;
+  
+  unsigned int width = sm->bg_images[0]->width;
+  unsigned int height = sm->bg_images[0]->height;
 
 #ifdef MAP_FILES_ON_DEMAND
-    if(RET_IS_NOT_OK(ret = gr_reactivate_mapping(sm->bg_images[layer]))) return ret;
+  if(RET_IS_NOT_OK(ret = gr_reactivate_mapping(sm->bg_images[layer]))) {
+    debug(TM, "gr_reactivate_mapping() failed");
+    return ret;
+  }
 #endif
 
-    image_t * img_last = sm->bg_images[layer];
+  image_t * img_last = sm->bg_images[layer];
 
-    for(zoom_i = 2; zoom_i <= max_factor; zoom_i*= 2) {
-      image_t * img = NULL;
+  for(zoom_i = 2; zoom_i <= max_factor; zoom_i*= 2) {
+    image_t * img = NULL;
 
-      if(zoom == ZOOM_OUT) {
-	width /= 2;
-	height /= 2;
-      }
-      else {
-	width *= 2;
-	height *= 2;
-      }
-
-
-      if((img = gr_create_image(width, height, IMAGE_TYPE_RGBA)) == NULL) {
-	return RET_ERR;
-      }
-      
-      snprintf(filename, sizeof(filename), "scaled_layer_%02d.%s.%d.dat", 
-	       layer, zoom == ZOOM_IN ? "zin" : "zout", zoom_i);
-      snprintf(fq_filename, sizeof(fq_filename), "%s/%s", sm->project_dir, filename);
-      int file_exists = stat(fq_filename, &stat_buf);
-      
-      // map file
-      if(!RET_IS_OK(ret = gr_map_file(img, sm->project_dir, filename))) {
-	debug(TM, "mapping failed: %s", filename);
-	return ret;
-      }
-      
-      // scale
-      if(file_exists == -1) { // does not exists
-	debug(TM, "scaling image");
-
-	if(RET_IS_NOT_OK(ret = gr_scale_image(img_last, img))) {
-	  debug(TM, "scaling failed: %s", filename);
-	  scalmgr_destroy_scalings(sm);
-	  return ret;
-	}
-      }
-
-#ifdef MAP_FILES_ON_DEMAND
-      if(RET_IS_NOT_OK(ret = gr_deactivate_mapping(img_last))) {
-	debug(TM, "deactivate mapping");
-	scalmgr_destroy_scalings(sm);
-	return ret;
-      }
-#endif
-
-      img_last = img;
-
-      image_list_t * list_elem = scalmgr_create_list(layer, zoom_i, img);
-      assert(list_elem != NULL);
-      if(list_elem == NULL) return RET_ERR;
-
-      // add to list
-      if(list != NULL) list_elem->next = list;
-      list = list_elem;
+    debug(TM, "\tzoom = %d", zoom_i);
+    
+    width /= 2;
+    height /= 2;
+    
+    img = scalmgr_create_scaled_image(sm, img_last, width, height, layer, zoom_i);
+    assert(img != NULL);
+    if(img == NULL) {
+      scalmgr_destroy_scalings(sm);
+      return RET_ERR;
     }
 
 #ifdef MAP_FILES_ON_DEMAND
@@ -294,30 +275,61 @@ ret_t scalmgr_create_scalings(scaling_manager_t * sm, unsigned int max_factor,
       scalmgr_destroy_scalings(sm);
       return ret;
     }
-    if(RET_IS_NOT_OK(ret = gr_deactivate_mapping(sm->bg_images[layer]))) return ret;
 #endif
 
+    img_last = img;
+
+    image_list_t * list_elem = scalmgr_create_list(layer, zoom_i, img);
+    assert(list_elem != NULL);
+    if(list_elem == NULL) {
+      scalmgr_destroy_scalings(sm);
+      return RET_ERR;
+    }
+    
+    // add to list
+    if(list != NULL) list_elem->next = list;
+    list = list_elem;
   }
-  *store_to_list = list;
+
+#ifdef MAP_FILES_ON_DEMAND
+  if(RET_IS_NOT_OK(ret = gr_deactivate_mapping(img_last))) {
+    debug(TM, "deactivate mapping");
+    scalmgr_destroy_scalings(sm);
+    return ret;
+  }
+  if(RET_IS_NOT_OK(ret = gr_deactivate_mapping(sm->bg_images[layer]))) return ret;
+#endif
+  
+  sm->zoom_out_images = list;
 
   return RET_OK;
-
+  
 }
+
+ret_t scalmgr_load_scalings(scaling_manager_t * sm) {
+  ret_t ret;
+  unsigned int layer;
+  assert(sm != NULL);
+  if(sm == NULL) return RET_INV_PTR;
+
+  debug(TM, "Load scaled images.");
+
+  for(layer = 0; layer < sm->num_layers; layer++) {
+
+    if(RET_IS_NOT_OK(ret = scalmgr_load_scalings_for_layer(sm, sm->zoom_out_factor, layer)))
+      return ret;
+
+  }
+
+  debug(TM, "Loading images done.");
+  return RET_OK;
+}
+			    
 
 ret_t scalmgr_map_files_for_layer(scaling_manager_t * sm, unsigned int layer) {
   image_list_t * ptr = NULL;
   ret_t ret;
   ptr = sm->zoom_out_images;
-  while(ptr != NULL) {
-    if(ptr->layer == layer) {
-#ifdef MAP_FILES_ON_DEMAND
-      if(RET_IS_NOT_OK(ret = gr_reactivate_mapping(ptr->image))) return ret;
-#endif
-    }
-    ptr = ptr->next;
-  }
-
-  ptr = sm->zoom_in_images;
   while(ptr != NULL) {
     if(ptr->layer == layer) {
 #ifdef MAP_FILES_ON_DEMAND
@@ -343,16 +355,6 @@ ret_t scalmgr_unmap_files_for_layer(scaling_manager_t * sm, unsigned int layer) 
     ptr = ptr->next;
   }
 
-  ptr = sm->zoom_in_images;
-  while(ptr != NULL) {
-    if(ptr->layer == layer) {
-#ifdef MAP_FILES_ON_DEMAND
-      if(RET_IS_NOT_OK(ret = gr_deactivate_mapping(ptr->image))) return ret;
-#endif
-    }
-    ptr = ptr->next;
-  }
-
   return RET_OK;
 }
 
@@ -362,24 +364,78 @@ ret_t scalmgr_unmap_files_for_layer(scaling_manager_t * sm, unsigned int layer) 
  */
 ret_t scalmgr_recreate_scalings(scaling_manager_t * sm) {
   ret_t ret;
+  unsigned int layer;
+  assert(sm != NULL);
+  if(sm == NULL) return RET_INV_PTR;
+
+  // destroy current scaled images
+  //if(RET_IS_NOT_OK(ret = scalmgr_destroy_scalings(sm))) return ret;
+
+  for(layer = 0; layer < sm->num_layers; layer++) {
+    debug(TM, "recreate scalings for layer %d", layer);
+    if(RET_IS_NOT_OK(ret = scalmgr_recreate_scalings_for_layer(sm, layer))) return ret;
+  }
+
+  return RET_OK;
+}
+
+
+/**
+ * Recreate scaled images for a layer.
+ */
+ret_t scalmgr_recreate_scalings_for_layer(scaling_manager_t * sm, unsigned int layer) {
+
+  unsigned int zoom_i;
   assert(sm != NULL);
   assert(sm->bg_images[0] != NULL);
   if(sm == NULL || sm->bg_images[0] == NULL) return RET_INV_PTR;
 
-  // destroy current scaled images
-  if(RET_IS_NOT_OK(ret = scalmgr_destroy_scalings(sm))) return ret;
 
-  // create new scaling
+  image_t * last_img = sm->bg_images[layer];
 
-  if(RET_IS_NOT_OK(ret = scalmgr_create_scalings(sm, sm->zoom_out_factor, 
-						 ZOOM_OUT, &(sm->zoom_out_images)))) {
-    return ret;
+  for(zoom_i = 2; zoom_i <= sm->zoom_out_factor; zoom_i*= 2) {
+
+    debug(TM, "recreate scalings for layer %d, zoom-out %d", layer, zoom_i);
+    image_list_t * ptr = scalmgr_get_list_elem(sm->zoom_out_images, zoom_i, layer);
+    if(ptr != NULL) {
+      assert(ptr->image != NULL);
+
+      unsigned int w = ptr->image->width;
+      unsigned int h = ptr->image->height;
+      gr_destroy_and_unlink(ptr->image);
+
+      ptr->image = scalmgr_create_scaled_image(sm, last_img, w, h, layer, zoom_i);
+      if(ptr->image == NULL) {
+	scalmgr_destroy_scalings(sm);
+	return RET_ERR;
+      }
+
+      last_img = ptr->image;
+    }
+    else {
+
+      image_t * img = scalmgr_create_scaled_image(sm, last_img, 
+						  last_img->width / 2, last_img->height / 2, 
+						  layer, zoom_i);
+
+      assert(img != NULL);
+      if(img == NULL) return RET_ERR;
+
+      image_list_t * list_elem = scalmgr_create_list(layer, zoom_i, img);
+      assert(list_elem != NULL);
+      if(list_elem == NULL) {
+	scalmgr_destroy_scalings(sm);
+	return RET_ERR;
+      }
+
+      list_elem->next = sm->zoom_out_images;
+      sm->zoom_out_images = list_elem;
+
+      last_img = list_elem->image;
+    }
+
   }
 
-  if(RET_IS_NOT_OK(ret = scalmgr_create_scalings(sm, sm->zoom_in_factor, 
-						 ZOOM_IN, &(sm->zoom_in_images)))) {
-    return ret;
-  }
 
   return RET_OK;
 }
@@ -387,32 +443,19 @@ ret_t scalmgr_recreate_scalings(scaling_manager_t * sm) {
 /** 
  * Define the scalings.
  */
-ret_t scalmgr_set_scalings(scaling_manager_t * sm, unsigned int zoom_out_factor, 
-			  unsigned int zoom_in_factor) {
+ret_t scalmgr_set_scalings(scaling_manager_t * sm, unsigned int zoom_out_factor) {
 
   assert(sm != NULL);
   assert(sm->bg_images[0] != NULL);
-  assert(zoom_in_factor >= 1 && zoom_out_factor >= 1);
+  assert(zoom_out_factor >= 1);
 
   if(sm == NULL || sm->bg_images[0] == NULL) return RET_INV_PTR;
-  if(zoom_out_factor == 0 || zoom_in_factor == 0) return RET_ERR;
+  if(zoom_out_factor == 0) return RET_ERR;
 
-  sm->zoom_in_factor = zoom_in_factor;
   sm->zoom_out_factor = zoom_out_factor;
 
-  return scalmgr_recreate_scalings(sm);
-}
-
-/**
- * Get the maximum zoom in factor.
- * @return 0 on error, else the scaling factor
-*/
-unsigned int scalmgr_get_max_zoom_in_factor(scaling_manager_t * sm) {
-  assert(sm != NULL);
-  if(sm != NULL) {
-    return sm->zoom_in_factor == 0 ? 1 : sm->zoom_in_factor;
-  }
-  return 0;
+  //return scalmgr_recreate_scalings(sm);
+  return RET_OK;
 }
 
 /**
