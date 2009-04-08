@@ -58,8 +58,9 @@ ret_t pcm_destroy(port_color_manager_t * pcm) {
  */
 ret_t pcm_destroy_color_list(port_color_manager_t * pcm) {
   assert(pcm != NULL);
-  assert(pcm->port_color_list != NULL);
-  if(pcm == NULL || pcm->port_color_list == NULL) return RET_INV_PTR;
+
+  if(pcm == NULL) return RET_INV_PTR;
+  if(pcm->port_color_list == NULL) return RET_OK; // nothing to do
 
   port_color_list_t * ptr = pcm->port_color_list, * ptr_next = NULL;
   while(ptr != NULL) {
