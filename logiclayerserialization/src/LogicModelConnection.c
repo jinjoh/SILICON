@@ -32,8 +32,8 @@ static ber_tlv_tag_t asn_DEF_LogicModelConnection_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static asn_TYPE_tag2member_t asn_MAP_LogicModelConnection_tag2el_1[] = {
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 1 }, /* object-id at 32 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 0 } /* sub-id at 34 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 1 }, /* object-id at 54 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 0 } /* sub-id at 56 */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_LogicModelConnection_specs_1 = {
 	sizeof(struct LogicModelConnection),

@@ -157,17 +157,17 @@ static ber_tlv_tag_t asn_DEF_Wire_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static asn_TYPE_tag2member_t asn_MAP_Wire_tag2el_1[] = {
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 6 }, /* from-x at 37 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 5 }, /* from-y at 38 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 4 }, /* to-x at 39 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -3, 3 }, /* to-y at 40 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -4, 2 }, /* diameter at 41 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 5, -5, 1 }, /* id at 42 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 6, -6, 0 }, /* layer at 43 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 8, 0, 2 }, /* col1 at 45 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 9, -1, 1 }, /* col2 at 46 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 10, -2, 0 }, /* connections at 47 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 7, 0, 0 } /* name at 44 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 6 }, /* from-x at 59 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 5 }, /* from-y at 60 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 4 }, /* to-x at 61 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -3, 3 }, /* to-y at 62 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -4, 2 }, /* diameter at 63 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 5, -5, 1 }, /* id at 64 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 6, -6, 0 }, /* layer at 65 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 8, 0, 2 }, /* col1 at 67 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 9, -1, 1 }, /* col2 at 68 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 10, -2, 0 }, /* connections at 69 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 7, 0, 0 } /* name at 66 */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_Wire_specs_1 = {
 	sizeof(struct Wire),

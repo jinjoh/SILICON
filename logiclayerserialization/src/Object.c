@@ -45,12 +45,32 @@ static asn_TYPE_member_t asn_MBR_Object_1[] = {
 		0,
 		"gate-template"
 		},
+	{ ATF_NOFLAGS, 0, offsetof(struct Object, choice.exclusion_area),
+		(ASN_TAG_CLASS_CONTEXT | (5 << 2)),
+		+1,	/* EXPLICIT tag at current level */
+		&asn_DEF_ExclusionArea,
+		0,	/* Defer constraints checking to the member type */
+		0,	/* PER is not compiled, use -gen-PER */
+		0,
+		"exclusion-area"
+		},
+	{ ATF_NOFLAGS, 0, offsetof(struct Object, choice.annotation),
+		(ASN_TAG_CLASS_CONTEXT | (6 << 2)),
+		+1,	/* EXPLICIT tag at current level */
+		&asn_DEF_Annotation,
+		0,	/* Defer constraints checking to the member type */
+		0,	/* PER is not compiled, use -gen-PER */
+		0,
+		"annotation"
+		},
 };
 static asn_TYPE_tag2member_t asn_MAP_Object_tag2el_1[] = {
-    { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 0, 0, 0 }, /* wire at 109 */
-    { (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 1, 0, 0 }, /* via at 110 */
-    { (ASN_TAG_CLASS_CONTEXT | (3 << 2)), 2, 0, 0 }, /* gate at 111 */
-    { (ASN_TAG_CLASS_CONTEXT | (4 << 2)), 3, 0, 0 } /* gate-template at 112 */
+    { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 0, 0, 0 }, /* wire at 131 */
+    { (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 1, 0, 0 }, /* via at 132 */
+    { (ASN_TAG_CLASS_CONTEXT | (3 << 2)), 2, 0, 0 }, /* gate at 133 */
+    { (ASN_TAG_CLASS_CONTEXT | (4 << 2)), 3, 0, 0 }, /* gate-template at 134 */
+    { (ASN_TAG_CLASS_CONTEXT | (5 << 2)), 4, 0, 0 }, /* exclusion-area at 135 */
+    { (ASN_TAG_CLASS_CONTEXT | (6 << 2)), 5, 0, 0 } /* annotation at 137 */
 };
 static asn_CHOICE_specifics_t asn_SPC_Object_specs_1 = {
 	sizeof(struct Object),
@@ -58,7 +78,7 @@ static asn_CHOICE_specifics_t asn_SPC_Object_specs_1 = {
 	offsetof(struct Object, present),
 	sizeof(((struct Object *)0)->present),
 	asn_MAP_Object_tag2el_1,
-	4,	/* Count of tags in the map */
+	6,	/* Count of tags in the map */
 	0,
 	-1	/* Extensions start */
 };
@@ -80,7 +100,7 @@ asn_TYPE_descriptor_t asn_DEF_Object = {
 	0,	/* No tags (count) */
 	0,	/* No PER visible constraints */
 	asn_MBR_Object_1,
-	4,	/* Elements count */
+	6,	/* Elements count */
 	&asn_SPC_Object_specs_1	/* Additional specs */
 };
 

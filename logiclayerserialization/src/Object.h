@@ -15,6 +15,8 @@
 #include "Via.h"
 #include "Gate.h"
 #include "GateTemplate.h"
+#include "ExclusionArea.h"
+#include "Annotation.h"
 #include <constr_CHOICE.h>
 
 #ifdef __cplusplus
@@ -27,7 +29,9 @@ typedef enum Object_PR {
 	Object_PR_wire,
 	Object_PR_via,
 	Object_PR_gate,
-	Object_PR_gate_template
+	Object_PR_gate_template,
+	Object_PR_exclusion_area,
+	Object_PR_annotation
 } Object_PR;
 
 /* Object */
@@ -38,6 +42,8 @@ typedef struct Object {
 		Via_t	 via;
 		Gate_t	 gate;
 		GateTemplate_t	 gate_template;
+		ExclusionArea_t	 exclusion_area;
+		Annotation_t	 annotation;
 	} choice;
 	
 	/* Context for parsing across buffer boundaries */

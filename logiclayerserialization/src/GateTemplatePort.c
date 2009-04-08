@@ -77,13 +77,13 @@ static ber_tlv_tag_t asn_DEF_GateTemplatePort_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static asn_TYPE_tag2member_t asn_MAP_GateTemplatePort_tag2el_1[] = {
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 3 }, /* id at 88 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -1, 2 }, /* relative-x-coord at 91 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -2, 1 }, /* relative-y-coord at 92 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 6, -3, 0 }, /* diameter at 94 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (10 << 2)), 2, 0, 0 }, /* port-type at 90 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 5, 0, 0 }, /* col at 93 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 1, 0, 0 } /* port-name at 89 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 3 }, /* id at 110 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -1, 2 }, /* relative-x-coord at 113 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -2, 1 }, /* relative-y-coord at 114 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 6, -3, 0 }, /* diameter at 116 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (10 << 2)), 2, 0, 0 }, /* port-type at 112 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 5, 0, 0 }, /* col at 115 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 1, 0, 0 } /* port-name at 111 */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_GateTemplatePort_specs_1 = {
 	sizeof(struct GateTemplatePort),

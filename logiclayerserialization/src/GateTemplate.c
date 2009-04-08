@@ -148,16 +148,16 @@ static ber_tlv_tag_t asn_DEF_GateTemplate_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static asn_TYPE_tag2member_t asn_MAP_GateTemplate_tag2el_1[] = {
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 4 }, /* gate-id at 97 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 3 }, /* master-image-min-x at 98 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 2 }, /* master-image-min-y at 99 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -3, 1 }, /* master-image-max-x at 100 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -4, 0 }, /* master-image-max-y at 101 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 7, 0, 2 }, /* fill-col at 104 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 8, -1, 1 }, /* frame-col at 105 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 9, -2, 0 }, /* ports at 106 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 5, 0, 1 }, /* short-name at 102 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 6, -1, 0 } /* description at 103 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 4 }, /* gate-id at 119 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 3 }, /* master-image-min-x at 120 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 2 }, /* master-image-min-y at 121 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -3, 1 }, /* master-image-max-x at 122 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -4, 0 }, /* master-image-max-y at 123 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 7, 0, 2 }, /* fill-col at 126 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 8, -1, 1 }, /* frame-col at 127 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 9, -2, 0 }, /* ports at 128 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 5, 0, 1 }, /* short-name at 124 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 6, -1, 0 } /* description at 125 */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_GateTemplate_specs_1 = {
 	sizeof(struct GateTemplate),

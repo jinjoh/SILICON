@@ -1,4 +1,6 @@
 ASN_MODULE_SOURCES=	\
+	src/ExclusionArea.c \
+	src/Annotation.c \
 	src/Color.c \
 	src/LogicModelConnection.c \
 	src/Wire.c	\
@@ -14,6 +16,8 @@ ASN_MODULE_SOURCES=	\
 	src/FileContent.c 
 
 ASN_MODULE_HEADERS=	\
+	src/ExclusionArea.h \
+	src/Annotation.h \
 	src/Color.h \
 	src/LogicModelConnection.h \
 	src/Wire.h	\

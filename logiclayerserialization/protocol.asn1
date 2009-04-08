@@ -21,6 +21,28 @@
 ObjectSetModule DEFINITIONS ::=
 BEGIN
 
+ExclusionArea ::= SEQUENCE {
+     	min-x INTEGER,
+	min-y INTEGER,
+     	max-x INTEGER,
+	max-y INTEGER,
+	id INTEGER,
+	layer INTEGER,
+	description VisibleString,
+	col Color
+}
+
+Annotation ::= SEQUENCE {
+     	min-x INTEGER,
+	min-y INTEGER,
+     	max-x INTEGER,
+	max-y INTEGER,
+	id INTEGER,
+	layer INTEGER,
+	description VisibleString,
+	col Color
+}
+
 Color ::= SEQUENCE {
 	red INTEGER (0 .. 255),
 	green INTEGER (0 .. 255),
@@ -109,7 +131,10 @@ Object ::= CHOICE {
 	wire [1] Wire,
 	via [2] Via,
 	gate [3] Gate,
-	gate-template [4] GateTemplate }
+	gate-template [4] GateTemplate,
+	exclusion-area [5] ExclusionArea,
+	annotation [6] Annotation
+}
 
 FileContent ::= SEQUENCE OF Object
 

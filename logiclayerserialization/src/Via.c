@@ -139,15 +139,15 @@ static ber_tlv_tag_t asn_DEF_Via_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static asn_TYPE_tag2member_t asn_MAP_Via_tag2el_1[] = {
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 4 }, /* x at 75 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 3 }, /* y at 76 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 2 }, /* diameter at 77 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -3, 1 }, /* id at 79 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 5, -4, 0 }, /* layer at 80 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (10 << 2)), 3, 0, 0 }, /* direction at 78 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 7, 0, 1 }, /* col at 82 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 8, -1, 0 }, /* connections at 83 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 6, 0, 0 } /* name at 81 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 4 }, /* x at 97 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 3 }, /* y at 98 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 2 }, /* diameter at 99 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -3, 1 }, /* id at 101 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 5, -4, 0 }, /* layer at 102 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (10 << 2)), 3, 0, 0 }, /* direction at 100 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 7, 0, 1 }, /* col at 104 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 8, -1, 0 }, /* connections at 105 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 6, 0, 0 } /* name at 103 */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_Via_specs_1 = {
 	sizeof(struct Via),

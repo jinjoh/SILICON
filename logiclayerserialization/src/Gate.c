@@ -148,16 +148,16 @@ static ber_tlv_tag_t asn_DEF_Gate_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static asn_TYPE_tag2member_t asn_MAP_Gate_tag2el_1[] = {
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 6 }, /* min-x at 61 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 5 }, /* min-y at 62 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 4 }, /* max-x at 63 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -3, 3 }, /* max-y at 64 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -4, 2 }, /* gate-id at 65 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 5, -5, 1 }, /* id at 66 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 6, -6, 0 }, /* layer at 67 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (10 << 2)), 9, 0, 0 }, /* master-orientation at 70 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 8, 0, 0 }, /* ports at 69 */
-    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 7, 0, 0 } /* name at 68 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 0, 0, 6 }, /* min-x at 83 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 1, -1, 5 }, /* min-y at 84 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 2, -2, 4 }, /* max-x at 85 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 3, -3, 3 }, /* max-y at 86 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 4, -4, 2 }, /* gate-id at 87 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 5, -5, 1 }, /* id at 88 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (2 << 2)), 6, -6, 0 }, /* layer at 89 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (10 << 2)), 9, 0, 0 }, /* master-orientation at 92 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (16 << 2)), 8, 0, 0 }, /* ports at 91 */
+    { (ASN_TAG_CLASS_UNIVERSAL | (26 << 2)), 7, 0, 0 } /* name at 90 */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_Gate_specs_1 = {
 	sizeof(struct Gate),
