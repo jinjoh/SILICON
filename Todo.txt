@@ -9,6 +9,7 @@ template matching:
 project:
 
 - wizard for creating a project (set layer type / import image)
+  - determine project w/h by image size
 - add / remove layer
 
 UI:

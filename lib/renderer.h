@@ -32,6 +32,8 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "alignment_marker.h"
 #include "scaling_manager.h"
 
+// Todo: should rendering params and renderer data structures be merged?
+
 typedef struct renderer renderer_t;
 
 // rendering params
@@ -104,7 +106,9 @@ struct renderer {
   unsigned int last_screen_width, last_screen_height;
   unsigned int last_map_width, last_map_height;
   double last_rel_scaling_x, last_rel_scaling_y;
+
   unsigned int * x_steps, * y_steps;
+  
 
   int num; // number of rendering layers
 };

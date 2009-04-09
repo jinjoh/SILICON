@@ -118,7 +118,7 @@ class MainWin : public Gtk::Window  {
   void object_clicked(unsigned int real_x, unsigned int real_y);
   
   virtual void on_wire_tool_release();
-  virtual void on_selection_activated();
+  virtual void on_selection_activated(); // should be renamed to area selection
   virtual void on_selection_revoked();
   virtual void on_mouse_scroll_up(unsigned int center_x, unsigned int center_y);
   virtual void on_mouse_scroll_down(unsigned int center_x, unsigned int center_y);
@@ -226,6 +226,10 @@ class MainWin : public Gtk::Window  {
 
   void remove_gate_by_type(GS_DESTROY_MODE destory_mode);
 
+
+  void update_gui_on_selection_change();
+  void clear_selection();
+  
 };
 
 #endif

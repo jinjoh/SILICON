@@ -873,12 +873,13 @@ void MainWin::on_menu_project_close() {
     imgWin.set_current_layer(-1);
     imgWin.set_grid(NULL);
 
+    clear_selection();
     if(RET_IS_NOT_OK(project_destroy(main_project))) {
       error_dialog("Error", "Can't destroy project. This should not happen.");
     }
 
     main_project = NULL;
-    imgWin.update_screen();    
+    imgWin.update_screen();
 
     update_title();
     
@@ -1184,9 +1185,6 @@ void MainWin::set_layer(unsigned int layer) {
   
   set_layer_type_in_menu(lmodel_get_layer_type(main_project->lmodel, main_project->current_layer));
 
-  selected_objects.erase(selected_objects.begin(), selected_objects.end());
-  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", false);
-
   update_title();
   imgWin.update_screen();
 }
@@ -1238,6 +1236,10 @@ void MainWin::on_menu_view_zoom_in() {
 	  imgWin.get_real_height() > main_project->height ? main_project->height / 2 : center_y);
 }
 
+/**
+ * Zoom into image. 
+ * XXX: center coordinates should berenamed to fixed_coordinates
+ */
 void MainWin::zoom_in(unsigned int center_x, unsigned int center_y) {
 
   if(main_project == NULL) return;
@@ -1509,6 +1511,7 @@ void MainWin::on_menu_gate_list() {
 
   }
 }
+
 
 void MainWin::on_menu_gate_orientation() {
   if(main_project && (selected_objects.size() == 1)) {
@@ -1806,13 +1809,13 @@ void MainWin::on_selection_revoked() {
 }
 
 void MainWin::on_mouse_scroll_down(unsigned int center_x, unsigned int center_y) {
-  zoom_in(center_x, center_y);
+  zoom_out(center_x, center_y);
   //on_menu_view_zoom_in();
 
 }
 
 void MainWin::on_mouse_scroll_up(unsigned int center_x, unsigned int center_y) {
-  zoom_out(center_x, center_y);
+  zoom_in(center_x, center_y);
   //on_menu_view_zoom_out();
 }
 
@@ -1871,61 +1874,23 @@ bool MainWin::on_key_press_event_received(GdkEventKey * event) {
   return false;
 }
 
-void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
-  char msg[1000];
-  LM_OBJECT_TYPE object_type;
-  void * obj_ptr;
-  bool add_to_selection = false;
-
-  // get info about selected object
-  lmodel_object_to_string(main_project->lmodel, main_project->current_layer, real_x, real_y, msg, sizeof(msg));
-  m_statusbar.push(msg);
-
-  if(RET_IS_NOT_OK(lmodel_get_object(main_project->lmodel, main_project->current_layer, 
-				     real_x, real_y, &object_type, &obj_ptr))) return;
-  
-  
-  if(obj_ptr != NULL) {
-    add_to_selection = true;
+void MainWin::clear_selection() {
+  std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
+  debug(TM, "remove complete selection");
+      
+  for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
+    char s[100];
+    lmodel_get_printable_string_for_obj((*it).second, (*it).first, s, 100);
+    debug(TM, "\tunselect %s", s);
+    if(RET_IS_OK(lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT))) {
+    }
   }
+  selected_objects.erase(selected_objects.begin(), selected_objects.end());
+}
 
+void MainWin::update_gui_on_selection_change() {
   std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
 
-  // try to remove a single object
-  if(obj_ptr != NULL && shift_key_pressed == true) {
-    //debug(TM, "remove single object from selection");      
-    it = selected_objects.find(std::pair<void *, LM_OBJECT_TYPE>(obj_ptr, object_type));
-    if(it != selected_objects.end()) {
-      if(RET_IS_OK(lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT))) {
-      }
-      selected_objects.erase(*it);
-      add_to_selection = false;
-    }
-  }
-
-  if(shift_key_pressed == false){
-    debug(TM, "remove complete selection");
-      
-    for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
-      if(RET_IS_OK(lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT))) {
-      }
-    }
-    selected_objects.erase(selected_objects.begin(), selected_objects.end());
-  }
-  
-  
-  if(add_to_selection) {
-    // add to selection
-    if(obj_ptr)
-      if(RET_IS_OK(lmodel_set_select_state(object_type, obj_ptr, SELECT_STATE_DIRECT))) {
-	std::pair<void *, LM_OBJECT_TYPE> p(obj_ptr, object_type);
-	selected_objects.insert(p);
-      }
-  }
- 
-  imgWin.update_screen();
-
-  
   if(selected_objects.size() == 1) {
     it = selected_objects.begin();
     if( (*it).second == LM_TYPE_GATE_PORT) {
@@ -1967,6 +1932,58 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
   set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicIsolate", 
 			    selected_objects.size() >= 1 && selected_objects_are_interconnectable() ? true : false);
 
+
+}
+
+void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
+  char msg[1000];
+  LM_OBJECT_TYPE object_type;
+  void * obj_ptr;
+  bool add_to_selection = false;
+
+  // get info about selected object
+  lmodel_object_to_string(main_project->lmodel, main_project->current_layer, real_x, real_y, msg, sizeof(msg));
+  m_statusbar.push(msg);
+
+  if(RET_IS_NOT_OK(lmodel_get_object(main_project->lmodel, main_project->current_layer, 
+				     real_x, real_y, &object_type, &obj_ptr))) return;
+  
+  
+  if(obj_ptr != NULL) {
+    add_to_selection = true;
+  }
+
+  std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
+
+  // try to remove a single object
+  if(obj_ptr != NULL && shift_key_pressed == true) {
+    //debug(TM, "remove single object from selection");      
+    it = selected_objects.find(std::pair<void *, LM_OBJECT_TYPE>(obj_ptr, object_type));
+    if(it != selected_objects.end()) {
+      if(RET_IS_OK(lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT))) {
+      }
+      selected_objects.erase(*it);
+      add_to_selection = false;
+    }
+  }
+
+  if(shift_key_pressed == false){
+    clear_selection();
+  }
+  
+  
+  if(add_to_selection) {
+    // add to selection
+    if(obj_ptr)
+      if(RET_IS_OK(lmodel_set_select_state(object_type, obj_ptr, SELECT_STATE_DIRECT))) {
+	std::pair<void *, LM_OBJECT_TYPE> p(obj_ptr, object_type);
+	selected_objects.insert(p);
+      }
+  }
+ 
+  imgWin.update_screen();
+  update_gui_on_selection_change();
+  
 }
 
 bool MainWin::selected_objects_are_interconnectable() {
@@ -2099,7 +2116,8 @@ void MainWin::on_popup_menu_set_name() {
     }
     else if(selected_objects.size() == 1) {
       it = selected_objects.begin();
-      name = lmodel_get_name( (*it).second, (*it).first);
+      char * n = lmodel_get_name( (*it).second, (*it).first);
+      if(n != NULL) name = n;
     }
 
     SetNameWin nsWin(this, name);

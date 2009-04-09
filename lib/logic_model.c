@@ -1103,11 +1103,11 @@ ret_t lmodel_update_gate_ports(lmodel_gate_t * gate) {
     }
   }
   
-  port_ptr = gate->ports;
-  while(port_ptr != NULL) {
-    debug(TM, "gate has port with id %d", port_ptr->port_id);
-    port_ptr = port_ptr->next;
-  }
+  //port_ptr = gate->ports;
+  //while(port_ptr != NULL) {
+    //debug(TM, "gate has port with id %d", port_ptr->port_id);
+    //port_ptr = port_ptr->next;
+  //}
   return RET_OK;
 }
 
@@ -1174,7 +1174,7 @@ ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate, unsigned int * h
     default: return RET_ERR;
     }
 
-    debug(TM, "Create a gate");
+    //debug(TM, "Create a gate");
     lmodel_gate_t * new_gate = lmodel_create_gate(lmodel, min_x, min_y, max_x, max_y, 
 						  tmpl, 
 						  strdup((char *)gate->name.buf),
@@ -1188,7 +1188,7 @@ ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate, unsigned int * h
       GatePort_t * gport = gate->ports.list.array[port_i];
       asn_INTEGER2long(&gport->port_id, &port_id);
 
-      debug(TM, "Parsing port of gate %d with ID %d.", obj_id, port_id);
+      //debug(TM, "Parsing port of gate %d with ID %d.", obj_id, port_id);
 
       lmodel_gate_port_t * is_port_present = lmodel_get_port_from_gate_by_id(new_gate, port_id);
       if(is_port_present != NULL) {
@@ -1208,7 +1208,7 @@ ret_t lmodel_import_gate(logic_model_t * lmodel, Gate_t * gate, unsigned int * h
 	lmodel_add_connection_build_helper(lmodel, bh);
       }
     }
-    debug(TM, "Add gate to lmodel");
+    //debug(TM, "Add gate to lmodel");
     if(RET_IS_NOT_OK(ret = lmodel_add_gate(lmodel, layer, new_gate))) return ret;
 
     //if(RET_IS_NOT_OK(ret = lmodel_update_all_gate_ports(lmodel, tmpl))) return ret;
@@ -1901,11 +1901,11 @@ ret_t lmodel_decode_file(logic_model_t * const lmodel, FileContent_t * file_cont
 	if(RET_IS_NOT_OK(ret = lmodel_import_via(lmodel, &obj->choice.via, &highest_object_id))) return ret;
       }
       else if(obj->present == Object_PR_gate) {
-	debug(TM, "Parsing a gate");
+	//debug(TM, "Parsing a gate");
 	if(RET_IS_NOT_OK(ret = lmodel_import_gate(lmodel, &obj->choice.gate, &highest_object_id))) return ret;
       }
       else if(obj->present == Object_PR_gate_template) {
-	debug(TM, "Parsing a gate template");
+	//debug(TM, "Parsing a gate template");
 	if(RET_IS_NOT_OK(ret = lmodel_import_gate_template(lmodel, &obj->choice.gate_template))) 
 	  return ret;
       }
