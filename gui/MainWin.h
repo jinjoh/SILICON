@@ -45,8 +45,7 @@ class MainWin : public Gtk::Window  {
  protected:
   char * project_to_open;
 
-  void zoom_in(unsigned int center_x, unsigned int center_y);
-  void zoom_out(unsigned int center_x, unsigned int center_y);
+  void zoom(unsigned int center_x, unsigned int center_y, double zoom_factor);
   void center_view(unsigned int center_x, unsigned int center_y, unsigned int layer);
   void set_layer(unsigned int layer);
 

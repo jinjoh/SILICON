@@ -48,6 +48,9 @@ class ImageWin : public Gtk::DrawingArea {
   unsigned int get_max_x();
   unsigned int get_max_y();
 
+  unsigned int get_center_x();
+  unsigned int get_center_y();
+
   unsigned int get_width();
   unsigned int get_height();
   unsigned int get_real_width();

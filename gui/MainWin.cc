@@ -51,7 +51,8 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "lib/alignment_marker.h"
 #include "lib/plugins.h"
 
-#define ZOOM_STEP 1.8
+#define ZOOM_STEP 1.3
+#define ZOOM_STEP_MOUSE_SCROLL 1.9
 
 MainWin::MainWin() : 
   m_VAdjustment(0.0, 0.0, 101.0, 0.1, 1.0, 1.0), // value, lower, upper, step_increment, page_increment, page_size
@@ -1226,58 +1227,30 @@ void MainWin::on_menu_view_prev_layer() {
 
 void MainWin::on_menu_view_zoom_in() {
   if(main_project == NULL) return;
-  unsigned int delta_x = imgWin.get_max_x() - imgWin.get_min_x();
-  unsigned int delta_y = imgWin.get_max_y() - imgWin.get_min_y();
 
-  unsigned int center_x = imgWin.get_min_x() + (delta_x >> 1);
-  unsigned int center_y = imgWin.get_min_y() + (delta_y >> 1);
+  unsigned int center_x = imgWin.get_center_x();
+  unsigned int center_y = imgWin.get_center_y();
 
-  zoom_in(imgWin.get_real_width() > main_project->width ? main_project->width /2: center_x, 
-	  imgWin.get_real_height() > main_project->height ? main_project->height / 2 : center_y);
-}
-
-/**
- * Zoom into image. 
- * XXX: center coordinates should berenamed to fixed_coordinates
- */
-void MainWin::zoom_in(unsigned int center_x, unsigned int center_y) {
-
-  if(main_project == NULL) return;
-  double delta_x = imgWin.get_max_x() - imgWin.get_min_x();
-  double delta_y = imgWin.get_max_y() - imgWin.get_min_y();
-
-  if(delta_x < 100 || delta_y < 100) return;
-
-  double factor = 1/ZOOM_STEP;
-  double min_x = (double)center_x - factor * (delta_x/2.0);
-  double min_y = (double)center_y - factor * (delta_y/2.0);
-  if(min_x < 0) min_x = 0;
-  if(min_y < 0) min_y = 0;
-
-  imgWin.set_view(min_x, min_y, 
-		  min_x + factor * delta_x,
-		  min_y + factor * delta_y);
-
-  adjust_scrollbars();
-
-  imgWin.update_screen();
+  zoom(imgWin.get_real_width() > main_project->width ? main_project->width /2: center_x, 
+       imgWin.get_real_height() > main_project->height ? main_project->height / 2 : center_y,
+       1.0/ZOOM_STEP);
+  
 }
 
 void MainWin::on_menu_view_zoom_out() {
   if(main_project == NULL) return;
 
-  unsigned int delta_x = imgWin.get_max_x() - imgWin.get_min_x();
-  unsigned int delta_y = imgWin.get_max_y() - imgWin.get_min_y();
+  unsigned int center_x = imgWin.get_center_x();
+  unsigned int center_y = imgWin.get_center_y();
 
-  unsigned int center_x = imgWin.get_min_x() + (delta_x >> 1);
-  unsigned int center_y = imgWin.get_min_y() + (delta_y >> 1);
-
-  zoom_out(imgWin.get_real_width() > main_project->width ? main_project->width /2: center_x, 
-	   imgWin.get_real_height() > main_project->height ? main_project->height / 2 : center_y);
-
+  zoom(imgWin.get_real_width() > main_project->width ? main_project->width /2: center_x, 
+       imgWin.get_real_height() > main_project->height ? main_project->height / 2 : center_y,
+       ZOOM_STEP);
 }
 
-void MainWin::zoom_out(unsigned int center_x, unsigned int center_y) {
+
+
+void MainWin::zoom(unsigned int center_x, unsigned int center_y, double zoom_factor) {
 
   if(main_project == NULL) return;
 
@@ -1286,20 +1259,19 @@ void MainWin::zoom_out(unsigned int center_x, unsigned int center_y) {
 
   unsigned int max_edge_length = MAX(main_project->width, main_project->height);
 
-  if(delta_x <= max_edge_length || delta_y < max_edge_length) {
+  if( ((delta_x < max_edge_length || delta_y < max_edge_length) && zoom_factor >= 1) ||
+      ((delta_x > 100 || delta_y > 100) && zoom_factor <= 1)  ) {
     
-    double factor = ZOOM_STEP;
-    double min_x = (double)center_x - factor * (delta_x/2.0);
-    double min_y = (double)center_y - factor * (delta_y/2.0);
-    if(min_x < 0) min_x = 0;
-    if(min_y < 0) min_y = 0;
-    
-    imgWin.set_view(min_x, min_y, 
-		    min_x + factor * delta_x,
-		    min_y + factor * delta_y);
 
+    double min_x = (double)center_x - zoom_factor * (delta_x/2.0);
+    double min_y = (double)center_y - zoom_factor * (delta_y/2.0);
+    double max_x = (double)center_x + zoom_factor * (delta_x/2.0);
+    double max_y = (double)center_y + zoom_factor * (delta_y/2.0);
+    if(min_x < 0) { max_x -= min_x; min_x = 0; }
+    if(min_y < 0) { max_y -= min_y; min_y = 0; }
+    
+    imgWin.set_view(min_x, min_y, max_x, max_y);
     adjust_scrollbars();
-   
     imgWin.update_screen();
   }
 }
@@ -1330,11 +1302,8 @@ void MainWin::adjust_scrollbars() {
   //m_VAdjustment.set_page_size(main_project ? main_project->width: 0);
   //m_HAdjustment.set_page_size(main_project ? main_project->height: 0);
 
-  int delta_x = imgWin.get_max_x() - imgWin.get_min_x();
-  int delta_y = imgWin.get_max_y() - imgWin.get_min_y();
-
-  m_HAdjustment.set_value(main_project ? imgWin.get_min_x() : 0);
-  m_VAdjustment.set_value(main_project ? imgWin.get_min_y() : 0);
+  int delta_x = (imgWin.get_max_x() - imgWin.get_min_x()) >> 1;
+  int delta_y = (imgWin.get_max_y() - imgWin.get_min_y()) >> 1;
 
   m_VAdjustment.set_page_size(delta_y);
   m_HAdjustment.set_page_size(delta_x);
@@ -1344,11 +1313,14 @@ void MainWin::adjust_scrollbars() {
 
   m_VAdjustment.set_page_increment(delta_y);
   m_HAdjustment.set_page_increment(delta_x);
+
+  m_HAdjustment.set_value(main_project ? imgWin.get_min_x() : 0);
+  m_VAdjustment.set_value(main_project ? imgWin.get_min_y() : 0);
+
 }
 
 void MainWin::on_v_adjustment_changed() {
   unsigned int val = (unsigned int) m_VAdjustment.get_value();
-
   imgWin.set_view(imgWin.get_min_x(), val, 
 		  imgWin.get_max_x(), val + imgWin.get_real_height());
   imgWin.update_screen();
@@ -1356,7 +1328,6 @@ void MainWin::on_v_adjustment_changed() {
 
 void MainWin::on_h_adjustment_changed() {
   unsigned int val = (unsigned int)m_HAdjustment.get_value();
-
   imgWin.set_view(val, imgWin.get_min_y(),
 		  val + imgWin.get_real_width(), imgWin.get_max_y());
 
@@ -1808,15 +1779,39 @@ void MainWin::on_selection_revoked() {
   }
 }
 
-void MainWin::on_mouse_scroll_down(unsigned int center_x, unsigned int center_y) {
-  zoom_out(center_x, center_y);
-  //on_menu_view_zoom_in();
+void MainWin::on_mouse_scroll_down(unsigned int clicked_real_x, unsigned int clicked_real_y) {
+  if(main_project != NULL) {
 
+    int real_dist_to_center_x = (int)clicked_real_x - (int)imgWin.get_center_x();
+    int real_dist_to_center_y = (int)clicked_real_y - (int)imgWin.get_center_y();
+
+    unsigned int new_center_x = (int)imgWin.get_center_x() + real_dist_to_center_x -
+      (double)real_dist_to_center_x * ZOOM_STEP_MOUSE_SCROLL;
+
+    unsigned int new_center_y = (int)imgWin.get_center_y() + real_dist_to_center_y -
+      (double)real_dist_to_center_y * ZOOM_STEP_MOUSE_SCROLL;
+
+    zoom(new_center_x, new_center_y, ZOOM_STEP_MOUSE_SCROLL);
+
+    //zoom_out(center_x, center_y);
+  }
 }
 
-void MainWin::on_mouse_scroll_up(unsigned int center_x, unsigned int center_y) {
-  zoom_in(center_x, center_y);
-  //on_menu_view_zoom_out();
+void MainWin::on_mouse_scroll_up(unsigned int clicked_real_x, unsigned int clicked_real_y) {
+  if(main_project != NULL) {
+
+    int real_dist_to_center_x = (int)clicked_real_x - (int)imgWin.get_center_x();
+    int real_dist_to_center_y = (int)clicked_real_y - (int)imgWin.get_center_y();
+
+    unsigned int new_center_x = (int)imgWin.get_center_x() + real_dist_to_center_x -
+      (double)real_dist_to_center_x / ZOOM_STEP_MOUSE_SCROLL;
+
+    unsigned int new_center_y = (int)imgWin.get_center_y() + real_dist_to_center_y -
+      (double)real_dist_to_center_y / ZOOM_STEP_MOUSE_SCROLL;
+
+    zoom(new_center_x, new_center_y, 1.0/ZOOM_STEP_MOUSE_SCROLL);
+
+  }
 }
 
 bool MainWin::on_imgwin_clicked(GdkEventButton * event) {

@@ -131,6 +131,10 @@ run:
 	export DEGATE_HOME=.;export DEGATE_PLUGINS=plugins; \
 		gdb -x gdb_commands -q ./degate
 
+run2:
+	export DEGATE_HOME=.;export DEGATE_PLUGINS=plugins; \
+		./degate aaa06
+
 stats:
 	wc -l lib/*.[ch] gui/*.cc gui/*.h plugins/*.cc
 

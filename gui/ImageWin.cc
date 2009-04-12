@@ -151,42 +151,11 @@ void ImageWin::set_view(unsigned int min_x, unsigned int min_y, unsigned int max
   this->max_x = max_x;
   this->max_y = max_y;
 
+
   if(get_scaling_x() < get_scaling_y())
     max_y = (double)curr_height * (double)(max_x - min_x) / (double)curr_width + min_y;
   else if(get_scaling_x() > get_scaling_y())
     max_x = (double)curr_width * (double)(max_y - min_y) / (double)curr_height + min_x;
-  
-  /*
-  if(selection_active()) {
-
-
-    unsigned int 
-      new_selection_x_start,
-      new_selection_y_start,
-      new_selection_x_end,
-      new_selection_y_end;
-    
-    coord_screen_to_real(selection_x_start, selection_y_start, 
-			 &new_selection_x_start, &new_selection_y_start);
-    
-    coord_screen_to_real(selection_x_end, selection_y_end, 
-			 &new_selection_x_end, &new_selection_y_end);
-    
-
-    coord_real_to_screen(new_selection_x_start, new_selection_y_start, 
-			 &new_selection_x_start, &new_selection_y_start);
-
-
-    selection_x_start = new_selection_x_start;
-    selection_y_start = new_selection_y_start;
-    selection_x_end = new_selection_x_end;
-    selection_y_end = new_selection_y_end;
-    
-    printf("selection %d/%d %d/%d\n", 
-	   selection_x_start, selection_y_start, new_selection_x_end, new_selection_y_end);
-  }
-  */
-
 }
 
 unsigned int ImageWin::get_min_x() {
@@ -221,6 +190,15 @@ unsigned int ImageWin::get_real_height() {
   return curr_height * get_scaling_y();
 }
 
+
+unsigned int ImageWin::get_center_x() {
+  return min_x + ((max_x - min_x) >> 1);
+
+}
+
+unsigned int ImageWin::get_center_y() {
+  return min_y + ((max_y - min_y) >> 1);
+}
 
 double ImageWin::get_scaling_x() {
   return (max_x - min_x) / (double)curr_width;
