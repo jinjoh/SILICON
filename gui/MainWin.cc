@@ -102,11 +102,21 @@ MainWin::MainWin() :
 						  sigc::bind<MARKER_TYPE>(sigc::mem_fun(*this, &MainWin::on_popup_menu_set_alignment_marker),
 						  MARKER_TYPE_M2_DOWN) ));
 
+  menulist.push_back( Gtk::Menu_Helpers::SeparatorElem());
+
   menulist.push_back( Gtk::Menu_Helpers::MenuElem("Set _name for object", 
 						  sigc::mem_fun(*this, &MainWin::on_popup_menu_set_name) ));
 
   menulist.push_back( Gtk::Menu_Helpers::MenuElem("Set port on gate", 
 						  sigc::mem_fun(*this, &MainWin::on_popup_menu_set_port) ));
+
+  menulist.push_back( Gtk::Menu_Helpers::SeparatorElem());
+
+  menulist.push_back( Gtk::Menu_Helpers::MenuElem("Add a horizontal grid line", 
+						  sigc::mem_fun(*this, &MainWin::on_popup_menu_add_horizontal_grid_line) ));
+
+  menulist.push_back( Gtk::Menu_Helpers::MenuElem("Add a vertical grid line", 
+						  sigc::mem_fun(*this, &MainWin::on_popup_menu_add_vertical_grid_line) ));
 
   m_Menu_Popup.accelerate(*this);
 
@@ -1124,7 +1134,7 @@ void MainWin::update_gui_for_loaded_project() {
     imgWin.set_render_background_images(main_project->bg_images, main_project->scaling_manager);
     imgWin.reset_selection();
     imgWin.set_current_layer(0);
-    imgWin.set_grid(&main_project->grid);
+    imgWin.set_grid(main_project->grid);
     
     set_widget_sensitivity(true);
     add_to_recent_menu();
@@ -1136,7 +1146,7 @@ void MainWin::update_gui_for_loaded_project() {
     ciWin = new ConnectionInspectorWin(this, main_project->lmodel);
     ciWin->signal_goto_button_clicked().connect(sigc::mem_fun(*this, &MainWin::on_goto_object));
     
-    gcWin = new GridConfigWin(this, &main_project->grid);
+    gcWin = new GridConfigWin(this, main_project->grid);
     gcWin->signal_changed().connect(sigc::mem_fun(*this, &MainWin::on_grid_config_changed));
 
 
@@ -1938,7 +1948,6 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
 
   // get info about selected object
   lmodel_object_to_string(main_project->lmodel, main_project->current_layer, real_x, real_y, msg, sizeof(msg));
-  m_statusbar.push(msg);
 
   if(RET_IS_NOT_OK(lmodel_get_object(main_project->lmodel, main_project->current_layer, 
 				     real_x, real_y, &object_type, &obj_ptr))) return;
@@ -1947,6 +1956,11 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
   if(obj_ptr != NULL) {
     add_to_selection = true;
   }
+  else {
+    snprintf(msg, sizeof(msg), "%d,%d", real_x, real_y);
+  }
+
+  m_statusbar.push(msg);
 
   std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
 
@@ -2130,6 +2144,38 @@ void MainWin::on_popup_menu_set_name() {
   }
 }
 
+void MainWin::on_popup_menu_add_vertical_grid_line() {
+  if(main_project != NULL && main_project->grid != NULL) {
+    if(main_project->grid->grid_mode != USE_UNREGULAR_GRID)
+      error_dialog("Error", "Please set the unregular grid mode in the grid configuration.");
+    else {
+      if(RET_IS_NOT_OK(grid_add_vertical_grid_line(main_project->grid, last_click_on_real_x)))
+	error_dialog("Error", "Can't add grid line.");
+      else {
+	gcWin->update_grid_entries();
+	project_changed();
+	imgWin.update_screen();
+      }
+    }
+  }
+}
+
+void MainWin::on_popup_menu_add_horizontal_grid_line() {
+  if(main_project != NULL && main_project->grid != NULL) {
+    if(main_project->grid->grid_mode != USE_UNREGULAR_GRID)
+      error_dialog("Error", "Please set the unregular grid mode in the grid configuration.");
+    else {
+      if(RET_IS_NOT_OK(grid_add_horizontal_grid_line(main_project->grid, last_click_on_real_y)))
+	error_dialog("Error", "Can't add grid line.");
+      else {
+	gcWin->update_grid_entries();
+	project_changed();
+	imgWin.update_screen();
+      }
+    }
+  }
+}
+
 void MainWin::on_popup_menu_set_alignment_marker(MARKER_TYPE marker_type) {
   if(main_project && main_project->alignment_marker_set) {
 
@@ -2143,23 +2189,16 @@ void MainWin::on_popup_menu_set_alignment_marker(MARKER_TYPE marker_type) {
 	if(RET_IS_NOT_OK(amset_replace_marker(main_project->alignment_marker_set, 
 					      main_project->current_layer, 
 					      marker_type, 
-					      last_click_on_real_x, last_click_on_real_y))) {
-	  Gtk::MessageDialog dialog(*this, "Error: Can't replace marker.", true, Gtk::MESSAGE_ERROR);
-	  dialog.set_title("Error");
-	  dialog.run();
-	}
+					      last_click_on_real_x, last_click_on_real_y)))
+	  error_dialog("Error", "Error: Can't replace marker.");	
       }
     }
     else {
       if(RET_IS_NOT_OK(amset_add_marker(main_project->alignment_marker_set, 
 					main_project->current_layer, 
 					marker_type, 
-					last_click_on_real_x, last_click_on_real_y))) {
-	Gtk::MessageDialog dialog(*this, "Error: Can't add marker.", true, Gtk::MESSAGE_ERROR);
-	dialog.set_title("Error");
-	dialog.run();
-	
-      }
+					last_click_on_real_x, last_click_on_real_y)))
+	error_dialog("Error", "Error: Can't add marker.");	      
     }
     //amset_print(main_project->alignment_marker_set);
 

@@ -790,7 +790,7 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
   
   unsigned int width = max_x - min_x;
   unsigned int height = max_y - min_y;
-  unsigned int x_out, y_out;
+  unsigned int y_out;
   lmodel_gate_t * gate = NULL;
 
   if(matching_params->matching_mode == TEMPLATE_MATCHING_NORMAL) {
@@ -805,93 +805,75 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
   }
   else if(matching_params->matching_mode == TEMPLATE_MATCHING_ALONG_GRID_COLS) {
 
-    const grid_t * grid = &(matching_params->project->grid);
+    const grid_t * grid = matching_params->project->grid;
 
-    if(grid->vertical_lines_enabled) {
+    if(*x == 0 && *y == 0) { // start condition
+      if(RET_IS_NOT_OK(grid_get_first_v_offset(grid, min_x, min_x + width, x)))
+	return TEMPLATE_MATCHING_ERROR;
+      *x = *x - min_x;
+      debug(TM, "start condition, x = %d", *x);	      
+    }
 
-      if(*x == 0) { // start condition
-	debug(TM, "start conditions");
-	if(RET_IS_OK(snap_to_grid(grid, *x + min_x, 0, &x_out, NULL))) {
-	  if(x_out < min_x) *x = x_out + grid->dist_x - min_x;
-	  else *x = x_out - min_x;
-	}
-	debug(TM, "\t-> x = %d", *x);
+    if(*y + step_size_search < height) *y += step_size_search;
+    else {
+      *y = 0;
+      unsigned int next_offset;
+      if(RET_IS_OK(grid_get_next_v_offset(grid, *x + min_x, min_x + width, &next_offset)))
+	*x = next_offset - min_x;
+      else return TEMPLATE_MATCHING_DONE;
+      
+      if(RET_IS_NOT_OK(lmodel_get_gate_in_region(matching_params->project->lmodel, 
+						 matching_params->placement_layer, 
+						 *x + min_x, *y + min_y, 
+						 *x + min_x + _template->width, 
+						 *y + min_y + _template->height,
+						 &gate))) return TEMPLATE_MATCHING_ERROR;
+      if(gate != NULL) {
+	unsigned int gate_height = gate->max_y - gate->min_y;
+	if(gate_height > step_size_search) gate_height -= step_size_search;
+	debug(TM, "there is a gate skip y by %d", gate_height);
+	*y += gate_height;
+	return get_next_pos(x, y, step_size_search, _template, min_x, max_x, min_y, max_y, matching_params);
       }
 
-      if(*y + step_size_search < height) *y += step_size_search;
-      else {
-	*y = 0;
-	if(*x + grid->dist_x < width) {
-	  *x += grid->dist_x;
-	  debug(TM, "\tcolumn done, next x = %d", *x);
-	  if(RET_IS_OK(snap_to_grid(grid, *x + min_x, 0, &x_out, NULL))) {
-	    *x = x_out - min_x;
-	    debug(TM, "\tadjusted to x = %d", *x);
-	  }
-	}
-	else return TEMPLATE_MATCHING_DONE;
-
-	if(RET_IS_NOT_OK(lmodel_get_gate_in_region(matching_params->project->lmodel, 
-						   matching_params->placement_layer, 
-						   *x + min_x, *y + min_y, 
-						   *x + min_x + _template->width, 
-						   *y + min_y + _template->height,
-						   &gate))) return TEMPLATE_MATCHING_ERROR;
-	if(gate != NULL) {
-	  unsigned int gate_height = gate->max_y - gate->min_y;
-	  if(gate_height > step_size_search) gate_height -= step_size_search;
-	  debug(TM, "there is a gate skip y by %d", gate_height);
-	  *y += gate_height;
-	  return get_next_pos(x, y, step_size_search, _template, min_x, max_x, min_y, max_y, matching_params);
-	}
-
-      }
     }
   }
   else if(matching_params->matching_mode == TEMPLATE_MATCHING_ALONG_GRID_ROWS) {
 
-    const grid_t * grid = &(matching_params->project->grid);
+    const grid_t * grid = matching_params->project->grid;
 
-    if(grid->horizontal_lines_enabled) {
 
-      if(*y == 0) { // start condition
-	debug(TM, "start conditions");
-	if(RET_IS_OK(snap_to_grid(grid, 0, *y + min_y, NULL, &y_out))) {
-	  if(y_out < min_y) *y = y_out + grid->dist_y - min_y;
-	  else *y = y_out - min_y;
-	}
-	debug(TM, "\t-> y = %d", *y);
-      }
-
-      if(*x + step_size_search < width) *x += step_size_search;
-      else {
-	*x = 0;
-	if(*y + grid->dist_y < height) {
-	  *y += grid->dist_y;
-	  debug(TM, "\tcolumn done, next y = %d", *y);
-	  if(RET_IS_OK(snap_to_grid(grid, 0, *y + min_y, NULL, &y_out))) {
-	    *y = y_out - min_y;
-	    debug(TM, "\tadjusted to y = %d", *y);
-	  }
-	}
-	else return TEMPLATE_MATCHING_DONE;
-
-	if(RET_IS_NOT_OK(lmodel_get_gate_in_region(matching_params->project->lmodel, 
-						   matching_params->placement_layer, 
-						   *x + min_x, *y + min_y, 
-						   *x + min_x + _template->width, 
-						   *y + min_y + _template->height, 
-						   &gate))) return TEMPLATE_MATCHING_ERROR;
-	if(gate != NULL) {
-	  unsigned int gate_width = gate->max_x - gate->min_x;
-	  if(gate_width > step_size_search) gate_width -= step_size_search;
-	  debug(TM, "there is a gate skip x by %d", gate_width);
-	  *x += gate_width;
-	  return get_next_pos(x, y, step_size_search, _template, min_x, max_x, min_y, max_y, matching_params);
-	}
-
-      }
+    if(*x == 0 && *y == 0) { // start condition
+      if(RET_IS_NOT_OK(grid_get_first_h_offset(grid, min_y, min_y + height, y)))
+	return TEMPLATE_MATCHING_ERROR;
+      *y = *y - min_y;
+      debug(TM, "start condition, y = %d", *y);	      
     }
+    
+    if(*x + step_size_search < width) *x += step_size_search;
+    else {
+      *x = 0;
+      unsigned int next_offset;
+      if(RET_IS_OK(grid_get_next_h_offset(grid, *y + min_y, min_y + height, &next_offset)))
+	*y = next_offset - min_y;
+      else return TEMPLATE_MATCHING_DONE;
+
+      if(RET_IS_NOT_OK(lmodel_get_gate_in_region(matching_params->project->lmodel, 
+						 matching_params->placement_layer, 
+						 *x + min_x, *y + min_y, 
+						 *x + min_x + _template->width, 
+						 *y + min_y + _template->height, 
+						 &gate))) return TEMPLATE_MATCHING_ERROR;
+      if(gate != NULL) {
+	unsigned int gate_width = gate->max_x - gate->min_x;
+	if(gate_width > step_size_search) gate_width -= step_size_search;
+	debug(TM, "there is a gate skip x by %d", gate_width);
+	*x += gate_width;
+	return get_next_pos(x, y, step_size_search, _template, min_x, max_x, min_y, max_y, matching_params);
+      }
+      
+    }
+    
   }
   
   return TEMPLATE_MATCHING_CONTINUE;

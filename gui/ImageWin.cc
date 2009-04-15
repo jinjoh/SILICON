@@ -42,7 +42,7 @@ void ImageWin::setup_renderer() {
   renderer_add_layer(renderer, (render_func_t) &render_background, &render_params, 1, "Background");
   renderer_add_layer(renderer, (render_func_t) &render_to_grayscale, &render_params, 0, "Background to grayscale");
   //  renderer_add_layer(renderer, (render_func_t) &render_color_similarity, &render_params, 0, "Color similarity");
-  renderer_add_layer(renderer, (render_func_t) &render_grid, &render_params, 0, "Grid");
+  renderer_add_layer(renderer, (render_func_t) &render_grid, &render_params, 1, "Grid");
   renderer_add_layer(renderer, (render_func_t) &render_gates, &render_params, 1, "Logic Gates");
   renderer_add_layer(renderer, (render_func_t) &render_wires, &render_params, 1, "Wires");
   renderer_add_layer(renderer, (render_func_t) &render_vias, &render_params, 1, "Vias");

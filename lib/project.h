@@ -51,7 +51,7 @@ struct project {
   unsigned int wire_diameter;
   unsigned int lambda;
 
-  grid_t grid;
+  grid_t * grid;
 
   alignment_marker_set_t * alignment_marker_set;
   char * project_file_version;

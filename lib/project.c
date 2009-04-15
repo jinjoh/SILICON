@@ -98,6 +98,11 @@ project_t * project_create(const char * const project_dir,
     return NULL;
   }
 
+  if((ptr->grid = grid_create()) == NULL) {
+    project_destroy(ptr);
+    return NULL;
+  }
+
   ptr->project_file_version = strdup(DEGATE_VERSION);
   ptr->project_name = strdup("");
   ptr->project_description = strdup("");
@@ -166,6 +171,8 @@ ret_t project_destroy(project_t * project) {
   if(project->project_description != NULL) free(project->project_description);
 
   if(project->project_file_version != NULL) free(project->project_file_version);
+
+  if(project->grid != NULL) grid_destroy(project->grid);
 
   memset(project, 0, sizeof(project_t));
   free(project);
@@ -239,6 +246,11 @@ ret_t project_init_directory(const char * const directory, int enable_mkdir) {
     return NULL; \
   } \
   else { \
+    variable = config_setting_get_int(setting); \
+  }
+
+#define PROJECT_READ_INT_WO_CHECK(name, variable) \
+  if((setting = config_lookup(&cfg, name)) != NULL) { \
     variable = config_setting_get_int(setting); \
   }
 
@@ -321,14 +333,50 @@ project_t * project_load(const char * const project_dir) {
   PROJECT_READ_STRING("project_description", project->project_description);
   PROJECT_READ_STRING("project_file_version", project->project_file_version);
 
+  // grid
+  long grid_mode;
+  PROJECT_READ_INT_WO_CHECK("grid.mode", grid_mode);
+  project->grid->grid_mode = (GRID_MODE)grid_mode;
 
-  PROJECT_READ_INT("grid.offset_x", project->grid.offset_x);
-  PROJECT_READ_INT("grid.offset_y", project->grid.offset_y);
-  PROJECT_READ_FLOAT("grid.dist_x", project->grid.dist_x);
-  PROJECT_READ_FLOAT("grid.dist_y", project->grid.dist_y);
-  PROJECT_READ_INT("grid.horizontal_lines_enabled", project->grid.horizontal_lines_enabled);
-  PROJECT_READ_INT("grid.vertical_lines_enabled", project->grid.vertical_lines_enabled);
+  // regular grid
+  PROJECT_READ_INT("grid.offset_x", project->grid->offset_x);
+  PROJECT_READ_INT("grid.offset_y", project->grid->offset_y);
+  PROJECT_READ_FLOAT("grid.dist_x", project->grid->dist_x);
+  PROJECT_READ_FLOAT("grid.dist_y", project->grid->dist_y);
+  PROJECT_READ_INT("grid.horizontal_lines_enabled", project->grid->horizontal_lines_enabled);
+  PROJECT_READ_INT("grid.vertical_lines_enabled", project->grid->vertical_lines_enabled);
+  
+  // unregular grid
+  PROJECT_READ_INT_WO_CHECK("grid.uhg_enabled", project->grid->uhg_enabled);
+  PROJECT_READ_INT_WO_CHECK("grid.uvg_enabled", project->grid->uvg_enabled);
+  PROJECT_READ_INT_WO_CHECK("grid.num_uhg_entries", project->grid->num_uhg_entries);
+  PROJECT_READ_INT_WO_CHECK("grid.num_uvg_entries", project->grid->num_uvg_entries);
+  
+  if(RET_IS_NOT_OK(grid_alloc_mem(project->grid, 
+				  project->grid->num_uhg_entries, 
+				  project->grid->num_uvg_entries)) ) {
+    config_destroy(&cfg);
+    project_destroy(project);
+    return NULL;
+  }
+  
+  if((setting = config_lookup(&cfg, "grid.uhg_offsets")) != NULL) {
+    unsigned int i;
+    for(i = 0; i < project->grid->num_uhg_entries; i++) {
+      long offs = config_setting_get_int_elem(setting, i);
+      project->grid->uhg_offsets[i] = offs;
+    }
+  }
 
+  if((setting = config_lookup(&cfg, "grid.uvg_offsets")) != NULL) {
+    unsigned int i;
+    for(i = 0; i < project->grid->num_uvg_entries; i++) {
+      long offs = config_setting_get_int_elem(setting, i);
+      project->grid->uvg_offsets[i] = offs;
+    }
+  }
+  
+  
   // load layer types
   if((setting = config_lookup(&cfg, "layer_type")) == NULL) {
     printf("can't read config item layer_type\n");
@@ -501,13 +549,51 @@ ret_t project_save(const project_t * const project) {
     config_destroy(&cfg);
     return RET_ERR;
   }
-  PROJECT_STORE_INT(group, "offset_x", project->grid.offset_x);
-  PROJECT_STORE_INT(group, "offset_y", project->grid.offset_y);
-  PROJECT_STORE_FLOAT(group, "dist_x", project->grid.dist_x);
-  PROJECT_STORE_FLOAT(group, "dist_y", project->grid.dist_y);
-  PROJECT_STORE_INT(group, "horizontal_lines_enabled", project->grid.horizontal_lines_enabled);
-  PROJECT_STORE_INT(group, "vertical_lines_enabled", project->grid.vertical_lines_enabled);
+  PROJECT_STORE_INT(group, "offset_x", project->grid->offset_x);
+  PROJECT_STORE_INT(group, "offset_y", project->grid->offset_y);
+  PROJECT_STORE_FLOAT(group, "dist_x", project->grid->dist_x);
+  PROJECT_STORE_FLOAT(group, "dist_y", project->grid->dist_y);
+  PROJECT_STORE_INT(group, "horizontal_lines_enabled", project->grid->horizontal_lines_enabled);
+  PROJECT_STORE_INT(group, "vertical_lines_enabled", project->grid->vertical_lines_enabled);
 
+  PROJECT_STORE_INT(group, "mode", project->grid->grid_mode);
+  PROJECT_STORE_INT(group, "uhg_enabled", project->grid->uhg_enabled);
+  PROJECT_STORE_INT(group, "uvg_enabled", project->grid->uvg_enabled);
+  PROJECT_STORE_INT(group, "num_uhg_entries", project->grid->num_uhg_entries);
+  PROJECT_STORE_INT(group, "num_uvg_entries", project->grid->num_uvg_entries);
+
+
+  {
+    unsigned int i;
+    if((array = config_setting_add(group, "uhg_offsets", CONFIG_TYPE_ARRAY)) == NULL) {
+      puts("can't add node");
+      config_destroy(&cfg);
+      return RET_ERR;
+    }
+    else {
+      for(i = 0; i < project->grid->num_uhg_entries; i++) {
+	if(config_setting_set_int_elem(array, -1, project->grid->uhg_offsets[i]) == NULL) {
+	  config_destroy(&cfg);
+	  return RET_ERR;
+	}
+      }
+    }
+
+    if((array = config_setting_add(group, "uvg_offsets", CONFIG_TYPE_ARRAY)) == NULL) {
+      puts("can't add node");
+      config_destroy(&cfg);
+      return RET_ERR;
+    }
+    else {
+      for(i = 0; i < project->grid->num_uvg_entries; i++) {
+	if(config_setting_set_int_elem(array, -1, project->grid->uvg_offsets[i]) == NULL) {
+	  config_destroy(&cfg);
+	  return RET_ERR;
+	}
+      }
+    }
+    
+  }
 
   // store layer types
   if(project->lmodel != NULL && project->lmodel->layer_type != NULL) {

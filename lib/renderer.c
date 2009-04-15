@@ -888,7 +888,7 @@ ret_t render_alignment_markers(RENDERER_FUNC_PARAMS) {
 }
 
 
-ret_t render_grid(RENDERER_FUNC_PARAMS) {
+ret_t render_regular_grid(RENDERER_FUNC_PARAMS) {
   unsigned int dst_x = 0, dst_y = 0;
   double dbl_dst_x, dbl_dst_y;
 
@@ -931,6 +931,56 @@ ret_t render_grid(RENDERER_FUNC_PARAMS) {
     }
   }
   return RET_OK;
+}
+
+ret_t render_unregular_grid(RENDERER_FUNC_PARAMS) {
+  unsigned int i;
+  grid_t * grid = data_ptr->grid;
+  if(grid == NULL) return RET_OK;
+
+  
+  double scaling_x =  (max_x - min_x) / (double)dst_img->width;
+  double scaling_y =  (max_y - min_y) / (double)dst_img->height;
+
+  /* horizontal lines */
+  if(grid->uhg_enabled == 1) {
+    for(i = 0; i < grid->num_uhg_entries; i++) {
+      unsigned int offset = grid->uhg_offsets[i];
+      if(offset >= min_y && offset <= max_y) {
+	unsigned int dst_y = (double)(offset - min_y) / scaling_y;
+	hline(dst_img, 0, dst_y, data_ptr->grid_color);
+      }
+    }
+  }
+
+  /* vertical lines */
+  if(grid->uvg_enabled == 1) {
+    for(i = 0; i < grid->num_uvg_entries; i++) {
+      unsigned int offset = grid->uvg_offsets[i];
+      if(offset >= min_x && offset <= max_x) {
+	unsigned int dst_x = (double)(offset - min_x) / scaling_x;
+	vline(dst_img, dst_x, 0, data_ptr->grid_color);
+      }
+    }
+  }
+
+  return RET_OK;
+}
+
+ret_t render_grid(RENDERER_FUNC_PARAMS) {
+  if(data_ptr->grid != NULL) {
+    switch(data_ptr->grid->grid_mode) {
+    case USE_REGULAR_GRID:
+      return render_regular_grid(renderer, dst_img, layer, min_x, min_y, max_x, max_y, data_ptr); 
+      break;
+    case USE_UNREGULAR_GRID:
+      return render_unregular_grid(renderer, dst_img, layer, min_x, min_y, max_x, max_y, data_ptr);
+      break;
+    default:
+      return RET_ERR;
+    }
+  }
+  else return RET_INV_PTR;
 }
 
 void vline(image_t * img, unsigned int x, unsigned int y, uint32_t col) {

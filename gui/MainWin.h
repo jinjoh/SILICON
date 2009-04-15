@@ -179,6 +179,8 @@ class MainWin : public Gtk::Window  {
   void on_popup_menu_set_alignment_marker(MARKER_TYPE);
   void on_popup_menu_set_name();
   void on_popup_menu_set_port();
+  void on_popup_menu_add_horizontal_grid_line();
+  void on_popup_menu_add_vertical_grid_line();
 
   void update_title();
   void add_to_recent_menu();
