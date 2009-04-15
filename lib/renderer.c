@@ -360,7 +360,7 @@ ret_t render_color_similarity(RENDERER_FUNC_PARAMS) {
 
 // screen coords
 ret_t draw_rectangle(image_t * dst_img, unsigned int min_x, unsigned int min_y, unsigned int max_x, unsigned int max_y, 
-		     uint32_t color) {
+		     color_t fill_color, color_t frame_color) {
   unsigned int x, y;
   if(max_x >= dst_img->width || max_y >= dst_img->height) {
     debug(TM, "rectangle is out of image area");
@@ -371,7 +371,8 @@ ret_t draw_rectangle(image_t * dst_img, unsigned int min_x, unsigned int min_y, 
 
       for(x = min_x; x < max_x; x++) {
 	uint32_t pix = gr_get_pixval(dst_img, x, y);
-	gr_set_pixval(dst_img, x, y, alpha_blend(pix, color));
+	color_t col = x == min_x || x == max_x - 1 || y == min_y || y == max_y -1 ? frame_color : fill_color;
+	gr_set_pixval(dst_img, x, y, alpha_blend(pix, col));
       }
     }
   return RET_OK;
@@ -542,11 +543,14 @@ ret_t render_gate(renderer_t * renderer, render_params_t * render_params, image_
   unsigned int screen_max_y = gate->max_y < max_y ? (unsigned int)((gate->max_y - min_y) / scaling_y) : dst_img->height - 1;
 
   // render filled rectangle
-  color_t col = gate->gate_template != NULL ? gate->gate_template->fill_color : 0;
-  if(col == 0) col = render_params->gate_area_color;
+  color_t fill_col = gate->gate_template != NULL ? gate->gate_template->fill_color : 0;
+  color_t frame_col = gate->gate_template != NULL ? gate->gate_template->frame_color : 0;
+  if(fill_col == 0) fill_col = render_params->gate_area_color;
+  if(frame_col == 0) frame_col = fill_col;
 
   draw_rectangle(dst_img, screen_min_x, screen_min_y, screen_max_x, screen_max_y, 
-		 highlight_color_by_state(col, gate->is_selected));
+		 highlight_color_by_state(fill_col, gate->is_selected), 
+		 highlight_color_by_state(frame_col, gate->is_selected));
 
   if(gate->name && screen_max_x - screen_min_x > strlen(gate->name) * FONT_SIZE) {
     draw_string(renderer, render_params, dst_img,
