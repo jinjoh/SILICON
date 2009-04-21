@@ -790,7 +790,6 @@ TEMPLATE_MATCHING_STATE get_next_pos(unsigned int * x, unsigned int * y,
   
   unsigned int width = max_x - min_x;
   unsigned int height = max_y - min_y;
-  unsigned int y_out;
   lmodel_gate_t * gate = NULL;
 
   if(matching_params->matching_mode == TEMPLATE_MATCHING_NORMAL) {

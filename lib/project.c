@@ -334,7 +334,7 @@ project_t * project_load(const char * const project_dir) {
   PROJECT_READ_STRING("project_file_version", project->project_file_version);
 
   // grid
-  long grid_mode;
+  long grid_mode = UNDEFINED_GRID_MODE;
   PROJECT_READ_INT_WO_CHECK("grid.mode", grid_mode);
   project->grid->grid_mode = (GRID_MODE)grid_mode;
 
