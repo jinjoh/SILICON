@@ -246,14 +246,29 @@ void ImageWin::resize_rendering_buffer(unsigned int new_width, unsigned int new_
 
   if(new_width != curr_width || new_height != curr_height) {
 
-    if(rendering_buffer) gr_image_destroy(rendering_buffer);
-    if(rendering_buffer_backup) gr_image_destroy(rendering_buffer_backup);
+    if(rendering_buffer != NULL) {
+      if(RET_IS_NOT_OK(gr_image_destroy(rendering_buffer))) {
+	debug(TM, "gr_image_destroy() failed");
+	return;
+      }
+
+    }
+    if(rendering_buffer_backup != NULL ) {
+      if(RET_IS_NOT_OK(gr_image_destroy(rendering_buffer_backup))) {
+	debug(TM, "gr_image_destroy() failed");
+	return;
+      }
+    }
     
-    if((rendering_buffer = gr_create_memory_image(new_width, new_height, IMAGE_TYPE_RGBA)) == NULL)
-      exit(1);
-      
-    if((rendering_buffer_backup = gr_create_memory_image(new_width, new_height, IMAGE_TYPE_RGBA)) == NULL)
-      exit(1);
+    if((rendering_buffer = gr_create_memory_image(new_width, new_height, IMAGE_TYPE_RGBA)) == NULL) {
+      debug(TM, "gr_create_memory_image() failed");
+      return;
+    }
+
+    if((rendering_buffer_backup = gr_create_memory_image(new_width, new_height, IMAGE_TYPE_RGBA)) == NULL) {
+      debug(TM, "gr_create_memory_image() failed");
+      return;
+    }
 
     curr_width = new_width;
     curr_height = new_height;

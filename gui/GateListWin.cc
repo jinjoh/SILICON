@@ -88,17 +88,19 @@ GateListWin::GateListWin(Gtk::Window *parent, logic_model_t * lmodel) {
       refXml->get_widget("treeview", pTreeView);
       if(pTreeView) {
 	pTreeView->set_model(refListStore);
-	pTreeView->append_column("ID", m_Columns.m_col_id);
+	//pTreeView->append_column("ID", m_Columns.m_col_id);
+	pTreeView->append_column("Short Name", m_Columns.m_col_short_name);
 	pTreeView->append_column("#", m_Columns.m_col_refcount);
 	pTreeView->append_column("Width", m_Columns.m_col_width);
 	pTreeView->append_column("Height", m_Columns.m_col_height);
-	pTreeView->append_column("Short Name", m_Columns.m_col_short_name);
-	pTreeView->append_column("Description", m_Columns.m_col_description);
 
 	Gtk::TreeView::Column * pColumn;
 
+	//pColumn = pTreeView->get_column(0);
+	//if(pColumn) pColumn->set_sort_column(m_Columns.m_col_id);
+
 	pColumn = pTreeView->get_column(0);
-	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_id);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_short_name);
 	
 	pColumn = pTreeView->get_column(1);
 	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_refcount);
@@ -109,26 +111,24 @@ GateListWin::GateListWin(Gtk::Window *parent, logic_model_t * lmodel) {
 	pColumn = pTreeView->get_column(3);
 	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_height);
 	
-	pColumn = pTreeView->get_column(4);
-	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_short_name);
 	
-	pColumn = pTreeView->get_column(5);
-	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_description);
-
 	Gtk::CellRendererText * pRenderer = Gtk::manage( new Gtk::CellRendererText()); 
 	pTreeView->append_column("Fill color", *pRenderer);
-	pColumn = pTreeView->get_column(6);
+	pColumn = pTreeView->get_column(4);
 	pColumn->add_attribute(*pRenderer, "background-gdk", m_Columns.color_fill_); 
 	pColumn->add_attribute(*pRenderer, "xpad", m_Columns.padding_); 
 	pColumn->add_attribute(*pRenderer, "ypad", m_Columns.padding_); 
 
 	pRenderer = Gtk::manage( new Gtk::CellRendererText()); 
 	pTreeView->append_column("Frame color", *pRenderer);
-	pColumn = pTreeView->get_column(7);
+	pColumn = pTreeView->get_column(5);
 	pColumn->add_attribute(*pRenderer, "background-gdk", m_Columns.color_frame_); 
 	pColumn->add_attribute(*pRenderer, "xpad", m_Columns.padding_); 
 	pColumn->add_attribute(*pRenderer, "ypad", m_Columns.padding_); 
 
+	pTreeView->append_column("Description", m_Columns.m_col_description);
+	pColumn = pTreeView->get_column(6);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_description);
 
       }
 

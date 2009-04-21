@@ -52,7 +52,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "lib/plugins.h"
 
 #define ZOOM_STEP 1.3
-#define ZOOM_STEP_MOUSE_SCROLL 1.9
+#define ZOOM_STEP_MOUSE_SCROLL ZOOM_STEP
 
 MainWin::MainWin() : 
   m_VAdjustment(0.0, 0.0, 101.0, 0.1, 1.0, 1.0), // value, lower, upper, step_increment, page_increment, page_size

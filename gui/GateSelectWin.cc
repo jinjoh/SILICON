@@ -79,31 +79,31 @@ GateSelectWin::GateSelectWin(Gtk::Window *parent, logic_model_t * const lmodel) 
     refXml->get_widget("treeview", pTreeView);
     if(pTreeView) {
       pTreeView->set_model(refListStore);
-      pTreeView->append_column("ID", m_Columns.m_col_id);
+      //pTreeView->append_column("ID", m_Columns.m_col_id);
+      pTreeView->append_column("Short Name", m_Columns.m_col_short_name);
       pTreeView->append_column("#", m_Columns.m_col_refcount);
       pTreeView->append_column("Width", m_Columns.m_col_width);
       pTreeView->append_column("Height", m_Columns.m_col_height);
-      pTreeView->append_column("Short Name", m_Columns.m_col_short_name);
       pTreeView->append_column("Description", m_Columns.m_col_description);
 
       Gtk::TreeView::Column * pColumn;
 
-      pColumn = pTreeView->get_column(0);
-      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_id);
+      //pColumn = pTreeView->get_column(0);
+      //if(pColumn) pColumn->set_sort_column(m_Columns.m_col_id);
       
-      pColumn = pTreeView->get_column(1);
+      pColumn = pTreeView->get_column(0);
       if(pColumn) pColumn->set_sort_column(m_Columns.m_col_refcount);
       
-      pColumn = pTreeView->get_column(2);
+      pColumn = pTreeView->get_column(1);
       if(pColumn) pColumn->set_sort_column(m_Columns.m_col_width);
       
-      pColumn = pTreeView->get_column(3);
+      pColumn = pTreeView->get_column(2);
       if(pColumn) pColumn->set_sort_column(m_Columns.m_col_height);
       
-      pColumn = pTreeView->get_column(4);
+      pColumn = pTreeView->get_column(3);
       if(pColumn) pColumn->set_sort_column(m_Columns.m_col_short_name);
       
-      pColumn = pTreeView->get_column(5);
+      pColumn = pTreeView->get_column(4);
       if(pColumn) pColumn->set_sort_column(m_Columns.m_col_description);
 
       Glib::RefPtr<Gtk::TreeSelection> refTreeSelection = pTreeView->get_selection();
