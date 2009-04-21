@@ -109,6 +109,7 @@ GateSelectWin::GateSelectWin(Gtk::Window *parent, logic_model_t * const lmodel) 
       Glib::RefPtr<Gtk::TreeSelection> refTreeSelection = pTreeView->get_selection();
       refTreeSelection->signal_changed().connect(sigc::mem_fun(*this, &GateSelectWin::on_selection_changed));
 
+      refListStore->set_sort_column_id(m_Columns.m_col_short_name, Gtk::SORT_ASCENDING);
     }
     
     lmodel_gate_template_set_t * ptr = lmodel->gate_template_set;

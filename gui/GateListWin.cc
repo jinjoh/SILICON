@@ -130,6 +130,7 @@ GateListWin::GateListWin(Gtk::Window *parent, logic_model_t * lmodel) {
 	pColumn = pTreeView->get_column(6);
 	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_description);
 
+	refListStore->set_sort_column_id(m_Columns.m_col_short_name, Gtk::SORT_ASCENDING);
       }
 
       lmodel_gate_template_set_t * ptr = lmodel->gate_template_set;
