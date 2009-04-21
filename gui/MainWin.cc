@@ -1313,14 +1313,14 @@ void MainWin::adjust_scrollbars() {
   //m_VAdjustment.set_page_size(main_project ? main_project->width: 0);
   //m_HAdjustment.set_page_size(main_project ? main_project->height: 0);
 
-  int delta_x = (imgWin.get_max_x() - imgWin.get_min_x()) >> 1;
-  int delta_y = (imgWin.get_max_y() - imgWin.get_min_y()) >> 1;
+  int delta_x = (imgWin.get_max_x() - imgWin.get_min_x());
+  int delta_y = (imgWin.get_max_y() - imgWin.get_min_y());
 
   m_VAdjustment.set_page_size(delta_y);
   m_HAdjustment.set_page_size(delta_x);
 
-  m_VAdjustment.set_step_increment(delta_y);
-  m_HAdjustment.set_step_increment(delta_x);
+  m_VAdjustment.set_step_increment((double)delta_y * 0.1);
+  m_HAdjustment.set_step_increment((double)delta_x * 0.1);
 
   m_VAdjustment.set_page_increment(delta_y);
   m_HAdjustment.set_page_increment(delta_x);
