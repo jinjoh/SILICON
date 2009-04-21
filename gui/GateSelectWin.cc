@@ -90,18 +90,18 @@ GateSelectWin::GateSelectWin(Gtk::Window *parent, logic_model_t * const lmodel) 
 
       //pColumn = pTreeView->get_column(0);
       //if(pColumn) pColumn->set_sort_column(m_Columns.m_col_id);
-      
+
       pColumn = pTreeView->get_column(0);
-      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_refcount);
+      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_short_name);
       
       pColumn = pTreeView->get_column(1);
-      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_width);
+      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_refcount);
       
       pColumn = pTreeView->get_column(2);
-      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_height);
+      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_width);
       
       pColumn = pTreeView->get_column(3);
-      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_short_name);
+      if(pColumn) pColumn->set_sort_column(m_Columns.m_col_height);
       
       pColumn = pTreeView->get_column(4);
       if(pColumn) pColumn->set_sort_column(m_Columns.m_col_description);
