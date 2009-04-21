@@ -52,7 +52,8 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "lib/plugins.h"
 
 #define ZOOM_STEP 1.3
-#define ZOOM_STEP_MOUSE_SCROLL ZOOM_STEP
+#define ZOOM_STEP_MOUSE_SCROLL 2.0
+#define ZOOM_STEP_MOUSE_SCROLL_AND_SHIFT 1.1
 
 MainWin::MainWin() : 
   m_VAdjustment(0.0, 0.0, 101.0, 0.1, 1.0, 1.0), // value, lower, upper, step_increment, page_increment, page_size
@@ -1795,13 +1796,15 @@ void MainWin::on_mouse_scroll_down(unsigned int clicked_real_x, unsigned int cli
     int real_dist_to_center_x = (int)clicked_real_x - (int)imgWin.get_center_x();
     int real_dist_to_center_y = (int)clicked_real_y - (int)imgWin.get_center_y();
 
+    double zoom_factor = shift_key_pressed == true ? ZOOM_STEP_MOUSE_SCROLL_AND_SHIFT : ZOOM_STEP_MOUSE_SCROLL;
+
     unsigned int new_center_x = (int)imgWin.get_center_x() + real_dist_to_center_x -
-      (double)real_dist_to_center_x * ZOOM_STEP_MOUSE_SCROLL;
+      (double)real_dist_to_center_x * zoom_factor;
 
     unsigned int new_center_y = (int)imgWin.get_center_y() + real_dist_to_center_y -
-      (double)real_dist_to_center_y * ZOOM_STEP_MOUSE_SCROLL;
+      (double)real_dist_to_center_y * zoom_factor;
 
-    zoom(new_center_x, new_center_y, ZOOM_STEP_MOUSE_SCROLL);
+    zoom(new_center_x, new_center_y, zoom_factor);
 
     //zoom_out(center_x, center_y);
   }
@@ -1813,13 +1816,15 @@ void MainWin::on_mouse_scroll_up(unsigned int clicked_real_x, unsigned int click
     int real_dist_to_center_x = (int)clicked_real_x - (int)imgWin.get_center_x();
     int real_dist_to_center_y = (int)clicked_real_y - (int)imgWin.get_center_y();
 
+    double zoom_factor = shift_key_pressed == true ? ZOOM_STEP_MOUSE_SCROLL_AND_SHIFT : ZOOM_STEP_MOUSE_SCROLL;
+
     unsigned int new_center_x = (int)imgWin.get_center_x() + real_dist_to_center_x -
-      (double)real_dist_to_center_x / ZOOM_STEP_MOUSE_SCROLL;
+      (double)real_dist_to_center_x / zoom_factor;
 
     unsigned int new_center_y = (int)imgWin.get_center_y() + real_dist_to_center_y -
-      (double)real_dist_to_center_y / ZOOM_STEP_MOUSE_SCROLL;
+      (double)real_dist_to_center_y / zoom_factor;
 
-    zoom(new_center_x, new_center_y, 1.0/ZOOM_STEP_MOUSE_SCROLL);
+    zoom(new_center_x, new_center_y, 1.0/zoom_factor);
 
   }
 }
