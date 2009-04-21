@@ -265,7 +265,7 @@ ret_t quadtree_traverse_complete(quadtree_t * qtree,
 
 
 
-ret_t quadtree_split_note(quadtree_t * qtree) {
+ret_t quadtree_split_node(quadtree_t * qtree) {
 
   assert(qtree != NULL);
   if(qtree == NULL) return RET_INV_PTR;
@@ -276,7 +276,8 @@ ret_t quadtree_split_note(quadtree_t * qtree) {
   if(qtree->max_x - qtree->min_x <= QTREE_MIN_SIZE || 
      qtree->max_y - qtree->min_y <= QTREE_MIN_SIZE) {
     
-    printf("Can't split quadtree node %p. Please increase MAX_POINTS.\n", qtree);
+    debug(TM, "Can't split quadtree node %p. Please increase MAX_POINTS.\n", qtree);
+    assert(0 == 1);
     //quadtree_print(qtree, 0);
     //puts("\n\n");
     return RET_ERR;
@@ -287,54 +288,60 @@ ret_t quadtree_split_note(quadtree_t * qtree) {
 			       qtree->min_y,
 			       (qtree->max_x - qtree->min_x) /2 + qtree->min_x, 
 			       (qtree->max_y - qtree->min_y) /2 + qtree->min_y);
-  qtree->nw->parent = qtree;
   assert(qtree->nw != NULL);
+  qtree->nw->parent = qtree;
 
   //debug(TM, "\tsw: ");
   qtree->sw = quadtree_create( qtree->min_x, 
 			       (qtree->max_y - qtree->min_y) /2 + qtree->min_y,
 			       (qtree->max_x - qtree->min_x) /2 + qtree->min_x, 
 			       qtree->max_y);
-  qtree->sw->parent = qtree;
   assert(qtree->sw != NULL);
+  qtree->sw->parent = qtree;
 
   //debug(TM, "\tne:");
   qtree->ne = quadtree_create( (qtree->max_x - qtree->min_x) /2 + qtree->min_x, 
 			       qtree->min_y,
 			       qtree->max_x, 
 			       (qtree->max_y - qtree->min_y) /2 + qtree->min_y);
-  qtree->ne->parent = qtree;
   assert(qtree->ne != NULL);
+  qtree->ne->parent = qtree;
 
   //debug(TM, "\tse: ");
   qtree->se = quadtree_create( (qtree->max_x - qtree->min_x) /2 + qtree->min_x, 
 			       (qtree->max_y - qtree->min_y) /2 + qtree->min_y,
 			       qtree->max_x, 
 			       qtree->max_y);
-  qtree->se->parent = qtree;
   assert(qtree->se != NULL);
+  qtree->se->parent = qtree;
 
   return RET_OK;
 }
 
 
 
-void quadtree_reinsert_objects(quadtree_t * qtree) {
+ret_t quadtree_reinsert_objects(quadtree_t * qtree) {
   assert(qtree != NULL);
+  if(qtree == NULL) return RET_INV_PTR;
 
-  quadtree_object_t * chain_ptr = qtree->objects, * chain_ptr_next;
+  quadtree_object_t 
+    * chain_ptr = qtree->objects, 
+    * chain_ptr_next = NULL;
+
   qtree->objects = NULL;
   qtree->num = 0;
 
   while(chain_ptr != NULL) {
-    chain_ptr->parent = NULL;
     chain_ptr_next = chain_ptr->next;
+
+    chain_ptr->parent = NULL;
     chain_ptr->next = NULL;
 
-    quadtree_insert(qtree, chain_ptr);
+    if(quadtree_insert(qtree, chain_ptr) == NULL) return RET_ERR;
 
     chain_ptr = chain_ptr_next;
   }
+  return RET_OK;
 }
 
 
@@ -381,12 +388,23 @@ quadtree_t * quadtree_insert(quadtree_t * qtree, quadtree_object * object) {
   assert(found != NULL);
   assert(object->min_x >= found->min_x); assert(object->max_x < found->max_x);
   assert(object->min_y >= found->min_y); assert(object->max_y < found->max_y);
-
+  if(found == NULL) return NULL;
 
   if(found->num == MAX_POINTS && QUADTREE_IS_LEAVE(found)) {
+    
+    //quadtree_print(found, 0);
 
-    quadtree_split_note(found);
-    quadtree_reinsert_objects(found);
+    if(RET_IS_NOT_OK(quadtree_split_node(found))) {
+      debug(TM, "quadtree_split_node() failed");
+      return NULL;
+    }
+    if(RET_IS_NOT_OK(quadtree_reinsert_objects(found))) {
+      debug(TM, "quadtree_reinsert_objects() failed");
+      return NULL;
+    }
+
+    //quadtree_print(found, 0);
+
     return quadtree_insert(found, object);
   }
   else {

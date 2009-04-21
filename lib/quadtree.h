@@ -37,7 +37,7 @@ struct quadtree_object {
   void * object;
   quadtree_t * parent;
   
-  struct quadtree_object * next;
+  quadtree_object_t * next;
 };
 
 struct quadtree {

@@ -2173,7 +2173,7 @@ ret_t lmodel_add_via(logic_model_t * const lmodel, int layer,
   if(!obj) return RET_ERR;
 
   // add object to quadtree
-  if(!quadtree_insert(lmodel->root[layer], obj)) {
+  if(quadtree_insert(lmodel->root[layer], obj) == NULL) {
     debug(TM, "Can't insert via into quad tree.");
     lmodel_destroy_via(via);
     quadtree_object_destroy(obj);
@@ -2290,7 +2290,7 @@ ret_t lmodel_add_wire(logic_model_t * const lmodel, int layer,
   obj = quadtree_object_create(LM_TYPE_WIRE, (void *) wire, 
 			       wire_from_x, wire_from_y, wire_to_x, wire_to_y);
   if(!obj) return RET_ERR;
-  if(!quadtree_insert(lmodel->root[layer], obj)) {
+  if(quadtree_insert(lmodel->root[layer], obj) == NULL) {
     lmodel_destroy_wire(wire);
     quadtree_object_destroy(obj);
     return RET_ERR;
@@ -2351,7 +2351,9 @@ ret_t lmodel_add_gate(logic_model_t * const lmodel, int layer,
   if(obj == NULL) return RET_ERR;
   
   // add object to quadtree
-  if(!quadtree_insert(lmodel->root[layer], obj)) {
+  if(quadtree_insert(lmodel->root[layer], obj) == NULL) {
+    debug(TM, "insert into quad tree failed.");
+    assert( 1 == 0);
     lmodel_destroy_gate(gate);
     quadtree_object_destroy(obj);
     return RET_ERR;

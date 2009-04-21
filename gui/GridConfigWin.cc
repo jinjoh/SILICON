@@ -188,6 +188,8 @@ GridConfigWin::GridConfigWin(Gtk::Window *parent, grid_t * grid) {
       pColumn = p_treeview_uhg->get_column(0);
       if(pColumn) pColumn->set_sort_column(m_columns_uhg.m_col_offset);
 
+      Glib::RefPtr<Gtk::TreeSelection> refTreeSelection =  p_treeview_uhg->get_selection();
+      refTreeSelection->set_mode(Gtk::SELECTION_MULTIPLE);
     }
 
     refXml->get_widget("button_add_uhg", p_button_add_uhg);
@@ -231,6 +233,9 @@ GridConfigWin::GridConfigWin(Gtk::Window *parent, grid_t * grid) {
 
       pColumn = p_treeview_uvg->get_column(0);
       if(pColumn) pColumn->set_sort_column(m_columns_uvg.m_col_offset);      
+
+      Glib::RefPtr<Gtk::TreeSelection> refTreeSelection =  p_treeview_uhg->get_selection();
+      refTreeSelection->set_mode(Gtk::SELECTION_MULTIPLE);
     }
 
     refXml->get_widget("button_add_uvg", p_button_add_uvg);
@@ -519,23 +524,25 @@ void GridConfigWin::on_button_add_uvg_clicked() {
 void GridConfigWin::on_button_remove_uhg_clicked() {
   Glib::RefPtr<Gtk::TreeSelection> ref_tree_selection =  p_treeview_uhg->get_selection();
   if(ref_tree_selection != NULL) {
-    Gtk::TreeModel::iterator iter = ref_tree_selection->get_selected();
-    if(*iter) {
-      Gtk::TreeModel::Row row = *iter; 
-      ref_liststore_uhg->erase(iter);
-      update_uhg_structs();
-    }
+
+    std::vector<Gtk::TreeModel::Path> pathlist = ref_tree_selection->get_selected_rows();
+
+    for(std::vector<Gtk::TreeModel::Path>::reverse_iterator iter = pathlist.rbegin(); iter != pathlist.rend(); ++iter)
+      ref_liststore_uhg->erase(ref_tree_selection->get_model()->get_iter (*iter));
+    
+    update_uhg_structs();
   }
 }
 
 void GridConfigWin::on_button_remove_uvg_clicked() {
   Glib::RefPtr<Gtk::TreeSelection> ref_tree_selection =  p_treeview_uvg->get_selection();
   if(ref_tree_selection != NULL) {
-    Gtk::TreeModel::iterator iter = ref_tree_selection->get_selected();
-    if(*iter) {
-      Gtk::TreeModel::Row row = *iter; 
-      ref_liststore_uvg->erase(iter);
-      update_uvg_structs();
-    }
+
+    std::vector<Gtk::TreeModel::Path> pathlist = ref_tree_selection->get_selected_rows();
+
+    for(std::vector<Gtk::TreeModel::Path>::reverse_iterator iter = pathlist.rbegin(); iter != pathlist.rend(); ++iter)
+      ref_liststore_uvg->erase(ref_tree_selection->get_model()->get_iter (*iter));
+    
+    update_uvg_structs();
   }
 }

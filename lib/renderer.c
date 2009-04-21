@@ -825,7 +825,8 @@ ret_t render_gates(RENDERER_FUNC_PARAMS) {
   if(l != -1) {
     qtree_callback_params_t params = {renderer, data_ptr, dst_img, LM_TYPE_GATE, min_x, min_y, max_x, max_y};
     quadtree_traverse_func_t cb_func = (quadtree_traverse_func_t) &cb_render_object;
-    quadtree_traverse_downto_bbox(data_ptr->lmodel->root[l], min_x, min_y,max_x, max_y, cb_func, &params);
+    //quadtree_traverse_downto_bbox(data_ptr->lmodel->root[l], min_x, min_y,max_x, max_y, cb_func, &params);
+    quadtree_traverse_complete_within_region(data_ptr->lmodel->root[l], min_x, min_y,max_x, max_y, cb_func, &params);
   }
   return RET_OK;
 }
@@ -835,7 +836,7 @@ ret_t render_wires(RENDERER_FUNC_PARAMS) {
 
   qtree_callback_params_t params = {renderer, data_ptr, dst_img, LM_TYPE_WIRE, min_x, min_y, max_x, max_y};
   quadtree_traverse_func_t cb_func = (quadtree_traverse_func_t) &cb_render_object;
-  quadtree_traverse_downto_bbox(data_ptr->lmodel->root[layer], min_x, min_y,max_x, max_y, cb_func, &params);
+  quadtree_traverse_complete_within_region(data_ptr->lmodel->root[layer], min_x, min_y,max_x, max_y, cb_func, &params);
 
   return RET_OK;
 }
@@ -844,7 +845,7 @@ ret_t render_vias(RENDERER_FUNC_PARAMS) {
 
   qtree_callback_params_t params = {renderer, data_ptr, dst_img, LM_TYPE_VIA, min_x, min_y, max_x, max_y};
   quadtree_traverse_func_t cb_func = (quadtree_traverse_func_t) &cb_render_object;
-  quadtree_traverse_downto_bbox(data_ptr->lmodel->root[layer], min_x, min_y,max_x, max_y, cb_func, &params);
+  quadtree_traverse_complete_within_region(data_ptr->lmodel->root[layer], min_x, min_y,max_x, max_y, cb_func, &params);
 
   return RET_OK;
 }
