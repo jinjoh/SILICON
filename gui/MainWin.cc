@@ -63,8 +63,7 @@ MainWin::MainWin() :
 
 
   if((plugin_func_table = plugins_init(getenv("DEGATE_PLUGINS"))) == NULL) {
-    debug(TM, "Can't load plugins");
-    exit(1);
+    debug(TM, "Warning: can't load plugins");
   }
 
   // setup window
