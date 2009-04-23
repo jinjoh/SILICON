@@ -7,7 +7,7 @@ INCLUDEPATH = -I. -Ilib -Ilogiclayerserialization/src\
                 -I/usr/local/include/cc++2 \
 		-I/usr/include/cc++2
 
-DEFINES=-DHAVE_MMAP64
+# DEFINES=-DHAVE_MMAP64
 
 #OPTIMIZATION_FLAGS=-O3 -finline-functions -finline-functions-called-once -fearly-inlining
 OPTIMIZATION_FLAGS=-O0
@@ -89,7 +89,7 @@ check: $(LIB_OBJS)
 
 asn1_gen_stub_code:
 	-mkdir logiclayerserialization/src
-	cd logiclayerserialization/src && $(ASN1C) -fcompound-names ../protocol.asn1
+	cd logiclayerserialization/src && $(ASN1C) -fskeletons-copy -fcompound-names ../protocol.asn1
 
 asn1_lib:
 	cd logiclayerserialization &&  make
