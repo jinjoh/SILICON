@@ -98,7 +98,7 @@ OBJS=${ASN_MODULE_SOURCES:.c=.o}
 all: $(TARGET)
 
 $(TARGET): ${OBJS}
-	ar rs $(TARGET) ${OBJS} $(LDFLAGS) $(LIBS)
+	ar rs $(TARGET) ${OBJS}
 
 .SUFFIXES:
 .SUFFIXES: .c .o
