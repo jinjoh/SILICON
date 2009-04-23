@@ -87,6 +87,7 @@ class ImageWin : public Gtk::DrawingArea {
   void set_render_background_images(image_t ** bg_images, scaling_manager_t * scaling_manager);
   void set_current_layer(int layer);
   void toggle_render_info_layer(int slot_pos);
+  void set_render_info_layer_state(int slot_pos, bool state);
   bool get_renderer_func_enabled(int slot_pos);
   std::list<Glib::ustring> get_render_func_names();
 

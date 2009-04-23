@@ -643,6 +643,13 @@ void ImageWin::toggle_render_info_layer(int slot_pos) {
   }
 }
 
+void ImageWin::set_render_info_layer_state(int slot_pos, bool state) {
+  if(renderer) {
+    if(get_renderer_func_enabled(slot_pos) != state)
+      renderer_toggle_render_func(renderer, slot_pos);
+  }
+}
+
 std::list<Glib::ustring> ImageWin::get_render_func_names() {
   std::list<Glib::ustring> L;
   

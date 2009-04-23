@@ -238,6 +238,7 @@ lmodel_gate_template_set_t * lmodel_create_gate_template_set(lmodel_gate_templat
 ret_t lmodel_add_gate_to_gate_set(logic_model_t * const lmodel, lmodel_gate_t * const gate);
 ret_t lmodel_remove_gate_from_gate_set(logic_model_t * const lmodel, lmodel_gate_t * const gate);
 
+
 ret_t lmodel_serialize_to_file(const logic_model_t * const lmodel, const char * const project_dir);
 ret_t lmodel_load_files(logic_model_t * const lmodel, const char * const project_dir, int num_layers);
 
@@ -370,6 +371,8 @@ ret_t lmodel_gate_template_set_port(logic_model_t * lmodel,
 				    lmodel_gate_template_t * const tmpl, unsigned int id, const char * const port_name, LM_PORT_TYPE port_type);
 
 ret_t lmodel_remove_gate_template(logic_model_t * const lmodel, lmodel_gate_template_t * const tmpl);
+ret_t lmodel_remove_gate_template_from_template_set(lmodel_gate_template_set_t ** tmpl_set, 
+						    const lmodel_gate_template_t * const tmpl);
 
 // port handling
 

@@ -602,30 +602,51 @@ ret_t raise_dialog_before(Gtk::Window * parent, plugin_params_t * pparams) {
   /* This will show a dialog window with a list of available gate types. */
   GateSelectWin gsWin(parent, pparams->project->lmodel);
   matching_params->tmpl_list = gsWin.get_multiple();
-  lmodel_gate_template_set_t * tmpl_list_ptr = matching_params->tmpl_list;
+  lmodel_gate_template_set_t 
+    * tmpl_list_ptr = matching_params->tmpl_list,
+    * tmpl_list_head = tmpl_list_ptr;
 
 
   if(tmpl_list_ptr == NULL) return RET_CANCEL;
 
   while(tmpl_list_ptr != NULL) {
-    lmodel_gate_template * tmpl = tmpl_list_ptr->gate;
+    lmodel_gate_template_t * tmpl = tmpl_list_ptr->gate;
 
     if(tmpl) {
       /* Check, if there is a graphical representation for the gate template. */
       if(tmpl->master_image_min_x < tmpl->master_image_max_x &&
 	 tmpl->master_image_min_y < tmpl->master_image_max_y) {
 
+	
 	if(pparams->max_x - pparams->min_x < tmpl->master_image_max_x - tmpl->master_image_min_x ||
 	   pparams->max_y - pparams->min_y < tmpl->master_image_max_y - tmpl->master_image_min_y) {
 	  
+	  if(tmpl_list_head->next == NULL) { // if there is only one element
+	    Gtk::MessageDialog dialog(*parent, 
+				      "The template to match is larger than the search area.", 
+				      true, Gtk::MESSAGE_ERROR);
+	    dialog.set_title("Error");
+	    dialog.run();
+	    return RET_ERR;
+	  }
+	  
+	  if(RET_IS_NOT_OK(ret = lmodel_remove_gate_template_from_template_set(&tmpl_list_head, tmpl))) 
+	    return ret;
+	  
+	}
+      }
+      else {
+	if(tmpl_list_head->next == NULL) { // if there is only one element
 	  Gtk::MessageDialog dialog(*parent, 
-				    "The template to match is larger than the "
-				    "aera, where the template should be searched.", 
+				    "There is no template for the selected gate type.", 
 				    true, Gtk::MESSAGE_ERROR);
 	  dialog.set_title("Error");
 	  dialog.run();
 	  return RET_ERR;
 	}
+
+	if(RET_IS_NOT_OK(ret = lmodel_remove_gate_template_from_template_set(&tmpl_list_head, tmpl))) 
+	  return ret;
       }
     }
     tmpl_list_ptr = tmpl_list_ptr->next;
@@ -633,7 +654,7 @@ ret_t raise_dialog_before(Gtk::Window * parent, plugin_params_t * pparams) {
 
   TemplateMatchingParamsWin paramsWin(parent, 
 				      pparams->project->scaling_manager,
-				      0.45, 0.6, 
+				      0.45, 0.7,
 				      MAX(1, pparams->project->lambda >> 1), 
 				      2);
   

@@ -3338,6 +3338,39 @@ ret_t lmodel_adjust_gate_orientation_for_all_gates(logic_model_t * lmodel, lmode
   return RET_OK;
 }
 
+/**
+ * Remove a template from a template set. It does not destroy the template.
+ */
+ret_t lmodel_remove_gate_template_from_template_set(lmodel_gate_template_set_t ** tmpl_set, 
+					       const lmodel_gate_template_t * const tmpl) {
+
+  lmodel_gate_template_set_t * ptr, *ptr_next;
+  assert(tmpl_set != NULL && *tmpl_set != NULL);
+  assert(tmpl != NULL);
+  if(tmpl_set == NULL || *tmpl_set == NULL || tmpl == NULL) return RET_INV_PTR;
+
+  ptr = *tmpl_set;
+  if(ptr->gate == tmpl) {
+    *tmpl_set = ptr->next;
+    free(ptr);
+    return RET_OK;
+  }
+
+  while(ptr->next) {
+
+    if(ptr->next->gate == tmpl) {
+
+      ptr_next = ptr->next->next;
+      free(ptr->next);
+
+      ptr->next = ptr_next;
+      return RET_OK;
+    }
+   ptr = ptr->next;
+  }
+ 
+  return RET_OK;
+}
 
 /** 
  * Remove a gate template from logic model and free corresponding memory.
@@ -3350,33 +3383,8 @@ ret_t lmodel_remove_gate_template(logic_model_t * const lmodel, lmodel_gate_temp
   if(!lmodel || !tmpl || !lmodel->gate_template_set) return RET_INV_PTR;
 
   if(RET_IS_NOT_OK(ret = lmodel_remove_refs_to_gate_template(lmodel, tmpl))) return ret;
-  
-  lmodel_gate_template_set_t * ptr = lmodel->gate_template_set, * ptr_next;
-  
-  if(ptr->gate == tmpl) {
-    // successor?
-    lmodel->gate_template_set = ptr->next ? ptr->next : NULL;
-
-    if(RET_IS_NOT_OK(ret = lmodel_destroy_gate_template(ptr->gate))) return ret;
-    free(ptr);
-    return RET_OK;
-  }
-
-  while(ptr->next) {
-
-    if(ptr->next->gate == tmpl) {
-
-      ptr_next = ptr->next->next;
-
-      if(RET_IS_NOT_OK(ret = lmodel_destroy_gate_template(ptr->next->gate))) return ret;
-      free(ptr->next);
-
-      ptr->next = ptr_next;
-      return RET_OK;
-    }
-    
-    ptr = ptr->next;
-  }
+  if(RET_IS_NOT_OK(ret = lmodel_remove_gate_template_from_template_set(&lmodel->gate_template_set, tmpl))) return ret;
+  if(RET_IS_NOT_OK(ret = lmodel_destroy_gate_template(tmpl))) return ret;
   return RET_OK;
 }
 

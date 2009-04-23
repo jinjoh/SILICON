@@ -76,6 +76,7 @@ class MainWin : public Gtk::Window  {
   virtual void on_menu_view_next_layer();
   virtual void on_menu_view_prev_layer();
   virtual void on_menu_view_grid_config();
+  virtual void on_menu_view_toggle_all_info_layers();
 
   // Layer menu
   virtual void on_menu_layer_import_background();
@@ -166,7 +167,10 @@ class MainWin : public Gtk::Window  {
  private:
   bool shift_key_pressed;
   bool project_changed_flag;
+  bool info_layers_visible;
+  bool info_layers_checkbox_ignore_sig; // if it is true, signals emitted by render-slot-checkboxes are ignored
   Glib::Thread * thread;
+  std::vector<std::pair<Gtk::CheckMenuItem *, bool> > slot_states;
   TOOL tool;
   std::set<std::pair<void *, LM_OBJECT_TYPE> > selected_objects;
 

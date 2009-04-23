@@ -87,6 +87,27 @@ MainWin::MainWin() :
   // setup popup menu 
   Gtk::Menu::MenuList& menulist = m_Menu_Popup.items();
   //menulist.push_back( Gtk::Menu_Helpers::MenuElem("_Lock", sigc::mem_fun(*this, &MainWin::on_popup_menu_lock_region) ) );
+
+
+  menulist.push_back( Gtk::Menu_Helpers::MenuElem("Set port on gate", 
+						  sigc::mem_fun(*this, &MainWin::on_popup_menu_set_port) ));
+
+  menulist.push_back( Gtk::Menu_Helpers::MenuElem("Set _name for object", 
+						  sigc::mem_fun(*this, &MainWin::on_popup_menu_set_name) ));
+
+
+  menulist.push_back( Gtk::Menu_Helpers::SeparatorElem());
+
+  menulist.push_back( Gtk::Menu_Helpers::MenuElem("Add a horizontal grid line", 
+						  sigc::mem_fun(*this, &MainWin::on_popup_menu_add_horizontal_grid_line) ));
+
+  menulist.push_back( Gtk::Menu_Helpers::MenuElem("Add a vertical grid line", 
+						  sigc::mem_fun(*this, &MainWin::on_popup_menu_add_vertical_grid_line) ));
+
+
+  menulist.push_back( Gtk::Menu_Helpers::SeparatorElem());
+
+
   menulist.push_back( Gtk::Menu_Helpers::MenuElem("Set marker M1 up", 
 						  sigc::bind<MARKER_TYPE>(sigc::mem_fun(*this, &MainWin::on_popup_menu_set_alignment_marker),
 						  MARKER_TYPE_M1_UP) ));
@@ -103,21 +124,7 @@ MainWin::MainWin() :
 						  sigc::bind<MARKER_TYPE>(sigc::mem_fun(*this, &MainWin::on_popup_menu_set_alignment_marker),
 						  MARKER_TYPE_M2_DOWN) ));
 
-  menulist.push_back( Gtk::Menu_Helpers::SeparatorElem());
 
-  menulist.push_back( Gtk::Menu_Helpers::MenuElem("Set _name for object", 
-						  sigc::mem_fun(*this, &MainWin::on_popup_menu_set_name) ));
-
-  menulist.push_back( Gtk::Menu_Helpers::MenuElem("Set port on gate", 
-						  sigc::mem_fun(*this, &MainWin::on_popup_menu_set_port) ));
-
-  menulist.push_back( Gtk::Menu_Helpers::SeparatorElem());
-
-  menulist.push_back( Gtk::Menu_Helpers::MenuElem("Add a horizontal grid line", 
-						  sigc::mem_fun(*this, &MainWin::on_popup_menu_add_horizontal_grid_line) ));
-
-  menulist.push_back( Gtk::Menu_Helpers::MenuElem("Add a vertical grid line", 
-						  sigc::mem_fun(*this, &MainWin::on_popup_menu_add_vertical_grid_line) ));
 
   m_Menu_Popup.accelerate(*this);
 
@@ -269,6 +276,10 @@ void MainWin::initialize_menu() {
 			Gtk::AccelKey("<control>G"),
 			sigc::mem_fun(*this, &MainWin::on_menu_view_grid_config));
 
+  m_refActionGroup->add(Gtk::Action::create("ViewToggleInfoLayer", 
+					    "Disable all info layers", "Disable all info layers"),
+			Gtk::AccelKey("<control>3"),
+			sigc::mem_fun(*this, &MainWin::on_menu_view_toggle_all_info_layers));
 
   /*  m_refActionGroup->add(Gtk::Action::create("ViewDistanceToColor", "Define color for similarity filter", 
 					    "Define color for similarity filter"),
@@ -448,6 +459,8 @@ void MainWin::initialize_menu() {
         "      <menuitem action='ViewPrevLayer'/>"
         "      <separator/>"
         "      <menuitem action='ViewGridConfiguration'/>"  
+        "      <separator/>"
+        "      <menuitem action='ViewToggleInfoLayer'/>"  
         "    </menu>"
         "    <menu action='ToolsMenu'>"
         "      <menuitem action='ToolSelect'/>"
@@ -616,6 +629,10 @@ void MainWin::initialize_menu_algorithm_funcs() {
 }
 
 void MainWin::initialize_menu_render_funcs() {
+
+  info_layers_visible = true;
+  info_layers_checkbox_ignore_sig = false;
+
   Gtk::MenuItem * pMenuItem = dynamic_cast<Gtk::MenuItem*>(m_refUIManager->get_widget("/MenuBar/ViewMenu/ViewPrevLayer"));
   if(pMenuItem) {
     Gtk::Menu * pMenu = dynamic_cast<Gtk::Menu*>(pMenuItem->get_parent());
@@ -628,15 +645,23 @@ void MainWin::initialize_menu_render_funcs() {
       sepMenuItem->show();
 
       std::list<Glib::ustring> func_names = imgWin.get_render_func_names();
+      assert(func_names.size() != 0);
+      slot_states.reserve(func_names.size());
+
       std::list<Glib::ustring>::iterator i;
       int slot_pos = 0;
       for(i = func_names.begin(); i != func_names.end(); i++, slot_pos++) {
 	bool rf_initial_state = imgWin.get_renderer_func_enabled(slot_pos);
+
 	Gtk::CheckMenuItem *menuItem = new Gtk::CheckMenuItem(*i, true);
 	menuItem->set_active(rf_initial_state);
 	pMenu->append(*menuItem);
 	menuItem->show();
-	menuItem->signal_toggled().connect(sigc::bind<int>(sigc::mem_fun(*this, &MainWin::on_view_info_layer_toggled), slot_pos));
+	menuItem->signal_toggled().connect(sigc::bind<int>(sigc::mem_fun(*this, &MainWin::on_view_info_layer_toggled), 
+							   slot_pos));
+
+	std::pair<Gtk::CheckMenuItem *, bool> p(menuItem, rf_initial_state);
+	slot_states.push_back(p);
       }
 
       
@@ -645,9 +670,44 @@ void MainWin::initialize_menu_render_funcs() {
 
 }
 
-
 void MainWin::on_view_info_layer_toggled(int slot_pos) {
-  imgWin.toggle_render_info_layer(slot_pos);
+  if(info_layers_checkbox_ignore_sig == false) {
+    slot_states[slot_pos].second = !slot_states[slot_pos].second;
+    imgWin.toggle_render_info_layer(slot_pos);
+    imgWin.update_screen();
+  }
+}
+
+void MainWin::on_menu_view_toggle_all_info_layers() {
+  int slot_pos = 0;
+  assert(slot_states.size() > 0);
+
+  std::vector< std::pair<Gtk::CheckMenuItem *, bool> >::iterator it = slot_states.begin();
+  if(slot_states.size() > 2) {it++; it++; slot_pos += 2;}
+
+  // This is a hack, because we have not stored sigc::connection in order to  disconnect it here.
+  info_layers_checkbox_ignore_sig = true; 
+  while(it != slot_states.end()) {
+    
+    bool new_state = info_layers_visible == true ? false : (*it).second;
+    ((*it).first)->set_active(new_state);
+    imgWin.set_render_info_layer_state(slot_pos, new_state);
+    it++;
+    slot_pos++;
+  }
+  info_layers_checkbox_ignore_sig = false;
+
+  Gtk::MenuItem * item = dynamic_cast<Gtk::MenuItem *>(m_refUIManager->get_widget("/MenuBar/ViewMenu/ViewToggleInfoLayer"));
+  assert(item != NULL);
+  if(item != NULL) {
+    
+    Gtk::Label * lab = dynamic_cast<Gtk::Label*>( item->get_child() ); 
+    assert(lab != NULL);
+    if(lab != NULL)
+      lab->set_text(info_layers_visible == true ? "Enable all info layers" : "Disable all info layers");
+  }
+
+  info_layers_visible = !info_layers_visible;
   imgWin.update_screen();
 }
 
@@ -705,6 +765,7 @@ void MainWin::set_widget_sensitivity(bool state) {
   set_menu_item_sensitivity("/MenuBar/ViewMenu/ViewNextLayer", state);
   set_menu_item_sensitivity("/MenuBar/ViewMenu/ViewPrevLayer", state);
   set_menu_item_sensitivity("/MenuBar/ViewMenu/ViewGridConfiguration", state);
+  set_menu_item_sensitivity("/MenuBar/ViewMenu/ViewToggleInfoLayer", state);
 
   set_menu_item_sensitivity("/MenuBar/ToolsMenu/ToolSelect", state);
   set_menu_item_sensitivity("/MenuBar/ToolsMenu/ToolMove", state);
@@ -2264,6 +2325,7 @@ void MainWin::on_menu_logic_isolate() {
 void MainWin::on_menu_logic_connection_inspector() {
   if(main_project != NULL && ciWin != NULL) ciWin->show();
 }
+
 
 void MainWin::on_menu_view_grid_config() {
 
