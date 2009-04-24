@@ -35,70 +35,71 @@ GateConfigWin::GateConfigWin(Gtk::Window *parent,
   char file[PATH_MAX];
   snprintf(file, PATH_MAX, "%s/glade/gate_create.glade", getenv("DEGATE_HOME"));
   port_counter = 0;
-  
   this->lmodel = lmodel;
   this->gate_template = gate_template;
 
-    //Load the Glade file and instiate its widgets:
-    Glib::RefPtr<Gnome::Glade::Xml> refXml;
+  this->parent = parent;
+
+  //Load the Glade file and instiate its widgets:
+  Glib::RefPtr<Gnome::Glade::Xml> refXml;
 #ifdef GLIBMM_EXCEPTIONS_ENABLED
-    try {
-      refXml = Gnome::Glade::Xml::create(file);
-    }
-    catch(const Gnome::Glade::XmlError& ex) {
-      std::cerr << ex.what() << std::endl;
-      return;
-    }
+  try {
+    refXml = Gnome::Glade::Xml::create(file);
+  }
+  catch(const Gnome::Glade::XmlError& ex) {
+    std::cerr << ex.what() << std::endl;
+    return;
+  }
 #else
-    std::auto_ptr<Gnome::Glade::XmlError> error;
-    refXml = Gnome::Glade::Xml::create(file, "", "", error);
-    if(error.get()) {
-      std::cerr << error->what() << std::endl;
-      return ;
-    }
+  std::auto_ptr<Gnome::Glade::XmlError> error;
+  refXml = Gnome::Glade::Xml::create(file, "", "", error);
+  if(error.get()) {
+    std::cerr << error->what() << std::endl;
+    return ;
+  }
 #endif
-
-    //Get the Glade-instantiated Dialog:
-    refXml->get_widget("gate_create_dialog", pDialog);
-    if(pDialog) {
-      //Get the Glade-instantiated Button, and connect a signal handler:
-      Gtk::Button* pButton = NULL;
-
-      // connect signals
-      refXml->get_widget("cancel_button", pButton);
-      if(pButton)
- 	pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_cancel_button_clicked));
-
-      refXml->get_widget("ok_button", pButton);
-      if(pButton)
-	pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_ok_button_clicked) );
-
-      refXml->get_widget("inport_add_button", pButton);
-      if(pButton)
-	pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_inport_add_button_clicked) );
-
-      refXml->get_widget("inport_remove_button", pButton);
-      if(pButton)
-	pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_inport_remove_button_clicked) );
-
-      refXml->get_widget("outport_add_button", pButton);
-      if(pButton)
-	pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_outport_add_button_clicked) );
-
-      refXml->get_widget("outport_remove_button", pButton);
-      if(pButton)
-	pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_outport_remove_button_clicked) );
-
+  
+  //Get the Glade-instantiated Dialog:
+  refXml->get_widget("gate_create_dialog", pDialog);
+  if(pDialog) {
+    //Get the Glade-instantiated Button, and connect a signal handler:
+    Gtk::Button* pButton = NULL;
+    
+    // connect signals
+    refXml->get_widget("cancel_button", pButton);
+    if(pButton)
+      pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_cancel_button_clicked));
+    
+    refXml->get_widget("ok_button", pButton);
+    if(pButton)
+      pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_ok_button_clicked) );
+    
+    refXml->get_widget("inport_add_button", pButton);
+    if(pButton)
+      pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_inport_add_button_clicked) );
+    
+    refXml->get_widget("inport_remove_button", pButton);
+    if(pButton)
+      pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_inport_remove_button_clicked) );
+    
+    refXml->get_widget("outport_add_button", pButton);
+    if(pButton)
+      pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_outport_add_button_clicked) );
+    
+    refXml->get_widget("outport_remove_button", pButton);
+    if(pButton)
+      pButton->signal_clicked().connect(sigc::mem_fun(*this, &GateConfigWin::on_outport_remove_button_clicked) );
+    
       refListStore_out_ports = Gtk::ListStore::create(m_Columns);
       refListStore_in_ports = Gtk::ListStore::create(m_Columns);
-
+      
       refXml->get_widget("treeview_outports", pTreeView_out_ports);
       if(pTreeView_out_ports) {
 	pTreeView_out_ports->set_model(refListStore_out_ports);
 	pTreeView_out_ports->append_column("Port ID", m_Columns.m_col_id);
 	pTreeView_out_ports->append_column_editable("Port Name", m_Columns.m_col_text);
       }
-
+      
       refXml->get_widget("treeview_inports", pTreeView_in_ports);
       if(pTreeView_in_ports) {
 	pTreeView_in_ports->set_model(refListStore_in_ports);
@@ -221,37 +222,41 @@ void GateConfigWin::on_ok_button_clicked() {
     original_ports.remove(id);
   }
 
-  /*
-
   // remaining entries in original_ports are not in list stores. we can remove them from the logic model
   std::list<unsigned int>::iterator i;
   for(i = original_ports.begin(); i != original_ports.end(); ++i) {
     debug(TM, "remove port from templates / gates with id=%d", *i);
 
     if(RET_IS_NOT_OK(lmodel_gate_template_remove_port(gate_template, *i))) {
-      // XXX error
+
+      Gtk::MessageDialog dialog(*parent, "Can't remove gate port", true, Gtk::MESSAGE_ERROR);
+      dialog.set_title("Error");      
     }
   
     if(RET_IS_NOT_OK(lmodel_update_all_gate_ports(lmodel, gate_template))) {
-      // XXX error
+      Gtk::MessageDialog dialog(*parent, "Can't update gates", true, Gtk::MESSAGE_ERROR);
+      dialog.set_title("Error");      
     }
   }
 
 
-  */
 
   Gdk::Color fill_color = colorbutton_fill_color->get_color();
   Gdk::Color frame_color = colorbutton_frame_color->get_color();
 
-  lmodel_gate_template_set_color(gate_template,
-				 MERGE_CHANNELS(fill_color.get_red() >> 8,
-						fill_color.get_green() >> 8,
-						fill_color.get_blue() >> 8,
-						colorbutton_fill_color->get_alpha() >> 8),
-				 MERGE_CHANNELS(frame_color.get_red() >> 8,
-						frame_color.get_green() >> 8,
-						frame_color.get_blue() >> 8,
-						colorbutton_frame_color->get_alpha() >> 8));
+  if(RET_IS_NOT_OK(lmodel_gate_template_set_color(gate_template,
+						  MERGE_CHANNELS(fill_color.get_red() >> 8,
+								 fill_color.get_green() >> 8,
+								 fill_color.get_blue() >> 8,
+								 colorbutton_fill_color->get_alpha() >> 8),
+						  MERGE_CHANNELS(frame_color.get_red() >> 8,
+								 frame_color.get_green() >> 8,
+								 frame_color.get_blue() >> 8,
+								 colorbutton_frame_color->get_alpha() >> 8)))) {
+    Gtk::MessageDialog dialog(*parent, "Can't update colors", true, Gtk::MESSAGE_ERROR);
+    dialog.set_title("Error");      
+
+  }
   
 
   pDialog->hide();

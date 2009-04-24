@@ -52,6 +52,8 @@ class GateConfigWin  {
   bool run();
 
   private:
+  Gtk::Window *parent;
+
   logic_model_t * lmodel;
   lmodel_gate_template_t * gate_template;
   unsigned int port_counter;
