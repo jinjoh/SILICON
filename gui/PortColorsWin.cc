@@ -203,7 +203,7 @@ void PortColorsWin::apply_colors() {
 
 void PortColorsWin::on_remove_button_clicked() {
   Glib::RefPtr<Gtk::TreeSelection> refTreeSelection =  pTreeView->get_selection();
-  if(refTreeSelection != NULL) {
+  if(refTreeSelection) {
     Gtk::TreeModel::iterator iter = refTreeSelection->get_selected();
     if(*iter) {
       Gtk::TreeModel::Row row = *iter; 
@@ -240,7 +240,7 @@ void PortColorsWin::on_edit_button_clicked() {
   Gtk::ColorSelectionDialog dialog("Select a color");
 
   Glib::RefPtr<Gtk::TreeSelection> refTreeSelection =  pTreeView->get_selection();
-  if(refTreeSelection != NULL) {
+  if(refTreeSelection) {
     Gtk::TreeModel::iterator iter = refTreeSelection->get_selected();
     if(*iter) {
       Gtk::TreeModel::Row row = *iter; 
@@ -276,7 +276,7 @@ void PortColorsWin::on_edit_button_clicked() {
 
 void PortColorsWin::on_selection_changed() {
   Glib::RefPtr<Gtk::TreeSelection> refTreeSelection =  pTreeView->get_selection();
-  if(refTreeSelection != NULL) {
+  if(refTreeSelection) {
     Gtk::TreeModel::iterator iter = refTreeSelection->get_selected();
     if(*iter) {
       pEditButton->set_sensitive(true);
