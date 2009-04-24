@@ -794,7 +794,7 @@ ret_t lmodel_gate_template_remove_port(lmodel_gate_template_t * const tmpl, unsi
 
   lmodel_gate_template_port_t 
     * ptr = tmpl->ports,
-    * ptr_last = NULL;
+    * ptr_next = NULL;
 
   if(ptr->id == port_id) {
     if(ptr->port_name) free(ptr->port_name);
@@ -806,8 +806,9 @@ ret_t lmodel_gate_template_remove_port(lmodel_gate_template_t * const tmpl, unsi
   while(ptr != NULL && ptr->next != NULL) {
     if(ptr->next->id == port_id) {
       if(ptr->next->port_name) free(ptr->next->port_name);
-      ptr->next = ptr->next->next;
+      ptr_next = ptr->next->next;
       free(ptr->next);
+      ptr->next = ptr_next;
       return RET_OK;
     }
     ptr = ptr->next;
