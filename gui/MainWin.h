@@ -166,6 +166,7 @@ class MainWin : public Gtk::Window  {
 
  private:
   bool shift_key_pressed;
+  bool control_key_pressed;
   bool project_changed_flag;
   bool info_layers_visible;
   bool info_layers_checkbox_ignore_sig; // if it is true, signals emitted by render-slot-checkboxes are ignored

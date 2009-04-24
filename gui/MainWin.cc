@@ -132,6 +132,7 @@ MainWin::MainWin() :
   main_project = NULL;
   set_project_changed_state(false);
   update_title();
+  control_key_pressed = false;
   shift_key_pressed = false;
   imgWin.set_shift_key_state(false);
   
@@ -1408,37 +1409,40 @@ void MainWin::on_h_adjustment_changed() {
 void MainWin::on_menu_others() {
 }
 
+// here is a list og images for each mouse cursor type:
+// http://www.pygtk.org/docs/pygtk/gdk-constants.html
+
 void MainWin::on_menu_tools_select() {
   Glib::RefPtr<Gdk::Window> window = imgWin.get_window();
-  window->set_cursor(Gdk::Cursor(Gdk::ARROW));
+  window->set_cursor(Gdk::Cursor(Gdk::LEFT_PTR));
   tool = TOOL_SELECT;
   imgWin.set_tool(tool);
 }
 
 void MainWin::on_menu_tools_move() {
   Glib::RefPtr<Gdk::Window> window = imgWin.get_window();
-  window->set_cursor(Gdk::Cursor(Gdk::HAND1));
+  window->set_cursor(Gdk::Cursor(Gdk::FLEUR));
   tool = TOOL_MOVE;
   imgWin.set_tool(tool);
 }
 
 void MainWin::on_menu_tools_wire() {
   Glib::RefPtr<Gdk::Window> window = imgWin.get_window();
-  window->set_cursor(Gdk::Cursor(Gdk::CROSSHAIR));
+  window->set_cursor(Gdk::Cursor(Gdk::TCROSS));
   tool = TOOL_WIRE;
   imgWin.set_tool(tool);
 }
 
 void MainWin::on_menu_tools_via_up() {
   Glib::RefPtr<Gdk::Window> window = imgWin.get_window();
-  window->set_cursor(Gdk::Cursor(Gdk::DOTBOX));
+  window->set_cursor(Gdk::Cursor(Gdk::CROSS));
   tool = TOOL_VIA_UP;
   imgWin.set_tool(tool);
 }
 
 void MainWin::on_menu_tools_via_down() {
   Glib::RefPtr<Gdk::Window> window = imgWin.get_window();
-  window->set_cursor(Gdk::Cursor(Gdk::DOTBOX));
+  window->set_cursor(Gdk::Cursor(Gdk::CROSS));
   tool = TOOL_VIA_DOWN;
   imgWin.set_tool(tool);
 }
@@ -1932,6 +1936,9 @@ bool MainWin::on_key_release_event_received(GdkEventKey * event) {
     imgWin.set_shift_key_state(false);
     if(tool == TOOL_WIRE) imgWin.update_screen();
   }
+  else if(event->keyval == GDK_Control_L || event->keyval == GDK_Control_R) {
+    control_key_pressed = false;
+  }
   return false;
 }
 
@@ -1940,6 +1947,9 @@ bool MainWin::on_key_press_event_received(GdkEventKey * event) {
     shift_key_pressed = true;
     imgWin.set_shift_key_state(true);
     if(tool == TOOL_WIRE) imgWin.update_screen();
+  }
+  else if(event->keyval == GDK_Control_L || event->keyval == GDK_Control_R) {
+    control_key_pressed = true;
   }
   return false;
 }
@@ -2030,7 +2040,7 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
   std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
 
   // try to remove a single object
-  if(obj_ptr != NULL && shift_key_pressed == true) {
+  if(obj_ptr != NULL && control_key_pressed == true) {
     //debug(TM, "remove single object from selection");      
     it = selected_objects.find(std::pair<void *, LM_OBJECT_TYPE>(obj_ptr, object_type));
     if(it != selected_objects.end()) {
@@ -2041,7 +2051,7 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
     }
   }
 
-  if(shift_key_pressed == false){
+  if(control_key_pressed == false){
     clear_selection();
   }
   
@@ -2166,7 +2176,7 @@ void MainWin::on_popup_menu_set_port() {
     
     PortSelectWin psWin(this, gate);
     lmodel_gate_template_port_t * template_port = psWin.run();
-    if(template_port) {
+    if(template_port != NULL) {
       debug(TM, "x=%d y=%d", x, y);
       template_port->relative_x_coord = x; 
       template_port->relative_y_coord = y; 
