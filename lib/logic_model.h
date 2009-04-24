@@ -368,7 +368,10 @@ int lmodel_gate_template_get_num_ports(const lmodel_gate_template_t * const tmpl
 ret_t lmodel_gate_template_add_port(logic_model_t * lmodel, 
 				    lmodel_gate_template_t * const tmpl, const lmodel_gate_template_port_t * const port);
 ret_t lmodel_gate_template_set_port(logic_model_t * lmodel, 
-				    lmodel_gate_template_t * const tmpl, unsigned int id, const char * const port_name, LM_PORT_TYPE port_type);
+				    lmodel_gate_template_t * const tmpl, unsigned int id, 
+				    const char * const port_name, LM_PORT_TYPE port_type);
+
+ret_t lmodel_gate_template_remove_port(lmodel_gate_template_t * const tmpl, unsigned int port_id);
 
 ret_t lmodel_remove_gate_template(logic_model_t * const lmodel, lmodel_gate_template_t * const tmpl);
 ret_t lmodel_remove_gate_template_from_template_set(lmodel_gate_template_set_t ** tmpl_set, 

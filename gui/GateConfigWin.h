@@ -23,6 +23,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #define __GATECONFIGWIN_H__
 
 #include <gtkmm.h>
+#include <list>
 
 #include "lib/project.h"
 #include "lib/logic_model.h"
@@ -54,7 +55,9 @@ class GateConfigWin  {
   logic_model_t * lmodel;
   lmodel_gate_template_t * gate_template;
   unsigned int port_counter;
-  
+
+  std::list<unsigned int> original_ports;
+
   Gtk::Dialog* pDialog;
   GateConfigModelColumns m_Columns;
   Glib::RefPtr<Gtk::ListStore> refListStore_out_ports, refListStore_in_ports;

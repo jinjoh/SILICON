@@ -164,6 +164,8 @@ GateConfigWin::GateConfigWin(Gtk::Window *parent,
 	row[m_Columns.m_col_id] = ptr->id;
 	if(ptr->id >= port_counter) port_counter = ptr->id + 1;
 
+	original_ports.push_back(ptr->id);
+
 	ptr = ptr->next;
       }
       
@@ -185,7 +187,6 @@ GateConfigWin::~GateConfigWin() {
 
 bool GateConfigWin::run() {
   pDialog->run();
-  std::cout << "after run()" << std::endl;
   return result;
 }
 
@@ -197,6 +198,47 @@ void GateConfigWin::on_ok_button_clicked() {
 				entry_short_name->get_text().c_str(),
 				entry_description->get_text().c_str());
 
+
+  // get ports
+  typedef Gtk::TreeModel::Children type_children;
+
+  type_children children = refListStore_in_ports->children();
+  for(type_children::iterator iter = children.begin(); iter != children.end(); ++iter) {
+    Gtk::TreeModel::Row row = *iter;
+    str = row[m_Columns.m_col_text];
+    id = row[m_Columns.m_col_id];
+    lmodel_gate_template_set_port(lmodel, gate_template, id, str.c_str(), LM_PT_IN);
+
+    original_ports.remove(id);
+  }
+
+  children = refListStore_out_ports->children();
+  for(type_children::iterator iter = children.begin(); iter != children.end(); ++iter) {
+    Gtk::TreeModel::Row row = *iter;
+    str = row[m_Columns.m_col_text];
+    id = row[m_Columns.m_col_id];
+    lmodel_gate_template_set_port(lmodel, gate_template, id, str.c_str(), LM_PT_OUT);
+    original_ports.remove(id);
+  }
+
+  /*
+
+  // remaining entries in original_ports are not in list stores. we can remove them from the logic model
+  std::list<unsigned int>::iterator i;
+  for(i = original_ports.begin(); i != original_ports.end(); ++i) {
+    debug(TM, "remove port from templates / gates with id=%d", *i);
+
+    if(RET_IS_NOT_OK(lmodel_gate_template_remove_port(gate_template, *i))) {
+      // XXX error
+    }
+  
+    if(RET_IS_NOT_OK(lmodel_update_all_gate_ports(lmodel, gate_template))) {
+      // XXX error
+    }
+  }
+
+
+  */
 
   Gdk::Color fill_color = colorbutton_fill_color->get_color();
   Gdk::Color frame_color = colorbutton_frame_color->get_color();
@@ -211,25 +253,6 @@ void GateConfigWin::on_ok_button_clicked() {
 						frame_color.get_blue() >> 8,
 						colorbutton_frame_color->get_alpha() >> 8));
   
-
-  // get ports
-  typedef Gtk::TreeModel::Children type_children;
-
-  type_children children = refListStore_in_ports->children();
-  for(type_children::iterator iter = children.begin(); iter != children.end(); ++iter) {
-    Gtk::TreeModel::Row row = *iter;
-    str = row[m_Columns.m_col_text];
-    id = row[m_Columns.m_col_id];
-    lmodel_gate_template_set_port(lmodel, gate_template, id, str.c_str(), LM_PT_IN);
-  }
-
-  children = refListStore_out_ports->children();
-  for(type_children::iterator iter = children.begin(); iter != children.end(); ++iter) {
-    Gtk::TreeModel::Row row = *iter;
-    str = row[m_Columns.m_col_text];
-    id = row[m_Columns.m_col_id];
-    lmodel_gate_template_set_port(lmodel, gate_template, id, str.c_str(), LM_PT_OUT);
-  }
 
   pDialog->hide();
   result = true;

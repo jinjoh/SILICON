@@ -788,6 +788,34 @@ ret_t lmodel_gate_template_set_port(logic_model_t * lmodel,
 }
 
 
+ret_t lmodel_gate_template_remove_port(lmodel_gate_template_t * const tmpl, unsigned int port_id) {
+  assert(tmpl != NULL);
+  if(tmpl == NULL) return RET_INV_PTR;
+
+  lmodel_gate_template_port_t 
+    * ptr = tmpl->ports,
+    * ptr_last = NULL;
+
+  if(ptr->id == port_id) {
+    if(ptr->port_name) free(ptr->port_name);
+    tmpl->ports = ptr->next;
+    free(ptr);
+    return RET_OK;
+  }
+
+  while(ptr != NULL && ptr->next != NULL) {
+    if(ptr->next->id == port_id) {
+      if(ptr->next->port_name) free(ptr->next->port_name);
+      ptr->next = ptr->next->next;
+      free(ptr->next);
+      return RET_OK;
+    }
+    ptr = ptr->next;
+  }
+
+  return RET_ERR;
+}
+
 connection_build_helper_t * lmodel_create_connection_build_helper(LM_OBJECT_TYPE object_type, 
 								  void * obj, 
 								  unsigned int from_sub_port) {
