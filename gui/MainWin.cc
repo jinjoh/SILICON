@@ -2034,7 +2034,7 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
     if(layer == -1) {
       error_dialog("Error", "There is no logic layer defined. Please define layer types.");
     }
-    else {
+    else if(layer != main_project->current_layer) {
       if(RET_IS_NOT_OK(lmodel_get_object(main_project->lmodel, layer, 
 					 real_x, real_y, &object_type, &obj_ptr))) return;  
     }
