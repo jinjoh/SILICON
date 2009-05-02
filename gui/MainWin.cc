@@ -1974,13 +1974,13 @@ void MainWin::update_gui_on_selection_change() {
   if(selected_objects.size() == 1) {
     it = selected_objects.begin();
     if( (*it).second == LM_TYPE_GATE_PORT) {
-      if(ciWin != NULL) ciWin->set_gate_port( (lmodel_gate_port_t *)((*it).first));
+      if(ciWin != NULL) ciWin->set_object( LM_TYPE_GATE_PORT, (object_ptr_t *)((*it).first));
     }
     else if( (*it).second == LM_TYPE_WIRE) {
-      if(ciWin != NULL) ciWin->set_wire( (lmodel_wire_t *)((*it).first));
+      if(ciWin != NULL) ciWin->set_object( LM_TYPE_WIRE, (object_ptr_t *)((*it).first));
     }
     else if( (*it).second == LM_TYPE_VIA) {
-      if(ciWin != NULL) ciWin->set_via( (lmodel_via_t *)((*it).first));
+      if(ciWin != NULL) ciWin->set_object( LM_TYPE_VIA, (object_ptr_t *)((*it).first));
     }
     else if( (*it).second == LM_TYPE_GATE) {
 
@@ -1988,7 +1988,8 @@ void MainWin::update_gui_on_selection_change() {
       set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", true);
       set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", true);
 
-      if(ciWin != NULL) ciWin->disable_inspection();
+      if(ciWin != NULL) ciWin->set_object( LM_TYPE_GATE, (object_ptr_t *)((*it).first));
+      //if(ciWin != NULL) ciWin->disable_inspection();
     }
     else {
       set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", imgWin.selection_active() ? true : false);
@@ -2304,7 +2305,14 @@ void MainWin::on_menu_logic_interconnect() {
   if(selected_objects.size() >= 2) {
 
     for(it1 = selected_objects.begin(); it1 != selected_objects.end(); it1++)
+      if(lmodel_object_is_connectable((*it1).second) == false) {
+	error_dialog("Error", "One of the objects you selected can not have connections at all.");
+	return;
+      }
+
+    for(it1 = selected_objects.begin(); it1 != selected_objects.end(); it1++)
       lmodel_set_select_state((*it1).second, (*it1).first, SELECT_STATE_NOT);
+    
 
     it1 = selected_objects.begin();
 
@@ -2549,6 +2557,7 @@ void MainWin::on_menu_logic_clear_logic_model() {
     else {
       project_changed();
       imgWin.update_screen();
+      ciWin->objects_removed();
     }
     break;
   case(Gtk::RESPONSE_CANCEL):
@@ -2572,23 +2581,8 @@ void MainWin::on_menu_logic_clear_logic_model_in_selection() {
   selected_objects.erase(selected_objects.begin(), selected_objects.end());
   set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", false);
   imgWin.update_screen(); 
+  ciWin->objects_removed();
 
-  /*
-  if(imgWin.selection_active()) {
-
-    if(!lmodel_clear_area(main_project->lmodel, main_project->current_layer, 
-			  imgWin.get_selection_min_x(), 
-			  imgWin.get_selection_min_y(), 
-			  imgWin.get_selection_max_x(), 
-			  imgWin.get_selection_max_y())) {
-
-      Gtk::MessageDialog dialog(*this, "Error: Can't clear logic model.", true, Gtk::MESSAGE_ERROR);
-      dialog.set_title("Error");
-      dialog.run();
-    }
-    imgWin.update_screen();
-  }
-  */
 }
 
 void MainWin::on_menu_layer_clear_background_image() {

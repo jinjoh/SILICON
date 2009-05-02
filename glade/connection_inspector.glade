@@ -99,6 +99,22 @@
               <widget class="GtkHBox" id="hbox2">
                 <property name="visible">True</property>
                 <child>
+                  <widget class="GtkButton" id="back_button">
+                    <property name="label" translatable="yes">gtk-go-back</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="use_stock">True</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">False</property>
+                    <property name="padding">5</property>
+                    <property name="pack_type">end</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
                   <widget class="GtkButton" id="goto_button">
                     <property name="label" translatable="yes">gtk-jump-to</property>
                     <property name="visible">True</property>

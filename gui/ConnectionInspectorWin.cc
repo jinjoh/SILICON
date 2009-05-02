@@ -81,6 +81,11 @@ ConnectionInspectorWin::ConnectionInspectorWin(Gtk::Window *parent, logic_model_
 	pGotoButton->signal_clicked().connect(sigc::mem_fun(*this, &ConnectionInspectorWin::on_goto_button_clicked) );
       }
 
+      refXml->get_widget("back_button", pBackButton);
+      if(pBackButton) {
+	pBackButton->signal_clicked().connect(sigc::mem_fun(*this, &ConnectionInspectorWin::on_back_button_clicked) );
+      }
+
       refXml->get_widget("current_object_label", current_object_label);
       refXml->get_widget("current_object_type_label", current_object_type_label);
 
@@ -93,15 +98,25 @@ ConnectionInspectorWin::ConnectionInspectorWin(Gtk::Window *parent, logic_model_
 	Gtk::CellRendererText * pRenderer = Gtk::manage( new Gtk::CellRendererText()); 
 	Gtk::TreeView::Column * pColumn;
 
-	pTreeView->append_column("Object type", *pRenderer);
+	pTreeView->append_column("Source", *pRenderer);
 	pColumn = pTreeView->get_column(0);
-	pColumn->add_attribute(*pRenderer, "text", m_Columns.m_col_object_type_name);  // text attribute is the text to show
+	// text attribute is the text to show
+	pColumn->add_attribute(*pRenderer, "text", m_Columns.m_col_src_name);  
 	pColumn->add_attribute(*pRenderer, "foreground", m_Columns.color_); 
 
-	pTreeView->append_column("Name", *pRenderer);
-	pColumn = pTreeView->get_column(1);
-	pColumn->add_attribute(*pRenderer, "text", m_Columns.m_col_name);  // text attribute is the text to show
+	pColumn->set_resizable( true ); 
+	pColumn->set_sizing(Gtk::TREE_VIEW_COLUMN_FIXED);
+	pColumn->set_min_width(130);
+
+	pTreeView->append_column("Destination", *pRenderer);
+	pColumn = pTreeView->get_column(1);	
+	// text attribute is the text to show
+	pColumn->add_attribute(*pRenderer, "text", m_Columns.m_col_dst_name);  
 	pColumn->add_attribute(*pRenderer, "foreground", m_Columns.color_); 
+
+	pColumn->set_resizable( true ); 
+	pColumn->set_sizing(Gtk::TREE_VIEW_COLUMN_FIXED);
+	pColumn->set_min_width(130);
 
 	// signal
 	Glib::RefPtr<Gtk::TreeSelection> refTreeSelection = pTreeView->get_selection();
@@ -109,8 +124,13 @@ ConnectionInspectorWin::ConnectionInspectorWin(Gtk::Window *parent, logic_model_
 	
 	// sorting
 	pColumn = pTreeView->get_column(1);
-	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_name);
-	refListStore->set_sort_column(m_Columns.m_col_name, Gtk::SORT_ASCENDING);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_dst_name);
+	refListStore->set_sort_column(m_Columns.m_col_dst_name, Gtk::SORT_ASCENDING);
+
+	pColumn = pTreeView->get_column(0);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_src_name);
+	refListStore->set_sort_column(m_Columns.m_col_src_name, Gtk::SORT_ASCENDING);
+
       }
 
     }
@@ -133,8 +153,8 @@ void ConnectionInspectorWin::on_selection_changed() {
   pGotoButton->set_sensitive(true);
 }
 
-void ConnectionInspectorWin::show_connections(object_ptr_t * curr_obj, 
-					      lmodel_connection_t * connections) {
+void ConnectionInspectorWin::show_connections(LM_OBJECT_TYPE src_object_type,
+					      object_ptr_t * src_curr_obj) {
 
   char str[100];
   lmodel_wire_t * wire;
@@ -143,63 +163,69 @@ void ConnectionInspectorWin::show_connections(object_ptr_t * curr_obj,
   Gtk::TreeModel::Row row;
   
   //lmodel_connection_t * conn_list = lmodel_get_all_connected_objects(connections);
-  lmodel_connection_t * conn = connections; 
+  lmodel_connection_t * conn = NULL; 
+
+  if((conn = lmodel_get_connections_from_object(src_object_type, src_curr_obj)) == NULL)
+    return;
 
 #define MY_GREY "#808080"
 
   while(conn != NULL) {
 
+    if(conn->obj_ptr != src_curr_obj) {
+
+    if(conn->object_type != LM_TYPE_WIRE ||
+       conn->object_type != LM_TYPE_VIA ||
+       conn->object_type != LM_TYPE_GATE_PORT) {
+
+      row = *(refListStore->append()); 
+
+      row[m_Columns.m_col_src_object_type] = src_object_type;
+      row[m_Columns.m_col_src_object_ptr] = src_curr_obj;
+      if(RET_IS_OK(lmodel_get_printable_string_for_obj(src_object_type, src_curr_obj, 
+						       str, sizeof(str))))
+	row[m_Columns.m_col_src_name] = str;
+
+    }
+
     switch(conn->object_type) {
     case LM_TYPE_WIRE:
       wire = (lmodel_wire_t *)conn->obj_ptr;
-      row = *(refListStore->append()); 
-      row[m_Columns.m_col_id] = wire->id;
-      row[m_Columns.m_col_sub_id] = 0;
-      row[m_Columns.m_col_object_type_name] = "wire";
-      row[m_Columns.m_col_parent] = "-";
-      if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_WIRE, wire, str, sizeof(str))))
-	row[m_Columns.m_col_name] = str;
       
-      row[m_Columns.m_col_object_type] = LM_TYPE_WIRE;
-      row[m_Columns.m_col_object_ptr] = (object_ptr_t *)wire;
-      row[m_Columns.color_] = conn->obj_ptr != curr_obj ? "black" : MY_GREY;
+      if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_WIRE, wire, str, sizeof(str))))
+	row[m_Columns.m_col_dst_name] = str;
+      
+      row[m_Columns.m_col_dst_object_type] = LM_TYPE_WIRE;
+      row[m_Columns.m_col_dst_object_ptr] = (object_ptr_t *)wire;
+      row[m_Columns.color_] = conn->obj_ptr != src_curr_obj ? "black" : MY_GREY;
       break;
     case LM_TYPE_VIA:
       via = (lmodel_via_t *)conn->obj_ptr;
-      row = *(refListStore->append()); 
-      row[m_Columns.m_col_id] = via->id;
-      row[m_Columns.m_col_sub_id] = 0;
-      row[m_Columns.m_col_object_type_name] = "via";
-      row[m_Columns.m_col_parent] = "-";
+
       if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_VIA, via, str, sizeof(str))))
-	row[m_Columns.m_col_name] = str;
+	row[m_Columns.m_col_dst_name] = str;
       
-      row[m_Columns.m_col_object_type] = LM_TYPE_VIA;
-      row[m_Columns.m_col_object_ptr] = (object_ptr_t *)via;
-      row[m_Columns.color_] = conn->obj_ptr != curr_obj ? "black" : MY_GREY;	
+      row[m_Columns.m_col_dst_object_type] = LM_TYPE_VIA;
+      row[m_Columns.m_col_dst_object_ptr] = (object_ptr_t *)via;
+      row[m_Columns.color_] = conn->obj_ptr != src_curr_obj ? "black" : MY_GREY;	
       break;
     case LM_TYPE_GATE_PORT:
       
       gate_port = (lmodel_gate_port_t *)conn->obj_ptr;
-      row = *(refListStore->append());
-      row[m_Columns.m_col_id] = gate_port->gate->id;
-      row[m_Columns.m_col_sub_id] = gate_port->port_id;
-      row[m_Columns.m_col_object_type_name] = "gate port";
+
+      if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_GATE_PORT, 
+						       gate_port, str, sizeof(str))))
+	row[m_Columns.m_col_dst_name] = str;
       
-      if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_GATE, gate_port->gate, str, sizeof(str))))
-	row[m_Columns.m_col_parent] = str;
-      
-      if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_GATE_PORT, gate_port, str, sizeof(str))))
-	row[m_Columns.m_col_name] = str;
-      
-      row[m_Columns.m_col_object_type] = LM_TYPE_GATE_PORT;
-      row[m_Columns.m_col_object_ptr] = (object_ptr_t *)gate_port;
-      row[m_Columns.color_] = conn->obj_ptr != curr_obj ? "black" : MY_GREY;
+      row[m_Columns.m_col_dst_object_type] = LM_TYPE_GATE_PORT;
+      row[m_Columns.m_col_dst_object_ptr] = (object_ptr_t *)gate_port;
+      row[m_Columns.color_] = conn->obj_ptr != src_curr_obj ? "black" : MY_GREY;
       break;
     default:
       break;
     }
-    
+    }
+
     conn = conn->next;
   }
 
@@ -214,8 +240,7 @@ void ConnectionInspectorWin::set_gate_port(lmodel_gate_port_t * gate_port) {
     }
     current_object_type_label->set_text("Gate port");
     clear_list();
-    show_connections((object_ptr_t *)gate_port, 
-		     lmodel_get_connections_from_object(LM_TYPE_GATE_PORT, gate_port));
+    show_connections(LM_TYPE_GATE_PORT, (object_ptr_t *)gate_port);
   }
 }
 
@@ -228,8 +253,7 @@ void ConnectionInspectorWin::set_wire(lmodel_wire_t * wire) {
     }
     current_object_type_label->set_text("Wire");
     clear_list();
-    show_connections((object_ptr_t *)wire, 
-		     lmodel_get_connections_from_object(LM_TYPE_WIRE, wire));
+    show_connections(LM_TYPE_WIRE, (object_ptr_t *)wire);
   }
 }
 
@@ -242,8 +266,63 @@ void ConnectionInspectorWin::set_via(lmodel_via_t * via) {
     }
     current_object_type_label->set_text("Via");
     clear_list();
-    show_connections((object_ptr_t *)via, 
-		     lmodel_get_connections_from_object(LM_TYPE_VIA, via));
+    show_connections(LM_TYPE_VIA, (object_ptr_t *)via);
+  }
+}
+
+void ConnectionInspectorWin::set_gate(lmodel_gate_t * gate) {
+  assert(gate != NULL);
+  if(gate != NULL) {
+    char str[100];
+    if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_GATE, gate, str, sizeof(str)))) {
+      current_object_label->set_text(str);
+    }
+    current_object_type_label->set_text("Gate");
+    clear_list();
+    
+    // XXX if I rewrite the logic model in c++, an iterator would help
+    lmodel_gate_port_t * gate_port = gate->ports;
+    while(gate_port != NULL) {
+      show_connections(LM_TYPE_GATE_PORT, (object_ptr_t *)gate_port);
+      gate_port = gate_port->next;
+    }
+    
+  }
+}
+
+void ConnectionInspectorWin::set_object(LM_OBJECT_TYPE obj_type, object_ptr_t * obj_ptr) {
+  lmodel_gate_t * gate = NULL;
+
+  assert(obj_ptr != NULL);
+  if(obj_ptr != NULL) {
+    std::pair< LM_OBJECT_TYPE, object_ptr_t *> o(obj_type, obj_ptr);
+
+    switch(obj_type) {
+    case LM_TYPE_WIRE:
+      set_wire((lmodel_wire_t *) obj_ptr);
+      break;
+    case LM_TYPE_VIA:
+      set_via((lmodel_via_t *) obj_ptr);
+      break;
+    case LM_TYPE_GATE_PORT:
+      gate = ((lmodel_gate_port_t *) obj_ptr)->gate;
+      set_gate(gate);
+      o.first = LM_TYPE_GATE;
+      o.second = (object_ptr_t *) gate;
+      break;
+    case LM_TYPE_GATE:
+      gate = (lmodel_gate_t *) obj_ptr;
+      set_gate(gate);
+      o.first = LM_TYPE_GATE;
+      o.second = (object_ptr_t *)gate;
+      break;
+    default:
+      clear_list();
+      return;
+    }
+
+    back_list.push_back(o);
+
   }
 }
 
@@ -256,11 +335,30 @@ void ConnectionInspectorWin::disable_inspection() {
   current_object_label->set_text("---");
   current_object_type_label->set_text("---");
   pGotoButton->set_sensitive(false);
+  pBackButton->set_sensitive(false);
   clear_list();
+  back_list.clear();
+
 }
 
 void ConnectionInspectorWin::on_close_button_clicked() {
   pDialog->hide();
+}
+
+void ConnectionInspectorWin::on_back_button_clicked() {
+  if(back_list.size() > 1) {
+
+    back_list.pop_back(); // remove current object
+
+    std::pair< LM_OBJECT_TYPE, object_ptr_t *> o = back_list.back();
+    back_list.pop_back();
+
+    if(back_list.size() == 0) pBackButton->set_sensitive(false);
+
+    set_object(o.first, o.second); // adds current obj to back_list
+
+    signal_goto_button_clicked_(o.first, o.second);
+  }
 }
 
 void ConnectionInspectorWin::on_goto_button_clicked() {
@@ -269,14 +367,28 @@ void ConnectionInspectorWin::on_goto_button_clicked() {
     Gtk::TreeModel::iterator iter = refTreeSelection->get_selected();
     if(*iter) {
       Gtk::TreeModel::Row row = *iter;
-      LM_OBJECT_TYPE object_type = row[m_Columns.m_col_object_type];
-      object_ptr_t * object_ptr = row[m_Columns.m_col_object_ptr];
+      LM_OBJECT_TYPE object_type = row[m_Columns.m_col_dst_object_type];
+      object_ptr_t * object_ptr = row[m_Columns.m_col_dst_object_ptr];
+
+
+      pBackButton->set_sensitive(true);
+      set_object(object_type, object_ptr);
 
       signal_goto_button_clicked_(object_type, object_ptr);
     }
   }
 }
 
-sigc::signal<void, LM_OBJECT_TYPE, object_ptr_t * >& ConnectionInspectorWin::signal_goto_button_clicked() {
+sigc::signal<void, LM_OBJECT_TYPE, object_ptr_t * >& 
+ConnectionInspectorWin::signal_goto_button_clicked() {
   return signal_goto_button_clicked_;
+}
+
+
+void ConnectionInspectorWin::objects_removed() {
+  disable_inspection();
+}
+
+void ConnectionInspectorWin::object_removed(LM_OBJECT_TYPE obj_type, object_ptr_t * obj_ptr) {
+  disable_inspection();
 }

@@ -1537,7 +1537,7 @@ ret_t lmodel_connect_objects(LM_OBJECT_TYPE type1, void * obj1,
 	debug(TM, "\tcan't destroy connections");
 	return ret;
       }
-      // prevent double-free: find objects with same commnection list and set there a NULL
+      // prevent double-free: find objects with same connection list and set there a NULL
       lmodel_connection_t * ptr2 = ptr->next;
       while(ptr2 != NULL) {
 	lmodel_connection_t * old_list2 = lmodel_get_connections_from_object(ptr->object_type, ptr->obj_ptr);
@@ -1695,6 +1695,26 @@ int cb_check_object_by_ptr(quadtree_object_t * qobj, lmodel_lookup_object_t * da
     return 0;
 }
   
+
+bool lmodel_object_is_connectable(LM_OBJECT_TYPE object_type) {
+  switch(object_type) {
+    case LM_TYPE_WIRE:
+      return true;
+      break;
+    case LM_TYPE_VIA:
+      return true;
+      break;
+    case LM_TYPE_GATE_PORT:
+      return true;
+      break;
+    case LM_TYPE_GATE:
+      return false;
+      break;
+    default:
+      return false;
+  }
+
+}
 
 lmodel_connection_t * lmodel_get_connections_from_object(LM_OBJECT_TYPE object_type, void * obj) {
   assert(obj);

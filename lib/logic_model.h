@@ -310,6 +310,8 @@ ret_t lmodel_remove_object_by_ptr(logic_model_t * const lmodel, int layer, void 
 ret_t lmodel_destroy_gates_by_template_type(logic_model_t * const lmodel, const lmodel_gate_template_t * const tmpl,
 					    GS_DESTROY_MODE mode);
 
+bool lmodel_object_is_connectable(LM_OBJECT_TYPE object_type);
+
 ret_t lmodel_remove_all_connections_from_object(LM_OBJECT_TYPE object_type, void * obj);
 ret_t lmodel_set_connections_for_object(LM_OBJECT_TYPE object_type, void * obj, lmodel_connection_t * conn);
 lmodel_connection_t * lmodel_get_connections_from_object(LM_OBJECT_TYPE object_type, void * obj);
