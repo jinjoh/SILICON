@@ -305,10 +305,9 @@ void ConnectionInspectorWin::set_object(LM_OBJECT_TYPE obj_type, object_ptr_t * 
       set_via((lmodel_via_t *) obj_ptr);
       break;
     case LM_TYPE_GATE_PORT:
-      gate = ((lmodel_gate_port_t *) obj_ptr)->gate;
-      set_gate(gate);
-      o.first = LM_TYPE_GATE;
-      o.second = (object_ptr_t *) gate;
+      set_gate_port((lmodel_gate_port_t *) obj_ptr);
+      o.first = LM_TYPE_GATE_PORT;
+      o.second = obj_ptr;
       break;
     case LM_TYPE_GATE:
       gate = (lmodel_gate_t *) obj_ptr;
