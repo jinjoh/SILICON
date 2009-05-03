@@ -92,6 +92,7 @@ class MainWin : public Gtk::Window  {
   virtual void on_menu_logic_clear_logic_model();
   virtual void on_menu_logic_clear_logic_model_in_selection();
   virtual void on_menu_logic_connection_inspector();
+  virtual void on_menu_logic_auto_name_gates(AUTONAME_ORIENTATION orientation);
 
   // Gate menu
   virtual void on_menu_gate_create_by_selection();
@@ -199,18 +200,21 @@ class MainWin : public Gtk::Window  {
   void layer_alignment_thread(double * scaling_x, double * scaling_y, int * shift_x, int * shift_y);
   void algorithm_calc_thread(int slot_pos, plugin_params_t * plugin_params);
   void project_export_thread(const char * const project_dir, const char * const dst_file);
+  void auto_name_gates_thread(AUTONAME_ORIENTATION orientation);
 
   void on_project_load_finished();
   void on_background_import_finished();
   void on_layer_alignment_finished(double * scaling_x, double * scaling_y, int * shift_x, int * shift_y);
   void on_algorithm_finished(int slot_pos, plugin_params_t * plugin_params);
   void on_export_finished(bool success);
+  void on_auto_name_finished(ret_t ret);
   
   Glib::Dispatcher signal_project_open_finished_;
   Glib::Dispatcher signal_bg_import_finished_;
   Glib::Dispatcher signal_layer_alignment_finished_;
   Glib::Dispatcher * signal_algorithm_finished_;
   sigc::signal<void, bool> signal_export_finished_;
+  sigc::signal<void, ret_t> signal_auto_name_finished_;
 
   void update_gui_for_loaded_project();
 

@@ -68,7 +68,7 @@ ConnectionInspectorWin::ConnectionInspectorWin(Gtk::Window *parent, logic_model_
     assert(pDialog);
     if(pDialog) {
 
-  pDialog->set_opacity(0.5);
+      pDialog->set_opacity(0.5);
 
       // connect signals
       refXml->get_widget("close_button", pCloseButton);

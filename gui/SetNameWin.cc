@@ -76,6 +76,7 @@ SetNameWin::SetNameWin(Gtk::Window *parent, Glib::ustring name) {
 
     refXml->get_widget("entry_name", entry);
     if(entry) {
+      entry->grab_focus();
       entry->set_text(name);
     }
 

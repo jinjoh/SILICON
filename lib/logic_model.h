@@ -66,6 +66,12 @@ enum GS_DESTROY_MODE {
   DESTROY_WO_MASTER = 2
 };
 
+
+enum AUTONAME_ORIENTATION {
+  AN_ALONG_ROWS = 1,
+  AN_ALONG_COLS = 2
+};
+
 enum LM_TEMPLATE_ORIENTATION {
   LM_TEMPLATE_ORIENTATION_UNDEFINED = 0,
   LM_TEMPLATE_ORIENTATION_NORMAL = 1,
@@ -405,6 +411,9 @@ ret_t lmodel_gate_template_get_color(lmodel_gate_template_t * gate_template,
 				     color_t * fill_color, color_t * frame_color);
 
 ret_t lmodel_apply_colors_to_ports(logic_model_t * lmodel, const port_color_manager_t * const pcm);
+
+ret_t lmodel_autoname_gates(logic_model_t * lmodel, unsigned int layer, 
+			    AUTONAME_ORIENTATION orientation);
 
 #endif
  

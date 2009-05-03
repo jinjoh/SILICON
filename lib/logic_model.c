@@ -35,6 +35,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "quadtree.h"
 #include <FileContent.h>
 #include "graphics.h"
+#include <vector>
 
 #define EPSILON 0.001
 
@@ -3591,4 +3592,119 @@ ret_t lmodel_apply_colors_to_ports(logic_model_t * lmodel, const port_color_mana
   }
 
   return RET_OK;
+}
+
+
+ret_t lmodel_autoname_gates_along_single_row(logic_model_t * lmodel, unsigned int layer, 
+				      unsigned int y, unsigned int row_num) {
+  debug(TM, "scanning row #%d at y=%d", row_num, y);
+
+  LM_OBJECT_TYPE obj_type;
+  object_ptr_t * obj_ptr;
+  unsigned int col_num = 1;
+  unsigned int x;
+  ret_t ret;
+
+  for(x = 0; x < lmodel->width; x++) {
+    if(RET_IS_NOT_OK(ret = lmodel_get_object(lmodel, layer, x, y, &obj_type, (void **)&obj_ptr)))
+      return ret;
+
+    if(obj_ptr != NULL && obj_type == LM_TYPE_GATE) {
+      char str[100];
+      snprintf(str, sizeof(str), "%d.%d", row_num, col_num);
+      if(RET_IS_NOT_OK(ret = lmodel_set_name(obj_type, obj_ptr, str))) return ret;
+      lmodel_gate_t * g = (lmodel_gate_t *)obj_ptr;
+      x += g->max_x - g->min_x;
+      col_num++;
+    }
+  }
+
+  return RET_OK;
+}
+
+ret_t lmodel_autoname_gates_along_single_col(logic_model_t * lmodel, unsigned int layer, 
+					     unsigned int x, unsigned int col_num) {
+  debug(TM, "scanning col #%d at x=%d", col_num, x);
+
+  LM_OBJECT_TYPE obj_type;
+  object_ptr_t * obj_ptr;
+  unsigned int row_num = 1;
+  unsigned int y;
+  ret_t ret;
+
+  for(y = 0; y < lmodel->height; y++) {
+    if(RET_IS_NOT_OK(ret = lmodel_get_object(lmodel, layer, x, y, &obj_type, (void **)&obj_ptr)))
+      return ret;
+
+    if(obj_ptr != NULL && obj_type == LM_TYPE_GATE) {
+      char str[100];
+      snprintf(str, sizeof(str), "%d.%d", row_num, col_num);
+      if(RET_IS_NOT_OK(ret = lmodel_set_name(obj_type, obj_ptr, str))) return ret;
+      lmodel_gate_t * g = (lmodel_gate_t *)obj_ptr;
+      y += g->max_y - g->min_y;
+      row_num++;
+    }
+  }
+
+  return RET_OK;
+}
+
+ret_t lmodel_autoname_gates_along_col_or_row(logic_model_t * lmodel, unsigned int layer,
+					     std::vector<unsigned int> histogram, 
+					     AUTONAME_ORIENTATION orientation) {
+
+  unsigned int from = 0;
+  unsigned int i, num = 0;
+  for(i = 0; i < histogram.size(); i++) {
+    if(histogram[i] > 0 && from == 0) from = i;
+    if(histogram[i] == 0 && from > 0) {
+      num++;
+      if(orientation == AN_ALONG_ROWS)
+	lmodel_autoname_gates_along_single_row(lmodel, layer, from + (i - from)/2, num);
+      else
+	lmodel_autoname_gates_along_single_col(lmodel, layer, from + (i - from)/2, num);
+      from = 0;
+    }
+  }
+  return RET_OK;
+}
+
+
+ret_t lmodel_autoname_gates(logic_model_t * lmodel, unsigned int layer, 
+			    AUTONAME_ORIENTATION orientation) {
+
+
+  assert(lmodel != NULL);
+  if(lmodel == NULL) return RET_INV_PTR;
+
+  std::vector<unsigned int> histogram_y(lmodel->height);
+  std::vector<unsigned int> histogram_x(lmodel->width);
+
+  unsigned int x, y;
+  LM_OBJECT_TYPE obj_type;
+  object_ptr_t * obj_ptr;
+  ret_t ret;
+
+  for(y = 0; y < lmodel->height; y++) histogram_y[y] = 0;
+  for(x = 0; x < lmodel->width; x++) histogram_x[x] = 0;
+
+  for(y = 0; y < lmodel->height; y++) {
+    for(x = 0; x < lmodel->height; x++) {
+
+      if(RET_IS_NOT_OK(ret = lmodel_get_object(lmodel, layer, x, y, &obj_type, (void **)&obj_ptr)))
+	return ret;
+
+      if(obj_ptr != NULL && (obj_type == LM_TYPE_GATE || obj_type == LM_TYPE_GATE_PORT)) {
+	histogram_y[y]++;
+	histogram_x[x]++;
+      }
+    }
+  }
+
+  if(orientation == AN_ALONG_COLS)
+    return lmodel_autoname_gates_along_col_or_row(lmodel, layer, histogram_x, orientation);
+  else if(orientation == AN_ALONG_ROWS)
+    return lmodel_autoname_gates_along_col_or_row(lmodel, layer, histogram_y, orientation);
+  else
+    return RET_ERR;
 }

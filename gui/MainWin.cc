@@ -373,6 +373,18 @@ void MainWin::initialize_menu() {
 			Gtk::AccelKey("<control>I"),
 			sigc::mem_fun(*this, &MainWin::on_menu_logic_connection_inspector));
 
+
+  m_refActionGroup->add(Gtk::Action::create("LogicAutoNameGatesAlongRows",
+					    "Generate names for gates along rows",
+					    "Generate names for gates along rows"),
+			sigc::bind<AUTONAME_ORIENTATION>(sigc::mem_fun(*this, &MainWin::on_menu_logic_auto_name_gates), AN_ALONG_ROWS) );
+
+  m_refActionGroup->add(Gtk::Action::create("LogicAutoNameGatesAlongCols",
+					    "Generate names for gates along columns",
+					    "Generate names for gates along columns"),
+			sigc::bind<AUTONAME_ORIENTATION>(sigc::mem_fun(*this, &MainWin::on_menu_logic_auto_name_gates), AN_ALONG_COLS) );
+
+
   // Gate menu
   m_refActionGroup->add( Gtk::Action::create("GateMenu", "Gate"));
   m_refActionGroup->add(Gtk::Action::create("GateCreateBySelection",
@@ -488,6 +500,9 @@ void MainWin::initialize_menu() {
         "      <separator/>"
         "      <menuitem action='LogicClearLogicModel'/>"
         "      <menuitem action='LogicClearLogicModelInSelection'/>"
+        "      <separator/>"
+        "      <menuitem action='LogicAutoNameGatesAlongRows'/>"
+        "      <menuitem action='LogicAutoNameGatesAlongCols'/>"
         "      <separator/>"
         "      <menuitem action='LogicConnectionInspector'/>"  
         "    </menu>"
@@ -792,6 +807,8 @@ void MainWin::set_widget_sensitivity(bool state) {
 
   set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModel", state);
   set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicConnectionInspector", state);
+  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicAutoNameGatesAlongRows", state);
+  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicAutoNameGatesAlongCols", state);
 
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GatePortColors", state);
@@ -2299,6 +2316,54 @@ void MainWin::on_popup_menu_set_alignment_marker(MARKER_TYPE marker_type) {
   }
 }
 
+
+void MainWin::on_menu_logic_auto_name_gates(AUTONAME_ORIENTATION orientation) {
+  if(main_project != NULL) {
+
+    Gtk::MessageDialog dialog(*this, "The operation may destroy previously set names. Are you sure you want name all gates?", 
+			      true, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_YES_NO);
+    dialog.set_title("Warning");
+    if(dialog.run() == Gtk::RESPONSE_NO) return;
+    dialog.hide();
+
+    int layer = lmodel_get_layer_num_by_type(main_project->lmodel, LM_LAYER_TYPE_LOGIC);
+    if(layer == -1) {
+      error_dialog("Error", "There is no logic layer defined.");
+      return;
+    }
+
+    ipWin = new InProgressWin(this, "Naming gates", "Please wait while generating names.");
+    ipWin->show();
+
+    signal_auto_name_finished_.connect(sigc::mem_fun(*this, &MainWin::on_auto_name_finished));
+    thread = Glib::Thread::create(sigc::bind<AUTONAME_ORIENTATION>(sigc::mem_fun(*this, &MainWin::auto_name_gates_thread), 
+								   orientation), false);
+
+  }
+}
+
+
+void MainWin::auto_name_gates_thread(AUTONAME_ORIENTATION orientation) {
+  int layer = lmodel_get_layer_num_by_type(main_project->lmodel, LM_LAYER_TYPE_LOGIC);
+  ret_t ret = lmodel_autoname_gates(main_project->lmodel, layer, orientation);
+  signal_auto_name_finished_(ret);
+}
+
+
+void MainWin::on_auto_name_finished(ret_t ret) {
+  if(ipWin) {
+    ipWin->close();
+    delete ipWin;
+    ipWin = NULL;
+  }
+  if(RET_IS_NOT_OK(ret)) {
+    error_dialog("Error", "naming failed");
+  }
+  else {
+    project_changed();
+    //imgWin.update_screen(); // XXX results in a Fatal IO error 11 (Resource temporarily unavailable) on X server :0.0.
+  }
+}
 
 void MainWin::on_menu_logic_interconnect() {
   std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it1, it2;
