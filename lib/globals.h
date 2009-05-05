@@ -67,10 +67,10 @@ void debug(const char * const module, int line, const char * const format, ...);
 
 #define degate_mime_type "application/degate"
 
-#if __SIZEOF_POINTER__ == 4
+#if (__SIZEOF_POINTER__ == 4) || (__WORDSIZE == 32)
 #define ARCH_32
 #define MAP_FILES_ON_DEMAND
-#elif __SIZEOF_POINTER__ == 8
+#elif (__SIZEOF_POINTER__ == 8) || (__WORDSIZE == 64)
 #define ARCH_64
 #else
 #error "Unknown architecture"
