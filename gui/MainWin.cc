@@ -1958,13 +1958,14 @@ bool MainWin::on_key_release_event_received(GdkEventKey * event) {
     imgWin.set_shift_key_state(false);
     if(tool == TOOL_WIRE) imgWin.update_screen();
   }
-  else if((event->state & GDK_CONTROL_MASK) || (event->keyval == GDK_Control_L)) {
-  //else if(event->keyval == GDK_Control_L || event->keyval == GDK_Control_R) {
+  else if(event->state & GDK_CONTROL_MASK || 
+	  event->keyval == GDK_Control_L || 
+	  event->keyval == GDK_Control_R) {
     control_key_pressed = false;
-    debug(TM, "ctrl release");
+    //debug(TM, "ctrl release");
   }
 
-  debug(TM, "key release: %d %d", event->state, event->keyval);
+  //debug(TM, "key release: %d %d", event->state, event->keyval);
   return false;
 }
 
@@ -1977,10 +1978,17 @@ bool MainWin::on_key_press_event_received(GdkEventKey * event) {
   //else if(event->keyval == GDK_Control_L || event->keyval == GDK_Control_R) {
   else if(!(event->state & GDK_CONTROL_MASK) && (event->keyval == GDK_Control_L)) {
     control_key_pressed = true;
-    debug(TM, "ctrl pressed");
+    //debug(TM, "ctrl pressed");
   }
+  else if(event->state & GDK_CONTROL_MASK) {
+    control_key_pressed = false;
+    //debug(TM, "ctrl as modifier pressed");
+  }
+  //else {
+  //debug(TM, "any key  pressed");
+  //}
 
-  debug(TM, "key press: %d %d", event->state, event->keyval);
+  //debug(TM, "key press: %d %d", event->state, event->keyval);
   return false;
 }
 
