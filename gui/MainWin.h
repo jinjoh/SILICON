@@ -28,7 +28,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "GridConfigWin.h"
 #include "ObjectMatchingWin.h"
 #include "ConnectionInspectorWin.h"
-
+#include "HlObjectSet.h"
 #include "lib/alignment_marker.h"
 #include "lib/project.h"
 #include "lib/plugins.h"
@@ -175,6 +175,7 @@ class MainWin : public Gtk::Window  {
   std::vector<std::pair<Gtk::CheckMenuItem *, bool> > slot_states;
   TOOL tool;
   std::set<std::pair<void *, LM_OBJECT_TYPE> > selected_objects;
+  HlObjectSet highlighted_objects;
 
   unsigned int last_click_on_real_x, last_click_on_real_y;
 

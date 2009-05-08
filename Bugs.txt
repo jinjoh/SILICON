@@ -8,7 +8,6 @@ Logic modell:
 UI:
 
 - stretching on window resize is bad
-- zoom to mouse cursor position
 - positioning ports is not on the click point (starbug)
 
 - some toolbar widgets are not shown when using older gtk/gtkmm libraries.

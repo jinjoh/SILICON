@@ -21,6 +21,7 @@ UI:
 
 renderer:
 
+- frame border should be outside of gates
 - draw strings to the left of a port, if there is space
 - linebreaked gate strings
 

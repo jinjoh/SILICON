@@ -135,7 +135,7 @@ ConnectionInspectorWin::ConnectionInspectorWin(Gtk::Window *parent, logic_model_
 
     }
 
-    pDialog->set_transient_for(*parent);
+    //pDialog->set_transient_for(*parent);
     disable_inspection();
 }
 
@@ -371,6 +371,11 @@ void ConnectionInspectorWin::on_goto_button_clicked() {
 
 
       pBackButton->set_sensitive(true);
+      if(object_type == LM_TYPE_GATE_PORT) {
+	object_type = LM_TYPE_GATE;
+	object_ptr = (object_ptr_t*)((lmodel_gate_port_t *)object_ptr)->gate;
+      }
+      
       set_object(object_type, object_ptr);
 
       signal_goto_button_clicked_(object_type, object_ptr);

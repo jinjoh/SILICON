@@ -1287,10 +1287,15 @@ void MainWin::on_goto_object(LM_OBJECT_TYPE object_type, object_ptr_t * obj_ptr)
     if(RET_IS_OK(lmodel_get_view_for_object(main_project->lmodel, object_type, obj_ptr,
 					    &center_x, &center_y, &layer))) {
 
+      highlighted_objects.add(object_type, obj_ptr);
+
       //int old_state = lmodel_get_select_state(object_type, obj_ptr);
       //lmodel_set_select_state(object_type, obj_ptr, SELECT_STATE_DIRECT);
       center_view(center_x, center_y, layer);
       //lmodel_set_select_state(object_type, obj_ptr, old_state);
+
+      highlighted_objects.remove(object_type, obj_ptr);
+
     }
     
   }
@@ -1953,9 +1958,13 @@ bool MainWin::on_key_release_event_received(GdkEventKey * event) {
     imgWin.set_shift_key_state(false);
     if(tool == TOOL_WIRE) imgWin.update_screen();
   }
-  else if(event->keyval == GDK_Control_L || event->keyval == GDK_Control_R) {
+  else if((event->state & GDK_CONTROL_MASK) || (event->keyval == GDK_Control_L)) {
+  //else if(event->keyval == GDK_Control_L || event->keyval == GDK_Control_R) {
     control_key_pressed = false;
+    debug(TM, "ctrl release");
   }
+
+  debug(TM, "key release: %d %d", event->state, event->keyval);
   return false;
 }
 
@@ -1965,9 +1974,13 @@ bool MainWin::on_key_press_event_received(GdkEventKey * event) {
     imgWin.set_shift_key_state(true);
     if(tool == TOOL_WIRE) imgWin.update_screen();
   }
-  else if(event->keyval == GDK_Control_L || event->keyval == GDK_Control_R) {
+  //else if(event->keyval == GDK_Control_L || event->keyval == GDK_Control_R) {
+  else if(!(event->state & GDK_CONTROL_MASK) && (event->keyval == GDK_Control_L)) {
     control_key_pressed = true;
+    debug(TM, "ctrl pressed");
   }
+
+  debug(TM, "key press: %d %d", event->state, event->keyval);
   return false;
 }
 
@@ -1979,9 +1992,9 @@ void MainWin::clear_selection() {
     char s[100];
     lmodel_get_printable_string_for_obj((*it).second, (*it).first, s, 100);
     debug(TM, "\tunselect %s", s);
-    if(RET_IS_OK(lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT))) {
-    }
   }
+
+  highlighted_objects.clear();
   selected_objects.erase(selected_objects.begin(), selected_objects.end());
 }
 
@@ -2074,30 +2087,32 @@ void MainWin::object_clicked(unsigned int real_x, unsigned int real_y) {
     //debug(TM, "remove single object from selection");      
     it = selected_objects.find(std::pair<void *, LM_OBJECT_TYPE>(obj_ptr, object_type));
     if(it != selected_objects.end()) {
-      if(RET_IS_OK(lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT))) {
-      }
+
       selected_objects.erase(*it);
+      highlighted_objects.remove(object_type, (object_ptr_t *) obj_ptr);
+      
       add_to_selection = false;
     }
   }
 
   if(control_key_pressed == false){
     clear_selection();
+    highlighted_objects.clear();
   }
   
   
   if(add_to_selection) {
     // add to selection
-    if(obj_ptr)
-      if(RET_IS_OK(lmodel_set_select_state(object_type, obj_ptr, SELECT_STATE_DIRECT))) {
-	std::pair<void *, LM_OBJECT_TYPE> p(obj_ptr, object_type);
-	selected_objects.insert(p);
-      }
+    if(obj_ptr) {
+      std::pair<void *, LM_OBJECT_TYPE> p(obj_ptr, object_type);
+      selected_objects.insert(p);
+      
+      highlighted_objects.add(object_type, (object_ptr_t *)obj_ptr);
+    }
   }
  
   imgWin.update_screen();
   update_gui_on_selection_change();
-  
 }
 
 bool MainWin::selected_objects_are_interconnectable() {
@@ -2375,8 +2390,8 @@ void MainWin::on_menu_logic_interconnect() {
 	return;
       }
 
-    for(it1 = selected_objects.begin(); it1 != selected_objects.end(); it1++)
-      lmodel_set_select_state((*it1).second, (*it1).first, SELECT_STATE_NOT);
+    //    for(it1 = selected_objects.begin(); it1 != selected_objects.end(); it1++)
+    //  lmodel_set_select_state((*it1).second, (*it1).first, SELECT_STATE_NOT);
     
 
     it1 = selected_objects.begin();
@@ -2390,8 +2405,8 @@ void MainWin::on_menu_logic_interconnect() {
       }
     }
 
-    for(it1 = selected_objects.begin(); it1 != selected_objects.end(); it1++)
-      lmodel_set_select_state((*it1).second, (*it1).first, SELECT_STATE_DIRECT);
+    //for(it1 = selected_objects.begin(); it1 != selected_objects.end(); it1++)
+    //  lmodel_set_select_state((*it1).second, (*it1).first, SELECT_STATE_DIRECT);
 
     project_changed();
     imgWin.update_screen();
@@ -2404,11 +2419,11 @@ void MainWin::on_menu_logic_isolate() {
 
     for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
   
-      lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT);
+      //lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_NOT);
       if(RET_IS_NOT_OK(lmodel_remove_all_connections_from_object((*it).second, (*it).first))) {
 	error_dialog("Error", "Can't isolate object.");
       }
-      lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_DIRECT);
+      //lmodel_set_select_state((*it).second, (*it).first, SELECT_STATE_DIRECT);
     }
     project_changed();
     imgWin.update_screen();

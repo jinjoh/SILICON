@@ -2,7 +2,7 @@ degate (0.0.6) unstable; urgency=low
 
   * improved grid configuration
   * focus removed from quit button and set to image area
-  * connection inspector: sorted rows
+  * improved connection inspector
   * gate list / gate selection: sortable rows, more attributes displayed
   * dedicated toolbar icons added
   * open projects via command line
@@ -12,6 +12,8 @@ degate (0.0.6) unstable; urgency=low
   * project attributes added: project name and project descr.
   * gates and gate ports can have colors - wires and vias too, but there is no UI
   * handling unregular grids
+  * naming gate objects by position
+  * precompiler macro fix: improved architecture detection (thanks to mazzoo)
 	
  -- Martin Schobert <martin@weltregierung.de>  Wed, 30 Mar 2009 12:00:00 +0100
 
