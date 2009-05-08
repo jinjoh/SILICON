@@ -124,12 +124,12 @@ ConnectionInspectorWin::ConnectionInspectorWin(Gtk::Window *parent, logic_model_
 	
 	// sorting
 	pColumn = pTreeView->get_column(1);
-	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_dst_name);
-	refListStore->set_sort_column(m_Columns.m_col_dst_name, Gtk::SORT_ASCENDING);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_dst_name_sort);
+	refListStore->set_sort_column(m_Columns.m_col_dst_name_sort, Gtk::SORT_ASCENDING);
 
 	pColumn = pTreeView->get_column(0);
-	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_src_name);
-	refListStore->set_sort_column(m_Columns.m_col_src_name, Gtk::SORT_ASCENDING);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_src_name_sort);
+	refListStore->set_sort_column(m_Columns.m_col_src_name_sort, Gtk::SORT_ASCENDING);
 
       }
 
@@ -174,26 +174,42 @@ void ConnectionInspectorWin::show_connections(LM_OBJECT_TYPE src_object_type,
 
     if(conn->obj_ptr != src_curr_obj) {
 
-    if(conn->object_type != LM_TYPE_WIRE ||
+      /*    if(conn->object_type != LM_TYPE_WIRE ||
        conn->object_type != LM_TYPE_VIA ||
        conn->object_type != LM_TYPE_GATE_PORT) {
-
+      */
       row = *(refListStore->append()); 
 
       row[m_Columns.m_col_src_object_type] = src_object_type;
       row[m_Columns.m_col_src_object_ptr] = src_curr_obj;
       if(RET_IS_OK(lmodel_get_printable_string_for_obj(src_object_type, src_curr_obj, 
-						       str, sizeof(str))))
+						       str, sizeof(str)))) {
 	row[m_Columns.m_col_src_name] = str;
+	row[m_Columns.m_col_src_name_sort] = str;
 
-    }
+	if(src_object_type == LM_TYPE_GATE_PORT) {
+	  gate_port = (lmodel_gate_port_t *)src_curr_obj;
+	  
+	  if(gate_port != NULL && gate_port->tmpl_port != NULL) {
+	    //debug(TM, "change name");
+	    if(gate_port->tmpl_port->port_type == LM_PT_IN)
+	      row[m_Columns.m_col_src_name_sort] = Glib::ustring("i") + row[m_Columns.m_col_src_name_sort];
+	    else
+	      row[m_Columns.m_col_src_name_sort] = Glib::ustring("o") + row[m_Columns.m_col_src_name_sort];
+	  }
+	}
+
+	//}
+      }
 
     switch(conn->object_type) {
     case LM_TYPE_WIRE:
       wire = (lmodel_wire_t *)conn->obj_ptr;
       
-      if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_WIRE, wire, str, sizeof(str))))
+      if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_WIRE, wire, str, sizeof(str)))) {
 	row[m_Columns.m_col_dst_name] = str;
+	row[m_Columns.m_col_dst_name_sort] = str;
+      }
       
       row[m_Columns.m_col_dst_object_type] = LM_TYPE_WIRE;
       row[m_Columns.m_col_dst_object_ptr] = (object_ptr_t *)wire;
@@ -202,8 +218,10 @@ void ConnectionInspectorWin::show_connections(LM_OBJECT_TYPE src_object_type,
     case LM_TYPE_VIA:
       via = (lmodel_via_t *)conn->obj_ptr;
 
-      if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_VIA, via, str, sizeof(str))))
+      if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_VIA, via, str, sizeof(str)))) {
 	row[m_Columns.m_col_dst_name] = str;
+	row[m_Columns.m_col_dst_name_sort] = str;
+      }
       
       row[m_Columns.m_col_dst_object_type] = LM_TYPE_VIA;
       row[m_Columns.m_col_dst_object_ptr] = (object_ptr_t *)via;
@@ -214,8 +232,11 @@ void ConnectionInspectorWin::show_connections(LM_OBJECT_TYPE src_object_type,
       gate_port = (lmodel_gate_port_t *)conn->obj_ptr;
 
       if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_GATE_PORT, 
-						       gate_port, str, sizeof(str))))
+						       gate_port, str, sizeof(str)))) {
 	row[m_Columns.m_col_dst_name] = str;
+	row[m_Columns.m_col_dst_name_sort] = str;
+	
+      }
       
       row[m_Columns.m_col_dst_object_type] = LM_TYPE_GATE_PORT;
       row[m_Columns.m_col_dst_object_ptr] = (object_ptr_t *)gate_port;
