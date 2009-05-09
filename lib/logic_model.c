@@ -3595,6 +3595,8 @@ ret_t lmodel_apply_colors_to_ports(logic_model_t * lmodel, const port_color_mana
 }
 
 
+#define AUTO_NAME_FORMAT_STR "%02d.02%d"
+
 ret_t lmodel_autoname_gates_along_single_row(logic_model_t * lmodel, unsigned int layer, 
 				      unsigned int y, unsigned int row_num) {
   debug(TM, "scanning row #%d at y=%d", row_num, y);
@@ -3611,7 +3613,7 @@ ret_t lmodel_autoname_gates_along_single_row(logic_model_t * lmodel, unsigned in
 
     if((obj_ptr != NULL) && (obj_type == LM_TYPE_GATE)) {
       char str[100];
-      snprintf(str, sizeof(str), "%d.%d", row_num, col_num);
+      snprintf(str, sizeof(str), AUTO_NAME_FORMAT_STR, row_num, col_num);
       if(RET_IS_NOT_OK(ret = lmodel_set_name(obj_type, obj_ptr, str))) return ret;
       lmodel_gate_t * g = (lmodel_gate_t *)obj_ptr;
       assert(g->max_x >= g->min_x);
@@ -3639,7 +3641,7 @@ ret_t lmodel_autoname_gates_along_single_col(logic_model_t * lmodel, unsigned in
 
     if(obj_ptr != NULL && obj_type == LM_TYPE_GATE) {
       char str[100];
-      snprintf(str, sizeof(str), "%d.%d", row_num, col_num);
+      snprintf(str, sizeof(str), AUTO_NAME_FORMAT_STR, row_num, col_num);
       if(RET_IS_NOT_OK(ret = lmodel_set_name(obj_type, obj_ptr, str))) return ret;
       lmodel_gate_t * g = (lmodel_gate_t *)obj_ptr;
       assert(g->max_y >= g->min_y);
@@ -3718,9 +3720,24 @@ ret_t lmodel_autoname_gates(logic_model_t * lmodel, unsigned int layer,
  */
 lmodel_gate_t * lmodel_get_gate_from_set_by_name(lmodel_gate_set_t * gate_set, const char * const short_name) {
   
-  //  while(ptr != NULL) {
-  //};
-  
+  assert(gate_set != NULL);
+  assert(short_name != NULL);
+  if(gate_set == NULL | short_name == NULL) return NULL;
+
+  lmodel_gate_set_t * ptr = gate_set;
+  lmodel_gate_t * found = NULL;
+
+  while(ptr != NULL) {
+    assert(ptr->gate != NULL);
+    if(!strcmp(ptr->gate->name, short_name)) {
+      if(found == NULL) found = ptr->gate;
+      else return NULL;
+    }
+
+    ptr = ptr->next;
+  }
+
+  return found;
 }
 
 /**
