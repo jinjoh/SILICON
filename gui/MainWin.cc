@@ -44,6 +44,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "SetOrientationWin.h"
 #include "ProjectSettingsWin.h"
 #include "ConnectionInspectorWin.h"
+#include "GenericTextInputWin.h"
 #include "gui_globals.h"
 
 #include "lib/project.h"
@@ -273,7 +274,6 @@ void MainWin::initialize_menu() {
 
   m_refActionGroup->add(Gtk::Action::create("ViewGridConfiguration", Gtk::Stock::PREFERENCES,
 					    "Grid configuration", "Grid configuration"),
-			Gtk::AccelKey("<control>G"),
 			sigc::mem_fun(*this, &MainWin::on_menu_view_grid_config));
 
   m_refActionGroup->add(Gtk::Action::create("ViewToggleInfoLayer", 
@@ -404,6 +404,11 @@ void MainWin::initialize_menu() {
 					    "Define port colors"),
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_port_colors));
 
+  m_refActionGroup->add(Gtk::Action::create("GateGotoGate",
+					    "Goto gate by name", 
+					    "Goto gate by name"),
+			sigc::mem_fun(*this, &MainWin::on_menu_goto_gate));
+
   m_refActionGroup->add(Gtk::Action::create("GateSet",
 					    "Set gate for selection", 
 					    "Set gate for selection"),
@@ -512,7 +517,9 @@ void MainWin::initialize_menu() {
         "      <menuitem action='GateOrientation'/>"
         "      <menuitem action='GateSetAsMaster'/>"
         "      <separator/>"
-        "      <menuitem action='GatePortColors'/>"    
+        "      <menuitem action='GatePortColors'/>"
+        "      <separator/>"
+        "      <menuitem action='GateGotoGate'/>"
         "      <separator/>"
         "      <menuitem action='GateRemoveGateByType'/>"
         "      <menuitem action='GateRemoveGateByTypeWoMaster'/>"
@@ -582,6 +589,7 @@ void MainWin::initialize_menu() {
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GatePortColors", false);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateGotoGate", false);
 
   initialize_menu_render_funcs();
   initialize_menu_algorithm_funcs();
@@ -812,6 +820,7 @@ void MainWin::set_widget_sensitivity(bool state) {
 
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GatePortColors", state);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateGotoGate", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByType", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByTypeWoMaster", state);
 
@@ -1223,7 +1232,7 @@ void MainWin::update_gui_for_loaded_project() {
     adjust_scrollbars();
     
     ciWin = new ConnectionInspectorWin(this, main_project->lmodel);
-    ciWin->signal_goto_button_clicked().connect(sigc::mem_fun(*this, &MainWin::on_goto_object));
+    ciWin->signal_goto_button_clicked().connect(sigc::mem_fun(*this, &MainWin::goto_object));
     
     gcWin = new GridConfigWin(this, main_project->grid);
     gcWin->signal_changed().connect(sigc::mem_fun(*this, &MainWin::on_grid_config_changed));
@@ -1279,7 +1288,7 @@ void MainWin::set_layer(unsigned int layer) {
   imgWin.update_screen();
 }
 
-void MainWin::on_goto_object(LM_OBJECT_TYPE object_type, object_ptr_t * obj_ptr) {
+void MainWin::goto_object(LM_OBJECT_TYPE object_type, object_ptr_t * obj_ptr) {
   assert(obj_ptr != NULL);
   if(main_project != NULL && obj_ptr != NULL) {
     unsigned int center_x, center_y, layer;
@@ -1550,6 +1559,17 @@ void MainWin::on_algorithms_func_clicked(int slot_pos) {
 
 }
 
+
+void MainWin::on_menu_goto_gate() {
+  if(main_project != NULL) {
+    GenericTextInputWin input(this, "Goto gate by name", "Gate name", "");
+    Glib::ustring str = input.run();
+    
+    lmodel_gate_t * gate = lmodel_get_gate_by_name(main_project->lmodel, str.c_str());
+    if(gate == NULL) error_dialog("Error", "There is no gate with that name or the name is not unique.");
+    else goto_object(LM_TYPE_GATE, (object_ptr_t *)gate);
+  }
+}
 
 void MainWin::on_menu_gate_port_colors() {
   if(main_project != NULL) {

@@ -103,7 +103,8 @@ class MainWin : public Gtk::Window  {
   virtual void on_menu_gate_remove_gate_by_type();
   virtual void on_menu_gate_remove_gate_by_type_wo_master();
   virtual void on_menu_gate_port_colors();
-  
+  virtual void on_menu_goto_gate();
+
   // Tools menu
   virtual void on_menu_tools_select();
   virtual void on_menu_tools_move();
@@ -124,7 +125,7 @@ class MainWin : public Gtk::Window  {
   virtual void on_mouse_scroll_up(unsigned int center_x, unsigned int center_y);
   virtual void on_mouse_scroll_down(unsigned int center_x, unsigned int center_y);
 
-  virtual void on_goto_object(LM_OBJECT_TYPE object_type, object_ptr_t * obj_ptr);
+  virtual void goto_object(LM_OBJECT_TYPE object_type, object_ptr_t * obj_ptr);
 
   bool on_key_press_event_received(GdkEventKey * event);
   bool on_key_release_event_received(GdkEventKey * event);
