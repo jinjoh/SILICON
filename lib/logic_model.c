@@ -2996,12 +2996,16 @@ ret_t lmodel_get_printable_string_for_obj(LM_OBJECT_TYPE object_type, void * obj
   case LM_TYPE_GATE:
     g = (lmodel_gate_t *) obj_ptr;
     if(g->gate_template == NULL || g->gate_template->short_name == NULL) {
-      if(g->name == NULL || !strcmp(g->name, "")) snprintf(msg, len, "gate (%d)", g->id);
-      else snprintf(msg, len, "gate %s (%d)", g->name, g->id);
+      if(g->name == NULL || !strcmp(g->name, "")) 
+	snprintf(msg, len, "gate (%d)", g->id);
+      else 
+	snprintf(msg, len, "gate %s (%d)", g->name, g->id);
     }
     else {
-      if(g->name == NULL || !strcmp(g->name, "")) snprintf(msg, len, "%s (%d)", g->gate_template->short_name, g->id);
-      else snprintf(msg, len, "%s : %s (%d)", g->gate_template->short_name, g->name, g->id);
+      if(g->name == NULL || !strcmp(g->name, "")) 
+	snprintf(msg, len, "%s (%d)", g->gate_template->short_name, g->id);
+      else 
+	snprintf(msg, len, "%s : %s", g->name, g->gate_template->short_name);
     }
     break;
   case LM_TYPE_GATE_PORT:
@@ -3010,8 +3014,16 @@ ret_t lmodel_get_printable_string_for_obj(LM_OBJECT_TYPE object_type, void * obj
     if(gp->tmpl_port) {
       g = gp->gate;
       if(g->name == NULL || !strcmp(g->name, "")) 
-	snprintf(msg, len, "%s (%d) : %s", g->gate_template->short_name, g->id, gp->tmpl_port->port_name);
-      else snprintf(msg, len, "%s : %s (%d) : %s", g->gate_template->short_name, g->name, g->id, gp->tmpl_port->port_name);
+	snprintf(msg, len, "%s (%s,%d)",
+		 gp->tmpl_port->port_name, 
+		 g->gate_template->short_name,
+		 g->id);
+
+      else 
+	snprintf(msg, len, "%s : %s (%s)", 
+		 g->name, 
+		 gp->tmpl_port->port_name, 
+		 g->gate_template->short_name);
     }
     
     break;
@@ -3716,20 +3728,45 @@ ret_t lmodel_autoname_gates(logic_model_t * lmodel, unsigned int layer,
 
 
 /**
- * Get a gate from a gate set by name
+ * Get a gate from a gate set by name. Please note, that the name must not be unique.
  */
 lmodel_gate_t * lmodel_get_gate_from_set_by_name(lmodel_gate_set_t * gate_set, const char * const short_name) {
   
   assert(gate_set != NULL);
   assert(short_name != NULL);
-  if(gate_set == NULL | short_name == NULL) return NULL;
+  if(gate_set == NULL || short_name == NULL) return NULL;
 
   lmodel_gate_set_t * ptr = gate_set;
   lmodel_gate_t * found = NULL;
 
   while(ptr != NULL) {
     assert(ptr->gate != NULL);
-    if(!strcmp(ptr->gate->name, short_name)) {
+    if(ptr->gate != NULL && ptr->gate->name != NULL &&
+       !strcmp(ptr->gate->name, short_name)) {
+      if(found == NULL) found = ptr->gate;
+      else return NULL;
+    }
+
+    ptr = ptr->next;
+  }
+
+  return found;
+}
+
+/**
+ * Get a gate from a gate set by ID.
+ */
+lmodel_gate_t * lmodel_get_gate_from_set_by_id(lmodel_gate_set_t * gate_set, unsigned int obj_id) {
+  
+  assert(gate_set != NULL);
+  if(gate_set == NULL) return NULL;
+
+  lmodel_gate_set_t * ptr = gate_set;
+  lmodel_gate_t * found = NULL;
+
+  while(ptr != NULL) {
+    assert(ptr->gate != NULL);
+    if(ptr->gate != NULL && ptr->gate->id == obj_id) {
       if(found == NULL) found = ptr->gate;
       else return NULL;
     }
@@ -3749,4 +3786,15 @@ lmodel_gate_t * lmodel_get_gate_by_name(const logic_model_t * lmodel, const char
   if(lmodel == NULL || short_name == NULL) return NULL;
 
   return lmodel_get_gate_from_set_by_name(lmodel->gate_set, short_name);
+}
+
+
+/**
+ * Get a gate from logic model by its ID.
+ */
+lmodel_gate_t * lmodel_get_gate_by_id(const logic_model_t * lmodel, unsigned int obj_id) {
+  assert(lmodel != NULL);
+  if(lmodel == NULL) return NULL;
+
+  return lmodel_get_gate_from_set_by_id(lmodel->gate_set, obj_id);
 }

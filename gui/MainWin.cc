@@ -404,10 +404,16 @@ void MainWin::initialize_menu() {
 					    "Define port colors"),
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_port_colors));
 
-  m_refActionGroup->add(Gtk::Action::create("GateGotoGate",
+  m_refActionGroup->add(Gtk::Action::create("GateGotoGateByName",
 					    "Goto gate by name", 
 					    "Goto gate by name"),
-			sigc::mem_fun(*this, &MainWin::on_menu_goto_gate));
+			Gtk::AccelKey("<control>G"),
+			sigc::mem_fun(*this, &MainWin::on_menu_goto_gate_by_name));
+
+  m_refActionGroup->add(Gtk::Action::create("GateGotoGateByID",
+					    "Goto gate by ID", 
+					    "Goto gate by ID"),
+			sigc::mem_fun(*this, &MainWin::on_menu_goto_gate_by_id));
 
   m_refActionGroup->add(Gtk::Action::create("GateSet",
 					    "Set gate for selection", 
@@ -519,7 +525,8 @@ void MainWin::initialize_menu() {
         "      <separator/>"
         "      <menuitem action='GatePortColors'/>"
         "      <separator/>"
-        "      <menuitem action='GateGotoGate'/>"
+        "      <menuitem action='GateGotoGateByName'/>"
+        "      <menuitem action='GateGotoGateByID'/>"
         "      <separator/>"
         "      <menuitem action='GateRemoveGateByType'/>"
         "      <menuitem action='GateRemoveGateByTypeWoMaster'/>"
@@ -589,7 +596,8 @@ void MainWin::initialize_menu() {
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", false);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GatePortColors", false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateGotoGate", false);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateGotoGateByName", false);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateGotoGateByID", false);
 
   initialize_menu_render_funcs();
   initialize_menu_algorithm_funcs();
@@ -820,7 +828,8 @@ void MainWin::set_widget_sensitivity(bool state) {
 
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GatePortColors", state);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateGotoGate", state);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateGotoGateByName", state);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateGotoGateByID", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByType", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByTypeWoMaster", state);
 
@@ -1560,7 +1569,7 @@ void MainWin::on_algorithms_func_clicked(int slot_pos) {
 }
 
 
-void MainWin::on_menu_goto_gate() {
+void MainWin::on_menu_goto_gate_by_name() {
   if(main_project != NULL) {
     GenericTextInputWin input(this, "Goto gate by name", "Gate name", "");
     Glib::ustring str = input.run();
@@ -1570,6 +1579,20 @@ void MainWin::on_menu_goto_gate() {
     else goto_object(LM_TYPE_GATE, (object_ptr_t *)gate);
   }
 }
+
+void MainWin::on_menu_goto_gate_by_id() {
+  if(main_project != NULL) {
+    GenericTextInputWin input(this, "Goto gate by ID", "Gate ID", "");
+    Glib::ustring str = input.run();
+    
+    unsigned int id = atol(str.c_str());
+
+    lmodel_gate_t * gate = lmodel_get_gate_by_id(main_project->lmodel, id);
+    if(gate == NULL) error_dialog("Error", "There is no gate with that ID.");
+    else goto_object(LM_TYPE_GATE, (object_ptr_t *)gate);
+  }
+}
+
 
 void MainWin::on_menu_gate_port_colors() {
   if(main_project != NULL) {

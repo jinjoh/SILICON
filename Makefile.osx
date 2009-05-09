@@ -54,7 +54,7 @@ GUI_OBJS=gui/HlObjectSet.o \
 	gui/GridConfigWin.o \
 	gui/GateConfigWin.o \
 	gui/GateListWin.o \
-	gui/GenericTextinputWin.o \
+	gui/GenericTextInputWin.o \
 	gui/PortColorsWin.o \
 	gui/GateSelectWin.o \
 	gui/PortSelectWin.o \

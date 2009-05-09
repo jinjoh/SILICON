@@ -243,7 +243,8 @@ lmodel_gate_template_set_t * lmodel_create_gate_template_set(lmodel_gate_templat
 
 ret_t lmodel_add_gate_to_gate_set(logic_model_t * const lmodel, lmodel_gate_t * const gate);
 ret_t lmodel_remove_gate_from_gate_set(logic_model_t * const lmodel, lmodel_gate_t * const gate);
-lmodel_gate_t * lmodel_get_gate_from_set_by_name(lmodel_gate_set_t * gate_set);
+lmodel_gate_t * lmodel_get_gate_from_set_by_name(lmodel_gate_set_t * gate_set, const char * const short_name);
+lmodel_gate_t * lmodel_get_gate_from_set_by_id(lmodel_gate_set_t * gate_set, unsigned int obj_id);
 
 ret_t lmodel_serialize_to_file(const logic_model_t * const lmodel, const char * const project_dir);
 ret_t lmodel_load_files(logic_model_t * const lmodel, const char * const project_dir, int num_layers);
@@ -416,6 +417,7 @@ ret_t lmodel_autoname_gates(logic_model_t * lmodel, unsigned int layer,
 			    AUTONAME_ORIENTATION orientation);
 
 lmodel_gate_t * lmodel_get_gate_by_name(const logic_model_t * lmodel, const char * const short_name);
+lmodel_gate_t * lmodel_get_gate_by_id(const logic_model_t * lmodel, unsigned int id);
 
 #endif
  

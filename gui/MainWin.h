@@ -103,7 +103,8 @@ class MainWin : public Gtk::Window  {
   virtual void on_menu_gate_remove_gate_by_type();
   virtual void on_menu_gate_remove_gate_by_type_wo_master();
   virtual void on_menu_gate_port_colors();
-  virtual void on_menu_goto_gate();
+  virtual void on_menu_goto_gate_by_name();
+  virtual void on_menu_goto_gate_by_id();
 
   // Tools menu
   virtual void on_menu_tools_select();
