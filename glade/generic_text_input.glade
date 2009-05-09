@@ -27,7 +27,7 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkEntry" id="entry_name">
+              <widget class="GtkEntry" id="entry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
               </widget>
