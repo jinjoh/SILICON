@@ -3609,12 +3609,13 @@ ret_t lmodel_autoname_gates_along_single_row(logic_model_t * lmodel, unsigned in
     if(RET_IS_NOT_OK(ret = lmodel_get_object(lmodel, layer, x, y, &obj_type, (void **)&obj_ptr)))
       return ret;
 
-    if(obj_ptr != NULL && obj_type == LM_TYPE_GATE) {
+    if((obj_ptr != NULL) && (obj_type == LM_TYPE_GATE)) {
       char str[100];
       snprintf(str, sizeof(str), "%d.%d", row_num, col_num);
       if(RET_IS_NOT_OK(ret = lmodel_set_name(obj_type, obj_ptr, str))) return ret;
       lmodel_gate_t * g = (lmodel_gate_t *)obj_ptr;
-      x += g->max_x - g->min_x;
+      assert(g->max_x >= g->min_x);
+      x = g->max_x;
       col_num++;
     }
   }
@@ -3641,9 +3642,11 @@ ret_t lmodel_autoname_gates_along_single_col(logic_model_t * lmodel, unsigned in
       snprintf(str, sizeof(str), "%d.%d", row_num, col_num);
       if(RET_IS_NOT_OK(ret = lmodel_set_name(obj_type, obj_ptr, str))) return ret;
       lmodel_gate_t * g = (lmodel_gate_t *)obj_ptr;
-      y += g->max_y - g->min_y;
+      assert(g->max_y >= g->min_y);
+      y = g->max_y;
       row_num++;
     }
+
   }
 
   return RET_OK;
@@ -3707,4 +3710,26 @@ ret_t lmodel_autoname_gates(logic_model_t * lmodel, unsigned int layer,
     return lmodel_autoname_gates_along_col_or_row(lmodel, layer, histogram_y, orientation);
   else
     return RET_ERR;
+}
+
+
+/**
+ * Get a gate from a gate set by name
+ */
+lmodel_gate_t * lmodel_get_gate_from_set_by_name(lmodel_gate_set_t * gate_set, const char * const short_name) {
+  
+  //  while(ptr != NULL) {
+  //};
+  
+}
+
+/**
+ * Get a gate from logic model by its short name. Please note, that the short name must not be unique.
+ */
+lmodel_gate_t * lmodel_get_gate_by_name(const logic_model_t * lmodel, const char * const short_name) {
+  assert(lmodel != NULL);
+  assert(short_name != NULL);
+  if(lmodel == NULL || short_name == NULL) return NULL;
+
+  return lmodel_get_gate_from_set_by_name(lmodel->gate_set, short_name);
 }
