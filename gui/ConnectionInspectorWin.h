@@ -34,29 +34,35 @@ class ConnectionInspectorWin : public Gtk::Window {
     
     ConnectionInspectorModelColumns() { 
 
-      add(m_col_src_object_type);
-      add(m_col_src_object_ptr);
-      add(m_col_src_name);
-      add(m_col_src_name_sort);
+      add(m_col_curr_object_type);
+      add(m_col_curr_object_ptr);
+      add(m_col_curr_name);
+      add(m_col_curr_name_sort);
 
-      add(m_col_dst_object_type);
-      add(m_col_dst_object_ptr);
-      add(m_col_dst_name);
-      add(m_col_dst_name_sort);
+      add(m_col_prev_object_type);
+      add(m_col_prev_object_ptr);
+      add(m_col_prev_name);
+
+      add(m_col_next_object_type);
+      add(m_col_next_object_ptr);
+      add(m_col_next_name);
 
       add(color_);
     }
     
-    Gtk::TreeModelColumn<Glib::ustring> m_col_src_object_type_name;
-    Gtk::TreeModelColumn<Glib::ustring> m_col_src_name;
-    Gtk::TreeModelColumn<Glib::ustring> m_col_src_name_sort;
-    Gtk::TreeModelColumn<LM_OBJECT_TYPE> m_col_src_object_type;
-    Gtk::TreeModelColumn<object_ptr_t * > m_col_src_object_ptr;
+    Gtk::TreeModelColumn<Glib::ustring> m_col_curr_object_type_name;
+    Gtk::TreeModelColumn<Glib::ustring> m_col_curr_name;
+    Gtk::TreeModelColumn<Glib::ustring> m_col_curr_name_sort;
+    Gtk::TreeModelColumn<LM_OBJECT_TYPE> m_col_curr_object_type;
+    Gtk::TreeModelColumn<object_ptr_t * > m_col_curr_object_ptr;
 
-    Gtk::TreeModelColumn<Glib::ustring> m_col_dst_name;
-    Gtk::TreeModelColumn<Glib::ustring> m_col_dst_name_sort;
-    Gtk::TreeModelColumn<LM_OBJECT_TYPE> m_col_dst_object_type;
-    Gtk::TreeModelColumn<object_ptr_t * > m_col_dst_object_ptr;
+    Gtk::TreeModelColumn<Glib::ustring> m_col_next_name;
+    Gtk::TreeModelColumn<LM_OBJECT_TYPE> m_col_next_object_type;
+    Gtk::TreeModelColumn<object_ptr_t * > m_col_next_object_ptr;
+
+    Gtk::TreeModelColumn<Glib::ustring> m_col_prev_name;
+    Gtk::TreeModelColumn<LM_OBJECT_TYPE> m_col_prev_object_type;
+    Gtk::TreeModelColumn<object_ptr_t * > m_col_prev_object_ptr;
 
     Gtk::TreeModelColumn<Glib::ustring> color_; 
 
