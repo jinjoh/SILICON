@@ -3595,7 +3595,7 @@ ret_t lmodel_apply_colors_to_ports(logic_model_t * lmodel, const port_color_mana
 }
 
 
-#define AUTO_NAME_FORMAT_STR "%02d.02%d"
+#define AUTO_NAME_FORMAT_STR "%02d.%02d"
 
 ret_t lmodel_autoname_gates_along_single_row(logic_model_t * lmodel, unsigned int layer, 
 				      unsigned int y, unsigned int row_num) {
