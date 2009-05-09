@@ -7,6 +7,7 @@ INCLUDEPATH = -I. -Ilib -Ilogiclayerserialization/src\
                 -I/usr/local/include/cc++2 \
 		-I/usr/include/cc++2
 
+
 #DEFINES=-DHAVE_MMAP64
 
 #OPTIMIZATION_FLAGS=-O3 -finline-functions -finline-functions-called-once -fearly-inlining
@@ -15,8 +16,12 @@ OPTIMIZATION_FLAGS=-O0
 DEBUG_FLAGS=-ggdb -D DEBUG
 #DEBUG=
 
-LIB_NAMES=gtkmm-2.4 gthread-2.0 cairomm-1.0 libglademm-2.4 glibmm-2.4 libconfig++
+#LIB_NAMES=gtkmm-2.4 gthread-2.0 cairomm-1.0 libglademm-2.4 glibmm-2.4 libconfig++
 
+# libglademm libconfig-hr gtkmm ImageMagick
+
+LIB_NAMES_MAC_PORTS=gtkmm-2.4 gthread-2.0 cairomm-1.0 libglademm-2.4 glibmm-2.4 libconfig++
+LIB_NAMES=$(LIB_NAMES_MAC_PORTS)
 
 CXXFLAGS=$(DEBUG_FLAGS) -Wall $(OPTIMIZATION_FLAGS) -fPIC \
 	$(DEFINES) $(INCLUDEPATH) \
@@ -43,13 +48,13 @@ LIB_OBJS=lib/grid.o \
 	lib/project.o \
 	lib/scaling_manager.o
 
-GUI_OBJS=gui/SplashWin.o \
-	gui/HlObjectSet.o \
+GUI_OBJS=gui/HlObjectSet.o \
+	gui/SplashWin.o \
 	gui/NewProjectWin.o \
-	gui/GenericTextInputWin.o \
 	gui/GridConfigWin.o \
 	gui/GateConfigWin.o \
 	gui/GateListWin.o \
+	gui/GenericTextinputWin.o \
 	gui/PortColorsWin.o \
 	gui/GateSelectWin.o \
 	gui/PortSelectWin.o \
@@ -82,7 +87,10 @@ degate: $(LIB_OBJS) $(GUI_OBJS)
 plugins: plugin_clean plugin_template
 
 plugin_template: $(PLUGIN_TEMPLATE_OBJS)
-	$(CXX) -fPIC $(CXXFLAGS) -shared -o plugins/template.so $(PLUGIN_TEMPLATE_OBJS)
+	#$(CXX) -fPIC $(CXXFLAGS) -dynamiclib -fno_commons -o plugins/template.so $(PLUGIN_TEMPLATE_OBJS)
+
+plugin_template_osx:
+	$(CXX) -fPIC $(CXXFLAGS) -dynamiclib -fno_commons -Wl,-headerpad_max_install_names,-undefined,dynamic_lookup,-compatibility_version,1.0,-current_version,1.0,-install_name,/ -o plugins/template.so $(PLUGIN_TEMPLATE_OBJS)
 
 check: $(LIB_OBJS)
 	for i in test/*.c; do \
