@@ -106,7 +106,8 @@ class ConnectionInspectorWin : public Gtk::Window {
 
   void clear_list();
   void show_connections(LM_OBJECT_TYPE src_object_type,
-			object_ptr_t * src_curr_obj);
+			object_ptr_t * src_curr_obj,
+			Glib::ustring current_color);
 
 
   void set_gate_port(lmodel_gate_port_t * gate_port);

@@ -33,7 +33,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 
 #define MY_GREY "#808080"
 #define MY_WHITE "#ffffff"
-#define MY_BLUE "#c0c0ff"
+#define MY_BLUE  "#d0d0ff"
 #define DEFAULT_WIDTH 90
 
 ConnectionInspectorWin::ConnectionInspectorWin(Gtk::Window *parent, logic_model_t * lmodel) {
@@ -134,7 +134,7 @@ ConnectionInspectorWin::ConnectionInspectorWin(Gtk::Window *parent, logic_model_
 	pColumn->set_sizing(Gtk::TREE_VIEW_COLUMN_FIXED);
 	pColumn->set_min_width(DEFAULT_WIDTH);
 
-	//if(pColumn) pColumn->set_sort_column(m_Columns.m_col_curr_name_sort);
+	if(pColumn) pColumn->set_sort_column(m_Columns.m_col_curr_name_sort);
 	//refListStore->set_sort_column(m_Columns.m_col_curr_name_sort, Gtk::SORT_ASCENDING);
 
 	/*
@@ -186,7 +186,8 @@ void ConnectionInspectorWin::on_selection_changed() {
 
 
 void ConnectionInspectorWin::show_connections(LM_OBJECT_TYPE src_object_type,
-					      object_ptr_t * src_curr_obj) {
+					      object_ptr_t * src_curr_obj,
+					      Glib::ustring current_color) {
 
   
   char str[100];
@@ -195,8 +196,7 @@ void ConnectionInspectorWin::show_connections(LM_OBJECT_TYPE src_object_type,
   lmodel_gate_port_t * gate_port = NULL;
   lmodel_gate_template_port_t * tmpl_port = NULL;
   Gtk::TreeModel::Row row;
-  Glib::ustring last_port_name;
-
+  
   lmodel_connection_t * conn = NULL; 
 
   if((conn = lmodel_get_connections_from_object(src_object_type, src_curr_obj)) == NULL)
@@ -228,13 +228,8 @@ void ConnectionInspectorWin::show_connections(LM_OBJECT_TYPE src_object_type,
 	}
       }
 
-      if(last_port_name != row[m_Columns.m_col_curr_name]) {
-	row[m_Columns.color_] = MY_BLUE;
-      }
-      else {
-	row[m_Columns.color_] = MY_WHITE;
-      }
-      last_port_name = row[m_Columns.m_col_curr_name];
+      row[m_Columns.color_] = current_color;
+
       
       switch(conn->object_type) {
       case LM_TYPE_WIRE:
@@ -311,7 +306,7 @@ void ConnectionInspectorWin::set_gate_port(lmodel_gate_port_t * gate_port) {
     }
     current_object_type_label->set_text("Gate port");
     clear_list();
-    show_connections(LM_TYPE_GATE_PORT, (object_ptr_t *)gate_port);
+    show_connections(LM_TYPE_GATE_PORT, (object_ptr_t *)gate_port, MY_WHITE);
   }
 }
 
@@ -324,7 +319,7 @@ void ConnectionInspectorWin::set_wire(lmodel_wire_t * wire) {
     }
     current_object_type_label->set_text("Wire");
     clear_list();
-    show_connections(LM_TYPE_WIRE, (object_ptr_t *)wire);
+    show_connections(LM_TYPE_WIRE, (object_ptr_t *)wire, MY_WHITE);
   }
 }
 
@@ -337,7 +332,7 @@ void ConnectionInspectorWin::set_via(lmodel_via_t * via) {
     }
     current_object_type_label->set_text("Via");
     clear_list();
-    show_connections(LM_TYPE_VIA, (object_ptr_t *)via);
+    show_connections(LM_TYPE_VIA, (object_ptr_t *)via, MY_WHITE);
   }
 }
 
@@ -345,6 +340,8 @@ void ConnectionInspectorWin::set_gate(lmodel_gate_t * gate) {
   assert(gate != NULL);
   if(gate != NULL) {
     char str[100];
+    Glib::ustring current_color = MY_WHITE;
+
     if(RET_IS_OK(lmodel_get_printable_string_for_obj(LM_TYPE_GATE, gate, str, sizeof(str)))) {
       current_object_label->set_text(str);
     }
@@ -354,7 +351,11 @@ void ConnectionInspectorWin::set_gate(lmodel_gate_t * gate) {
     // XXX if I rewrite the logic model in c++, an iterator would help
     lmodel_gate_port_t * gate_port = gate->ports;
     while(gate_port != NULL) {
-      show_connections(LM_TYPE_GATE_PORT, (object_ptr_t *)gate_port);
+      show_connections(LM_TYPE_GATE_PORT, (object_ptr_t *)gate_port, current_color);
+
+      if(current_color == MY_BLUE) current_color = MY_WHITE;
+      else current_color = MY_BLUE;
+
       gate_port = gate_port->next;
     }
     

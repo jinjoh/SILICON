@@ -335,7 +335,7 @@ void MainWin::initialize_menu() {
   m_refActionGroup->add(m_refChoice_TransistorLayer);
   sig_conn_rbg_transistor = m_refChoice_TransistorLayer->signal_activate().connect(sigc::mem_fun(*this, &MainWin::on_menu_layer_set_transistor));
   
-  m_refChoice_LogicLayer = Gtk::RadioAction::create(group_layer_type, "LayerTypeLogic", "Logic layer");
+  m_refChoice_LogicLayer = Gtk::RadioAction::create(group_layer_type, "LayerTypeLogic", "Logic layer (M1)");
   //m_refActionGroup->add(m_refChoice_LogicLayer, sigc::mem_fun(*this, &MainWin::on_menu_layer_set_logic));
   m_refActionGroup->add(m_refChoice_LogicLayer);
   sig_conn_rbg_logic = m_refChoice_LogicLayer->signal_activate().connect(sigc::mem_fun(*this, &MainWin::on_menu_layer_set_logic), true); 
