@@ -7,14 +7,26 @@ Logic modell:
   
 UI:
 
+- Logic / Generate names -> close window via escape key or window close widget
+  is the same as ok. Other windows might be effected, too. Only on OSX?
+
 - stretching on window resize is bad
 - positioning ports is not on the click point (starbug)
 
 - some toolbar widgets are not shown when using older gtk/gtkmm libraries.
 
-- join / select / highlighting problem
+- join / select / highlighting problem (fixed?)
+
+Renderer:
+
+- if alpha = 0 -> highlighting doesn't work
 
 Misc.
 
+- 'remove gates by type' > crash
+
+- recent-manager
+
 - There is sth. strange, when exporting XPM images.
 - Synchronisation between rendering and plugin thread needed
+- close project / open project -> crash

@@ -4,7 +4,15 @@ template matching:
 
 - Use threading when matching multiple templates (batch mode). This
   should improve performance on multi core processors. (Function add_gate() is
-  a critical section.
+  a critical section.)
+
+- Dect: scaling = 2 && flipping -> wrong position
+
+- save template matching params
+
+- prio 0: (global) project setting - which flip-types are possible
+   -> reduce false positives in tmpl matching, speedup
+- test for best orientation
 
 project:
 
@@ -12,12 +20,26 @@ project:
   - determine project w/h by image size
 - add / remove layer
 
+=> a generic layer config win
+
 UI:
+
+- collapse toolbar
+- crontrol-mouse move same as move
+- remember path in file dialogs
+- ask: project-save on window-close (todo: check, if it works on ubuntu)
+- highlight all isolated ports and the gate, if all ports are isolated
+
+- scroll problem: scrollbar is top, but it's not really the top
 
 - "Select all objects in region"
 - "Select all gates in region"
 - "Select all wires in region"
 - "Select all via in region"
+
+- edit/create gate:
+  - default fill alpha: 0
+  - checkboxes for in/out
 
 renderer:
 
@@ -25,3 +47,16 @@ renderer:
 - draw strings to the left of a port, if there is space
 - linebreaked gate strings
 
+misc:
+
+- export netlist
+- export placements
+
+---------------------------------------------------------------------------
+
+- Use cmake to generate makefiles and configure scripts.
+  -> build platform
+- Rendering human readable cicuit schematics.
+  (Maybe as an extern tool with user interaction and from/to degate.)
+- Icarus Verilog?
+- 

@@ -36,7 +36,7 @@ class GenericTextInputWin  {
 		      Glib::ustring preset_text);
   virtual ~GenericTextInputWin();
         
-  Glib::ustring run();
+  bool run(Glib::ustring & new_value);
 
  private:
   Gtk::Window *parent;
@@ -44,12 +44,15 @@ class GenericTextInputWin  {
   Gtk::Entry * entry;
   Gtk::Label * label;
   Glib::ustring orig_text;
+  Gtk::Button * p_ok_button;
+
   bool ok_clicked;
+  
 
   // Signal handlers:
   virtual void on_ok_button_clicked();
   virtual void on_cancel_button_clicked();
-
+  virtual void on_entry_text_changed();
 };
 
 #endif

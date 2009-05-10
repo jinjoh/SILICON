@@ -137,7 +137,7 @@ static inline uint32_t highlight_color(uint32_t col) {
   
   return MERGE_CHANNELS((((255-r)>>1) + r),
 			(((255-g)>>1) + g),
-			(((255-b)>>1) + b), a);
+			(((255-b)>>1) + b), (a < 128 ? 128 : a));
 }
 
 static inline uint32_t highlight_color_by_state(uint32_t col, int state) {
@@ -624,7 +624,7 @@ ret_t render_gate(renderer_t * renderer, render_params_t * render_params, image_
 	  if(RET_IS_NOT_OK(ret = draw_circle(dst_img, 
 					     x, 
 					     y, 
-					     ports->is_selected ? (port_size << 2) : port_size,
+					     ports->is_selected ? (port_size << 2) : port_size + 1,
 					     port_color)))
 	    return ret;
 	  
@@ -773,11 +773,16 @@ ret_t render_via(renderer_t * renderer, render_params_t * render_params, image_t
       unsigned int screen_x = via->x > min_x ? (unsigned int)((via->x - min_x) / scaling_x) : 0;
       unsigned int screen_y = via->y > min_y ? (unsigned int)((via->y - min_y) / scaling_y) : 0;
       
-      // render filled rectangle
+      unsigned int via_size = (double)via->diameter / scaling_x;
+
+      if(via->is_selected) via_size <<= 2;
+      
+  
+      // render filled circle
       uint32_t col = via->direction == LM_VIA_UP ? render_params->il_up_color : render_params->il_down_color;
       col = highlight_color_by_state(col, via->is_selected);
 
-      draw_circle(dst_img, screen_x, screen_y, via->diameter / scaling_x + 1, col);
+      draw_circle(dst_img, screen_x, screen_y, via_size + 1, col);
     }
   }
 

@@ -2561,7 +2561,7 @@ ret_t lmodel_remove_gate_from_gate_set(logic_model_t * const lmodel, lmodel_gate
  * Remove gate instances from logic model that reference a template of type tmpl and destroy the gates.
  */
 ret_t lmodel_destroy_gates_by_template_type(logic_model_t * const lmodel, 
-					    const lmodel_gate_template_t * const tmpl,					    
+					    const lmodel_gate_template_t * const tmpl,
 					    GS_DESTROY_MODE mode) {
   ret_t ret;
   assert(lmodel != NULL);

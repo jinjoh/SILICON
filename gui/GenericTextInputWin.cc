@@ -73,11 +73,12 @@ GenericTextInputWin::GenericTextInputWin(Gtk::Window *parent,
     if(pButton)
       pButton->signal_clicked().connect(sigc::mem_fun(*this, &GenericTextInputWin::on_cancel_button_clicked));
     
-    refXml->get_widget("ok_button", pButton);
-    if(pButton) {
-      pButton->signal_clicked().connect(sigc::mem_fun(*this, &GenericTextInputWin::on_ok_button_clicked) );
-      pButton->grab_focus();
+    refXml->get_widget("ok_button", p_ok_button);
+    if(p_ok_button != NULL) {
+      p_ok_button->signal_clicked().connect(sigc::mem_fun(*this, &GenericTextInputWin::on_ok_button_clicked) );
+      p_ok_button->grab_focus();
     }
+    else return;
 
     refXml->get_widget("label", label);
     if(label != NULL) {
@@ -88,6 +89,8 @@ GenericTextInputWin::GenericTextInputWin(Gtk::Window *parent,
     if(entry != NULL) {
       entry->grab_focus();
       entry->set_text(preset_text);
+      entry->signal_changed().connect(sigc::mem_fun(*this, &GenericTextInputWin::on_entry_text_changed) );
+      if(preset_text.length() == 0) p_ok_button->set_sensitive(false);
     }
 
   }
@@ -98,10 +101,21 @@ GenericTextInputWin::~GenericTextInputWin() {
 }
 
 
-Glib::ustring GenericTextInputWin::run() {
+void GenericTextInputWin::on_entry_text_changed() {
+  if(entry->get_text().length() > 0) p_ok_button->set_sensitive(true);
+  else p_ok_button->set_sensitive(false);
+}
+
+bool GenericTextInputWin::run(Glib::ustring & new_value) {
   pDialog->run();
-  if(ok_clicked) return entry->get_text();
-  else return orig_text;
+  if(ok_clicked) {
+    new_value = entry->get_text();
+    return true;
+  }
+  else {
+    new_value = orig_text;
+    return false;
+  }
 }
 
 void GenericTextInputWin::on_ok_button_clicked() {

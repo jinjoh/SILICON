@@ -552,14 +552,18 @@ void ImageWin::set_shift_key_state(bool state) {
   shift_key_pressed = state;
 }
 
+#define DELTA(a, b) (a > b ? a - b : b -a)
+#define MIN_DELTA_FOR_DRAG_MODE 8
+
 bool ImageWin::on_motion_notify_event(GdkEventMotion * event) {
 
   if(mouse_button_pressed == true && (
-     (last_click_on_x != (unsigned int)event->x) ||
-     (last_click_on_y != (unsigned int)event->y))) {
+				      DELTA(last_click_on_x, (unsigned int)event->x) > MIN_DELTA_FOR_DRAG_MODE ||
+				      DELTA(last_click_on_y, (unsigned int)event->y) > MIN_DELTA_FOR_DRAG_MODE )) {
     drag_mode = true;
   }
   else {
+
     drag_mode = false;
   }
 

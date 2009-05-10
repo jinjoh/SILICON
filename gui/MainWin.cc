@@ -223,6 +223,7 @@ void MainWin::initialize_menu() {
 			sigc::mem_fun(*this, &MainWin::on_menu_project_settings));
 
   m_refActionGroup->add(Gtk::Action::create("ProjectExportArchive",
+					    Gtk::Stock::HARDDISK,
 					    "Create _archive", "Create an archive"),
 			sigc::mem_fun(*this, &MainWin::on_menu_project_export_archive));
 
@@ -311,7 +312,8 @@ void MainWin::initialize_menu() {
   m_refActionGroup->add( Gtk::Action::create("LayerMenu", "Layer"));
 
   m_refActionGroup->add(Gtk::Action::create("LayerImportBackground",
-					    "_Import background patches", 
+					    Gtk::Stock::MISSING_IMAGE,
+					    "_Import background image", 
 					    "Import background for current layer"),
 			sigc::mem_fun(*this, &MainWin::on_menu_layer_import_background));
 
@@ -349,7 +351,7 @@ void MainWin::initialize_menu() {
   m_refActionGroup->add(Gtk::Action::create("LogicInterconnect",
 					    Gtk::Stock::CONNECT, "Interconnect objects", 
 					    "Interconnect objects"),
-			Gtk::AccelKey("<control>J"),
+			Gtk::AccelKey("<control>A"),
 			sigc::mem_fun(*this, &MainWin::on_menu_logic_interconnect));
 
   m_refActionGroup->add(Gtk::Action::create("LogicIsolate",
@@ -369,7 +371,10 @@ void MainWin::initialize_menu() {
 			Gtk::AccelKey("<control>C"),
 			sigc::mem_fun(*this, &MainWin::on_menu_logic_clear_logic_model_in_selection));
 
-  m_refActionGroup->add(Gtk::Action::create("LogicConnectionInspector", "Connection inspector", "Connection inspector"),
+  m_refActionGroup->add(Gtk::Action::create("LogicConnectionInspector", 
+					    Gtk::Stock::EXECUTE, 
+					    "Connection inspector", 
+					    "Connection inspector"),
 			Gtk::AccelKey("<control>I"),
 			sigc::mem_fun(*this, &MainWin::on_menu_logic_connection_inspector));
 
@@ -393,7 +398,7 @@ void MainWin::initialize_menu() {
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_create_by_selection));
 
   m_refActionGroup->add(Gtk::Action::create("GateList",
-					    Gtk::Stock::INDEX,
+					    Gtk::Stock::DND_MULTIPLE,
 					    "List gates", 
 					    "List available gate"),
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_list));
@@ -405,12 +410,14 @@ void MainWin::initialize_menu() {
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_port_colors));
 
   m_refActionGroup->add(Gtk::Action::create("GateGotoGateByName",
+					    Gtk::Stock::JUMP_TO,
 					    "Goto gate by name", 
 					    "Goto gate by name"),
 			Gtk::AccelKey("<control>G"),
 			sigc::mem_fun(*this, &MainWin::on_menu_goto_gate_by_name));
 
   m_refActionGroup->add(Gtk::Action::create("GateGotoGateByID",
+					    Gtk::Stock::JUMP_TO,
 					    "Goto gate by ID", 
 					    "Goto gate by ID"),
 			sigc::mem_fun(*this, &MainWin::on_menu_goto_gate_by_id));
@@ -421,6 +428,7 @@ void MainWin::initialize_menu() {
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_set));
 
   m_refActionGroup->add(Gtk::Action::create("GateOrientation",
+					    Gtk::Stock::ORIENTATION_REVERSE_LANDSCAPE,
 					    "Set gate orientation", 
 					    "Set gate orientation"),
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_orientation));
@@ -539,8 +547,6 @@ void MainWin::initialize_menu() {
         "    </menu>"
         "  </menubar>"
         "  <toolbar  name='ToolBar'>"
-        "    <toolitem action='ProjectQuit'/>"
-        "    <separator/>"
         "    <toolitem action='ViewZoomIn'/>"
         "    <toolitem action='ViewZoomOut'/>"
         "    <separator/>"
@@ -554,6 +560,7 @@ void MainWin::initialize_menu() {
         "    <toolitem action='ToolViaDown'/>"
         "    <separator/>"
         "    <toolitem action='GateList'/>"
+        "    <toolitem action='LogicConnectionInspector'/>"
         "  </toolbar>"
     "</ui>";
 
@@ -605,6 +612,7 @@ void MainWin::initialize_menu() {
   signal_key_press_event().connect(sigc::mem_fun(*this,&MainWin::on_key_press_event_received), false);
   signal_key_release_event().connect(sigc::mem_fun(*this,&MainWin::on_key_release_event_received), false);
 
+  signal_hide().connect(sigc::mem_fun(*this, &MainWin::on_menu_project_close), false);
 }
 
 void MainWin::set_image_for_toolbar_widget(Glib::ustring toolbar_widget_path, 
@@ -783,6 +791,7 @@ void MainWin::set_widget_sensitivity(bool state) {
   set_toolbar_item_sensitivity("/ToolBar/ToolViaDown", state);
 
   set_toolbar_item_sensitivity("/ToolBar/GateList", state);
+  set_toolbar_item_sensitivity("/ToolBar/LogicConnectionInspector", state);
 
   set_menu_item_sensitivity("/MenuBar/ProjectMenu/ProjectClose", state);
   set_menu_item_sensitivity("/MenuBar/ProjectMenu/ProjectSave", state);
@@ -1572,24 +1581,28 @@ void MainWin::on_algorithms_func_clicked(int slot_pos) {
 void MainWin::on_menu_goto_gate_by_name() {
   if(main_project != NULL) {
     GenericTextInputWin input(this, "Goto gate by name", "Gate name", "");
-    Glib::ustring str = input.run();
+    Glib::ustring str;
+    if(input.run(str)) {
     
-    lmodel_gate_t * gate = lmodel_get_gate_by_name(main_project->lmodel, str.c_str());
-    if(gate == NULL) error_dialog("Error", "There is no gate with that name or the name is not unique.");
-    else goto_object(LM_TYPE_GATE, (object_ptr_t *)gate);
+      lmodel_gate_t * gate = lmodel_get_gate_by_name(main_project->lmodel, str.c_str());
+      if(gate == NULL) error_dialog("Error", "There is no gate with that name or the name is not unique.");
+      else goto_object(LM_TYPE_GATE, (object_ptr_t *)gate);
+    }
   }
 }
 
 void MainWin::on_menu_goto_gate_by_id() {
   if(main_project != NULL) {
     GenericTextInputWin input(this, "Goto gate by ID", "Gate ID", "");
-    Glib::ustring str = input.run();
+    Glib::ustring str;
+    if(input.run(str)) {
     
-    unsigned int id = atol(str.c_str());
+      unsigned int id = atol(str.c_str());
 
-    lmodel_gate_t * gate = lmodel_get_gate_by_id(main_project->lmodel, id);
-    if(gate == NULL) error_dialog("Error", "There is no gate with that ID.");
-    else goto_object(LM_TYPE_GATE, (object_ptr_t *)gate);
+      lmodel_gate_t * gate = lmodel_get_gate_by_id(main_project->lmodel, id);
+      if(gate == NULL) error_dialog("Error", "There is no gate with that ID.");
+      else goto_object(LM_TYPE_GATE, (object_ptr_t *)gate);
+    }
   }
 }
 
@@ -1672,14 +1685,31 @@ void MainWin::remove_gate_by_type(GS_DESTROY_MODE destroy_mode) {
 							       set_ptr->gate, 
 							       destroy_mode))) {
 	  error_dialog("Error", "Can't remove gate.");
+	  goto end;
+	}
+
+	
+	Gtk::MessageDialog dialog2(*this, "Do you want to remove the gate definition, too?",
+				  true, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_YES_NO);
+	dialog2.set_title("Warning");
+	dialog2.hide();
+	if(dialog.run() == Gtk::RESPONSE_YES) {
+
+	  if(RET_IS_NOT_OK(lmodel_remove_gate_template(main_project->lmodel, set_ptr->gate))) {
+	    error_dialog("Error", "Can't remove template gate.");
+	    goto end;
+	  }
 	}
 
 	set_ptr = set_ptr->next;
       }
 
+    end:
+
       imgWin.update_screen();
       project_changed();
     }
+
 
     if(RET_IS_NOT_OK(lmodel_destroy_gate_template_set(tmpl_set, DESTROY_CONTAINER_ONLY)))
       error_dialog("Error", "Can't destroy temporary data structure.");
@@ -2537,7 +2567,7 @@ void MainWin::on_menu_view_distance_to_color() {
 */
 
 void MainWin::on_menu_layer_import_background() {
-  Gtk::FileChooserDialog dialog("Please select background patches", Gtk::FILE_CHOOSER_ACTION_OPEN);
+  Gtk::FileChooserDialog dialog("Please select a background image", Gtk::FILE_CHOOSER_ACTION_OPEN);
   dialog.set_transient_for(*this);
   //dialog.set_select_multiple(true);
 
