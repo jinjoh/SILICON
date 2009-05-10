@@ -59,4 +59,5 @@ misc:
 - Rendering human readable cicuit schematics.
   (Maybe as an extern tool with user interaction and from/to degate.)
 - Icarus Verilog?
-- 
+- Generate documentation for gates
+- image preprocessing?
