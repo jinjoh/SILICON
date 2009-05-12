@@ -50,6 +50,7 @@ enum LM_OBJECT_TYPE {
 };
 
 enum LM_PORT_TYPE {
+  LM_PT_UNDEF = 0,
   LM_PT_IN = 1,
   LM_PT_OUT = 2
 };

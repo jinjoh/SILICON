@@ -36,10 +36,14 @@ class GateConfigWin  {
     GateConfigModelColumns() { 
       add(m_col_id); 
       add(m_col_text); 
+      add(m_col_inport); 
+      add(m_col_outport); 
     }
     
     Gtk::TreeModelColumn<int> m_col_id;
     Gtk::TreeModelColumn<Glib::ustring> m_col_text;
+    Gtk::TreeModelColumn<bool> m_col_inport; 
+    Gtk::TreeModelColumn<bool> m_col_outport; 
   };
 
  public:
@@ -62,10 +66,10 @@ class GateConfigWin  {
 
   Gtk::Dialog* pDialog;
   GateConfigModelColumns m_Columns;
-  Glib::RefPtr<Gtk::ListStore> refListStore_out_ports, refListStore_in_ports;
+  Glib::RefPtr<Gtk::ListStore> refListStore_ports;
 
-  Gtk::TreeView* pTreeView_in_ports;
-  Gtk::TreeView* pTreeView_out_ports;
+  Gtk::TreeView* pTreeView_ports;
+
   bool result;
 
   Gtk::Entry * entry_short_name;
@@ -78,11 +82,8 @@ class GateConfigWin  {
   virtual void on_ok_button_clicked();
   virtual void on_cancel_button_clicked();
 
-  virtual void on_inport_add_button_clicked();
-  virtual void on_inport_remove_button_clicked();
-  virtual void on_outport_add_button_clicked();
-  virtual void on_outport_remove_button_clicked();
-
+  virtual void on_port_add_button_clicked();
+  virtual void on_port_remove_button_clicked();
 
 };
 
