@@ -40,7 +40,6 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "PortSelectWin.h"
 #include "InProgressWin.h"
 #include "SplashWin.h"
-#include "SetNameWin.h"
 #include "SetOrientationWin.h"
 #include "ProjectSettingsWin.h"
 #include "ConnectionInspectorWin.h"
@@ -2330,17 +2329,19 @@ void MainWin::on_popup_menu_set_name() {
       if(n != NULL) name = n;
     }
 
-    SetNameWin nsWin(this, name);
-    name = nsWin.run();
-
-    for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
-      if(RET_IS_NOT_OK(lmodel_set_name( (*it).second, (*it).first, name.c_str() ))) {
-	error_dialog("Error", "Can't set name.");
-	return;
+    GenericTextInputWin input(this, "Set name", "Please set a name", name);
+    Glib::ustring str;
+    if(input.run(name)) {
+    
+      for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
+	if(RET_IS_NOT_OK(lmodel_set_name( (*it).second, (*it).first, name.c_str() ))) {
+	  error_dialog("Error", "Can't set name.");
+	  return;
+	}
       }
+      project_changed();
+      imgWin.update_screen();
     }
-    project_changed();
-    imgWin.update_screen();
 
   }
 }

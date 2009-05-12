@@ -56,8 +56,6 @@ GUI_OBJS=gui/SplashWin.o \
 	gui/ImageWin.o \
 	gui/InProgressWin.o \
 	gui/ObjectMatchingWin.o \
-	gui/SetNameWin.o \
-	gui/SetThresholdWin.o \
 	gui/SetOrientationWin.o \
 	gui/ProjectSettingsWin.o \
 	gui/TemplateMatchingParamsWin.o \

@@ -522,12 +522,13 @@ void GridConfigWin::on_button_add_uvg_clicked() {
 
 
 void GridConfigWin::on_button_remove_uhg_clicked() {
-  Glib::RefPtr<Gtk::TreeSelection> ref_tree_selection =  p_treeview_uhg->get_selection();
-  if(ref_tree_selection != NULL) {
+  Glib::RefPtr<Gtk::TreeSelection> ref_tree_selection = p_treeview_uhg->get_selection();
+  if(ref_tree_selection) {
 
     std::vector<Gtk::TreeModel::Path> pathlist = ref_tree_selection->get_selected_rows();
 
-    for(std::vector<Gtk::TreeModel::Path>::reverse_iterator iter = pathlist.rbegin(); iter != pathlist.rend(); ++iter)
+    for(std::vector<Gtk::TreeModel::Path>::reverse_iterator iter = pathlist.rbegin(); 
+	iter != pathlist.rend(); ++iter)
       ref_liststore_uhg->erase(ref_tree_selection->get_model()->get_iter (*iter));
     
     update_uhg_structs();
@@ -536,11 +537,12 @@ void GridConfigWin::on_button_remove_uhg_clicked() {
 
 void GridConfigWin::on_button_remove_uvg_clicked() {
   Glib::RefPtr<Gtk::TreeSelection> ref_tree_selection =  p_treeview_uvg->get_selection();
-  if(ref_tree_selection != NULL) {
+  if(ref_tree_selection) {
 
     std::vector<Gtk::TreeModel::Path> pathlist = ref_tree_selection->get_selected_rows();
 
-    for(std::vector<Gtk::TreeModel::Path>::reverse_iterator iter = pathlist.rbegin(); iter != pathlist.rend(); ++iter)
+    for(std::vector<Gtk::TreeModel::Path>::reverse_iterator iter = pathlist.rbegin(); 
+	iter != pathlist.rend(); ++iter)
       ref_liststore_uvg->erase(ref_tree_selection->get_model()->get_iter (*iter));
     
     update_uvg_structs();
