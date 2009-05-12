@@ -90,7 +90,7 @@ class MainWin : public Gtk::Window  {
   virtual void on_menu_logic_interconnect();
   virtual void on_menu_logic_isolate();
   virtual void on_menu_logic_clear_logic_model();
-  virtual void on_menu_logic_clear_logic_model_in_selection();
+  virtual void remove_objects();
   virtual void on_menu_logic_connection_inspector();
   virtual void on_menu_logic_auto_name_gates(AUTONAME_ORIENTATION orientation);
 

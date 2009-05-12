@@ -368,7 +368,7 @@ void MainWin::initialize_menu() {
 					    Gtk::Stock::CLEAR, "Remove selected objects", 
 					    "Remove selected objects"),
 			Gtk::AccelKey("<control>C"),
-			sigc::mem_fun(*this, &MainWin::on_menu_logic_clear_logic_model_in_selection));
+			sigc::mem_fun(*this, &MainWin::remove_objects));
 
   m_refActionGroup->add(Gtk::Action::create("LogicConnectionInspector", 
 					    Gtk::Stock::EXECUTE, 
@@ -2226,7 +2226,13 @@ void MainWin::on_popup_menu_set_port() {
     void * obj_ptr = NULL;
     unsigned int x, y;
 
-    if(RET_IS_NOT_OK(lmodel_get_object(main_project->lmodel, main_project->current_layer, 
+    int layer = lmodel_get_layer_num_by_type(main_project->lmodel, LM_LAYER_TYPE_LOGIC);
+    if(layer == -1) {
+      error_dialog("Error", "There is no logic layer defined.");
+      return;
+    }
+
+    if(RET_IS_NOT_OK(lmodel_get_object(main_project->lmodel, layer, 
 				       last_click_on_real_x, last_click_on_real_y, 
 				       &object_type, &obj_ptr))) {
       error_dialog("Error", "Unknown error.");
@@ -2729,22 +2735,32 @@ void MainWin::on_menu_logic_clear_logic_model() {
 
 }
 
-void MainWin::on_menu_logic_clear_logic_model_in_selection() {
+void MainWin::remove_objects() {
 
-  std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
+  if(main_project != NULL) {
 
-  for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
+    int layer = lmodel_get_layer_num_by_type(main_project->lmodel, LM_LAYER_TYPE_LOGIC);
+    if(layer == -1) {
+      error_dialog("Error", "There is no logic layer defined. Please define layer types.");
+    }
+    else {
+      std::set< std::pair<void *, LM_OBJECT_TYPE> >::const_iterator it;
 
-    if(RET_IS_NOT_OK(lmodel_remove_object_by_ptr(main_project->lmodel, main_project->current_layer, (*it).first, (*it).second))) {
-      error_dialog("Error", "Can't remove object(s) from logic model");
+      for(it = selected_objects.begin(); it != selected_objects.end(); it++) {
+	
+	if(RET_IS_NOT_OK(lmodel_remove_object_by_ptr(main_project->lmodel, layer, (*it).first, (*it).second))) {
+	  error_dialog("Error", "Can't remove object(s) from logic model");
+	}
+      }
+      
+      selected_objects.erase(selected_objects.begin(), selected_objects.end());
+      highlighted_objects.clear();
+
+      set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", false);
+      imgWin.update_screen(); 
+      ciWin->objects_removed();
     }
   }
-
-  selected_objects.erase(selected_objects.begin(), selected_objects.end());
-  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", false);
-  imgWin.update_screen(); 
-  ciWin->objects_removed();
-
 }
 
 void MainWin::on_menu_layer_clear_background_image() {

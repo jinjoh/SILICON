@@ -28,7 +28,7 @@ UI:
 - crontrol-mouse move same as move
 - remember path in file dialogs
 - ask: project-save on window-close (todo: check, if it works on ubuntu)
-- highlight all isolated ports and the gate, if all ports are isolated
+-  highlight all isolated ports / the gate, if all ports are isolated
 
 - scroll problem: scrollbar is top, but it's not really the top
 
