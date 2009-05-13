@@ -2572,15 +2572,19 @@ ret_t lmodel_destroy_gates_by_template_type(logic_model_t * const lmodel,
 
   lmodel_gate_set_t * gset_ptr = lmodel->gate_set;
   while(gset_ptr != NULL) {
+    bool destroy = false;
+
     if(gset_ptr->gate != NULL && gset_ptr->gate->gate_template == tmpl) {
-      int destroy = 1;
-      if(mode == DESTROY_WO_MASTER && lmodel_gate_is_master(gset_ptr->gate)) destroy = 0;
+      if(mode == DESTROY_WO_MASTER && lmodel_gate_is_master(gset_ptr->gate)) destroy = false;
+      else destroy = true;
 
       // implicit removal from gate set
-      if(destroy == 1 && RET_IS_NOT_OK(ret = lmodel_remove_object_by_ptr(lmodel, layer, gset_ptr->gate, 
-									 LM_TYPE_GATE))) return ret;
+      if(destroy && RET_IS_NOT_OK(ret = lmodel_remove_object_by_ptr(lmodel, layer, gset_ptr->gate, 
+								    LM_TYPE_GATE))) return ret;
     }
-    gset_ptr = gset_ptr->next;
+
+    if(destroy) gset_ptr = lmodel->gate_set; // XXX: rewind
+    else gset_ptr = gset_ptr->next;
   }
   return RET_OK;
 }

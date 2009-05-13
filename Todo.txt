@@ -49,6 +49,8 @@ renderer:
 
 misc:
 
+- recent-manager
+
 - export netlist
 - export placements
 

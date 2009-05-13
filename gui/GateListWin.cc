@@ -253,7 +253,7 @@ void GateListWin::on_remove_button_clicked() {
       Gtk::TreeModel::Row row = *iter; 
       int obj_id = row[m_Columns.m_col_id];
 
-      Gtk::MessageDialog dialog(*parent, "Are you sure you want to remove a gate template?", 
+      Gtk::MessageDialog dialog(*parent, "Are you sure you want to remove selected gate template(s)?", 
 				true, Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_YES_NO);
       dialog.set_title("Warning");      
       if(dialog.run() == Gtk::RESPONSE_YES) {

@@ -23,9 +23,6 @@ Renderer:
 
 Misc.
 
-- 'remove gates by type' > crash
-
-- recent-manager
 
 - There is sth. strange, when exporting XPM images.
 - Synchronisation between rendering and plugin thread needed
