@@ -398,8 +398,9 @@ void MainWin::initialize_menu() {
 
   m_refActionGroup->add(Gtk::Action::create("GateList",
 					    Gtk::Stock::DND_MULTIPLE,
-					    "List gates", 
-					    "List available gate"),
+					    "Gate library", 
+					    "Gate Library"),
+			Gtk::AccelKey("<control>L"),
 			sigc::mem_fun(*this, &MainWin::on_menu_gate_list));
 
   m_refActionGroup->add(Gtk::Action::create("GatePortColors",
