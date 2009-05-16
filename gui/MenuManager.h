@@ -77,10 +77,8 @@ class MenuManager {
   void create_and_bind_recognition_menu();
   void create_and_bind_help_menu();
 
-  void set_initial_sensitivity();
 
-
-  void setup_menu_stucture();
+  void setup_menu_structure();
   void set_toolbar_images();
 
   void set_image_for_toolbar_widget(Glib::ustring toolbar_widget_path, Glib::ustring image_file_name);

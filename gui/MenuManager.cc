@@ -17,6 +17,9 @@ MenuManager::MenuManager(MainWin * wnd) {
 
   create_popup_menu();
   create_menu();
+
+  set_widget_sensitivity(false);
+
 }
 
 
@@ -87,7 +90,7 @@ void MenuManager::create_menu() {
   
   window->add_accel_group(m_refUIManager->get_accel_group());
 
-  set_initial_sensitivity();
+  setup_menu_structure();
 }
 
 
@@ -376,7 +379,7 @@ void MenuManager::create_and_bind_help_menu() {
   
 }
 
-void MenuManager::setup_menu_stucture() {
+void MenuManager::setup_menu_structure() {
   
   // Layout the actions in a menubar and toolbar:
   Glib::ustring ui_info = 
@@ -523,21 +526,6 @@ void MenuManager::set_toolbar_images() {
 }
 
 
-void MenuManager::set_initial_sensitivity() {
-  set_menu_item_sensitivity("/MenuBar/LayerMenu/LayerAlignment", false);
-  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateCreateBySelection", false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateOrientation", false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GatePortColors", false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateGotoGateByName", false);
-  set_menu_item_sensitivity("/MenuBar/GateMenu/GateGotoGateByID", false);
-
-  set_widget_sensitivity(false);
-
-}
 
 
 void MenuManager::set_image_for_toolbar_widget(Glib::ustring toolbar_widget_path, 
@@ -633,6 +621,7 @@ void MenuManager::initialize_menu_render_funcs(const std::vector<Glib::ustring> 
 }
 
 
+
 void MenuManager::set_widget_sensitivity(bool state) {
 
   set_toolbar_item_sensitivity("/ToolBar/ViewZoomIn", state);
@@ -685,6 +674,7 @@ void MenuManager::set_widget_sensitivity(bool state) {
   set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicConnectionInspector", state);
   set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicAutoNameGatesAlongRows", state);
   set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicAutoNameGatesAlongCols", state);
+  set_menu_item_sensitivity("/MenuBar/LogicMenu/LogicClearLogicModelInSelection", state);
 
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateList", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GatePortColors", state);
@@ -692,6 +682,12 @@ void MenuManager::set_widget_sensitivity(bool state) {
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateGotoGateByID", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByType", state);
   set_menu_item_sensitivity("/MenuBar/GateMenu/GateRemoveGateByTypeWoMaster", state);
+
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateCreateBySelection", state);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateSet", state);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateOrientation", state);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GateSetAsMaster", state);
+  set_menu_item_sensitivity("/MenuBar/GateMenu/GatePortColors", state);
 
 }
 
@@ -782,16 +778,21 @@ bool MenuManager::toggle_menu_item(Glib::ustring path, bool state,
 
 const std::vector<bool> MenuManager::toggle_info_layer_visibility() {
 
+  int i = 0;
   std::vector<bool> new_states(slot_states.size());
 
   assert(slot_states.size() > 0);
 
   std::vector< std::pair<Gtk::CheckMenuItem *, bool> >::iterator it = slot_states.begin();
-  if(slot_states.size() > 2) {it++; it++; }
+  if(slot_states.size() > 2) {
+    new_states[i] = slot_states[i].second; i++;
+    new_states[i] = slot_states[i].second; i++;
+    it++; it++; 
+  }
 
   // This is a hack, because we have not stored sigc::connection in order to  disconnect it here.
   info_layers_checkbox_ignore_sig = true; 
-  int i = 0;
+
   while(it != slot_states.end()) {
 
     bool new_state = info_layers_visible == true ? false : (*it).second;

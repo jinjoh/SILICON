@@ -75,18 +75,12 @@ MainWin::MainWin() :
   add(m_Box);
 
 
-  initialize_image_window();
-
-  // setup statusbar
-  m_statusbar.push("");
-  m_Box.pack_start(m_statusbar, Gtk::PACK_SHRINK);
-
   // setup menu
   menu_manager = new MenuManager(this);
   Gtk::Widget* menubar = menu_manager->get_menubar();
   Gtk::Widget* toolbar = menu_manager->get_toolbar();
-  assert(menubar);
-  assert(toolbar);
+  assert(menubar != NULL);
+  assert(toolbar != NULL);
   if(menubar != NULL && toolbar != NULL) {
     m_Box.pack_start(*menubar, Gtk::PACK_SHRINK);
     m_Box.pack_start(*toolbar, Gtk::PACK_SHRINK);
@@ -97,7 +91,14 @@ MainWin::MainWin() :
 
   menu_manager->initialize_menu_render_funcs(render_func_names, render_func_states);
   menu_manager->initialize_menu_algorithm_funcs(plugin_func_table);
-  
+
+
+  initialize_image_window();
+
+  // setup statusbar
+  m_statusbar.push("");
+  m_Box.pack_start(m_statusbar, Gtk::PACK_SHRINK);
+
 
   show_all_children();
 
