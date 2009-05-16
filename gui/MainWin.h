@@ -29,6 +29,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "ObjectMatchingWin.h"
 #include "ConnectionInspectorWin.h"
 #include "HlObjectSet.h"
+#include "MenuManager.h"
 #include "lib/alignment_marker.h"
 #include "lib/project.h"
 #include "lib/plugins.h"
@@ -36,11 +37,25 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include <utility>
 
 class MainWin : public Gtk::Window  {
+
+  friend class MenuManager;
+
+
  public:
   MainWin();
   virtual ~MainWin();
   void open_project(Glib::ustring project_dir);
   void set_project_to_open(char * project_dir);
+
+
+ private:
+  void open_popup_menu(GdkEventButton * event);
+  void on_popup_menu_set_alignment_marker(MARKER_TYPE);
+  void on_popup_menu_set_name();
+  void on_popup_menu_set_port();
+  void on_popup_menu_add_horizontal_grid_line();
+  void on_popup_menu_add_vertical_grid_line();
+
 
  protected:
   char * project_to_open;
@@ -52,7 +67,6 @@ class MainWin : public Gtk::Window  {
   bool selected_objects_are_interconnectable();
   bool selected_objects_are_removable();
 
-  void open_popup_menu(GdkEventButton * event);
 
   //Signal handlers:
   virtual void on_v_adjustment_changed();
@@ -77,6 +91,7 @@ class MainWin : public Gtk::Window  {
   virtual void on_menu_view_prev_layer();
   virtual void on_menu_view_grid_config();
   virtual void on_menu_view_toggle_all_info_layers();
+
 
   // Layer menu
   virtual void on_menu_layer_import_background();
@@ -137,17 +152,8 @@ class MainWin : public Gtk::Window  {
   //Child widgets:
 
   Gtk::VBox m_Box;
-  Glib::RefPtr<Gtk::UIManager> m_refUIManager;
-  Glib::RefPtr<Gtk::ActionGroup> m_refActionGroup;
-  Glib::RefPtr<Gtk::RadioAction> 
-    m_refChoice_Select, m_refChoice_Move, m_refChoice_Wire, 
-    m_refChoice_via_up, m_refChoice_via_down;
-  Glib::RefPtr<Gtk::RadioAction> m_refChoice_TransistorLayer, m_refChoice_LogicLayer, m_refChoice_MetalLayer;
 
-  // There is a point where we need to unbind signals. Therefore we store this.
-  sigc::connection sig_conn_rbg_transistor;
-  sigc::connection sig_conn_rbg_logic;
-  sigc::connection sig_conn_rbg_metal;
+
 
   Gtk::Statusbar m_statusbar;
   ImageWin imgWin;
@@ -160,21 +166,21 @@ class MainWin : public Gtk::Window  {
   Gtk::Adjustment m_HAdjustment;
   Gtk::VScrollbar m_VScrollbar;
   Gtk::HScrollbar m_HScrollbar;
-  Gtk::Menu m_Menu_Popup;
   
+  MenuManager * menu_manager;
 
   project_t * main_project;
   plugin_func_table_t * plugin_func_table;
   ret_t plugin_func_ret_status;
 
  private:
+
+
   bool shift_key_pressed;
   bool control_key_pressed;
   bool project_changed_flag;
-  bool info_layers_visible;
-  bool info_layers_checkbox_ignore_sig; // if it is true, signals emitted by render-slot-checkboxes are ignored
+
   Glib::Thread * thread;
-  std::vector<std::pair<Gtk::CheckMenuItem *, bool> > slot_states;
   TOOL tool;
   std::set<std::pair<void *, LM_OBJECT_TYPE> > selected_objects;
   HlObjectSet highlighted_objects;
@@ -184,12 +190,6 @@ class MainWin : public Gtk::Window  {
   void project_changed();
   void set_project_changed_state(bool new_state);
 
-  void on_popup_menu_lock_region();
-  void on_popup_menu_set_alignment_marker(MARKER_TYPE);
-  void on_popup_menu_set_name();
-  void on_popup_menu_set_port();
-  void on_popup_menu_add_horizontal_grid_line();
-  void on_popup_menu_add_vertical_grid_line();
 
   void update_title();
   void add_to_recent_menu();
@@ -232,7 +232,7 @@ class MainWin : public Gtk::Window  {
   void on_view_info_layer_toggled(int slot_pos);
   void on_grid_config_changed();
 
-  void set_layer_type_in_menu(LAYER_TYPE layer_type);
+
 
   void error_dialog(const char * const title, const char * const message);
   void warning_dialog(const char * const title, const char * const message);

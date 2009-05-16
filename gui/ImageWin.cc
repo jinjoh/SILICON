@@ -654,11 +654,27 @@ void ImageWin::set_render_info_layer_state(int slot_pos, bool state) {
   }
 }
 
-std::list<Glib::ustring> ImageWin::get_render_func_names() {
-  std::list<Glib::ustring> L;
+void ImageWin::set_renderer_info_layer_state(const std::vector<bool> & new_states) {
+  for(int i = 0; i < new_states.size(); i++)
+    set_render_info_layer_state(i, new_states[i]);
+}
+
+const std::vector<Glib::ustring> ImageWin::get_renderer_func_names() {
+  int s = renderer_get_num_render_func(renderer);
+  std::vector<Glib::ustring> L(s);
   
-  for(int i = 0; i < renderer_get_num_render_func(renderer); i++) {
-    L.push_back(Glib::ustring(renderer_get_name_render_func(renderer, i)));
+  for(int i = 0; i < s; i++) {
+    L[i] = Glib::ustring(renderer_get_name_render_func(renderer, i));
+  }
+  return L;
+}
+
+const std::vector<bool> ImageWin::get_renderer_func_states() {
+  int s = renderer_get_num_render_func(renderer);
+  std::vector<bool> L(s);
+  
+  for(int i = 0; i < s; i++) {
+    L[i] = get_renderer_func_enabled(i);
   }
   return L;
 }

@@ -50,6 +50,7 @@ LIB_OBJS=lib/grid.o \
 
 GUI_OBJS=gui/HlObjectSet.o \
 	gui/SplashWin.o \
+	gui/MenuManager.o \
 	gui/NewProjectWin.o \
 	gui/GridConfigWin.o \
 	gui/GateConfigWin.o \

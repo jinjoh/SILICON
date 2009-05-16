@@ -45,6 +45,7 @@ LIB_OBJS=lib/grid.o \
 
 GUI_OBJS=gui/SplashWin.o \
 	gui/HlObjectSet.o \
+	gui/MenuManager.o \
 	gui/NewProjectWin.o \
 	gui/GenericTextInputWin.o \
 	gui/GridConfigWin.o \

@@ -88,8 +88,11 @@ class ImageWin : public Gtk::DrawingArea {
   void set_current_layer(int layer);
   void toggle_render_info_layer(int slot_pos);
   void set_render_info_layer_state(int slot_pos, bool state);
+  void set_renderer_info_layer_state(const std::vector<bool> & new_states);
+
   bool get_renderer_func_enabled(int slot_pos);
-  std::list<Glib::ustring> get_render_func_names();
+  const std::vector<Glib::ustring> get_renderer_func_names();
+  const std::vector<bool> get_renderer_func_states();
 
   grid_t * get_grid();
   void set_grid(grid_t * grid);

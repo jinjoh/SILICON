@@ -5,15 +5,13 @@
 #include <set>
 #include <list>
 
-using namespace std;
-
 
 class HlObjectSet {
 
   class HlObject {
 
   private:
-    pair<LM_OBJECT_TYPE, object_ptr_t *> p;
+    std::pair<LM_OBJECT_TYPE, object_ptr_t *> p;
     
   public:
     HlObject(LM_OBJECT_TYPE object_type, object_ptr_t * obj_ptr);
@@ -23,7 +21,7 @@ class HlObjectSet {
   };
   
  private:
-  list<class HlObject> objects;
+  std::list<class HlObject> objects;
 
  public: 
   void clear();

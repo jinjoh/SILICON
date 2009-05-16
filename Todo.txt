@@ -63,3 +63,10 @@ misc:
 - Icarus Verilog?
 - Generate documentation for gates
 - image preprocessing?
+
+--------------------------------------------------------------------------
+
+- export netlist
+- export placements
+- graph libraries
+- protocol between degate and foo
