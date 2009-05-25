@@ -27,6 +27,17 @@ bool Rectangle::in_shape(int x, int y) {
   return (x >= min_x && x <= max_x && y >= min_y && y <= max_y) ? true : false;
 }
 
+bool Rectangle::operator==(const Rectangle& other) const {
+    return (min_x == other.min_x &&
+            max_x == other.max_x &&
+            min_y == other.min_y &&
+            max_y == other.max_y);
+}
+
+bool Rectangle::operator!=(const Rectangle& other) const {
+    return !(*this == other);
+}
+
 /**
  * Check, if bbox is within this.
  */

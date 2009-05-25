@@ -17,6 +17,8 @@ class Rectangle : public Shape {
   BoundingBox const& get_bounding_box() const;
   bool in_shape(int x, int y);
   bool in_bounding_box(BoundingBox const& bbox) const;
+  bool operator==(const Rectangle& other) const;
+  bool operator!=(const Rectangle& other) const;
 
   int get_width();
   int get_height();

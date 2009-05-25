@@ -29,6 +29,7 @@ LIBS=-lstdc++ -lc -lpthread -ldl \
 	`freetype-config --libs` \
 	`pkg-config --print-errors --libs $(LIB_NAMES)`
 
+TEST_OBJS=QuadTreeTest.o
 OBJS= Rectangle.o
 
 all: test
@@ -39,8 +40,8 @@ libcheck:
 #	@freetype-config -cflags || (echo "You need libfreetype + libs +headers"; exit 1)
 
 # 
-test: $(OBJS)
-	$(CXX) $(CXXFLAGS) -rdynamic $(LIBS) -o degate $(OBJS) main.cc
+test: $(OBJS) $(TEST_OBJS)
+	$(CXX) $(CXXFLAGS) -rdynamic $(LIBS) -lcppunit -o test $(OBJS) $(TEST_OBJS) main.cc
 
 .cc.o:
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
