@@ -4,7 +4,7 @@
 #include "lib/alignment_marker.h"
 #include "lib/plugins.h"
 #include <iostream>
-
+#include <assert.h>
 
 using namespace Gtk::Menu_Helpers;
 
