@@ -20,6 +20,8 @@ class Shape {
 
   //virtual bool operator==(const Shape& other) const = 0;
   //virtual bool operator!=(const Shape& other) const = 0;
+
+  virtual ~Shape() {} ;
 };
 
 #endif
