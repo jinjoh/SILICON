@@ -39,14 +39,32 @@ bool Rectangle::operator!=(const Rectangle& other) const {
 }
 
 /**
- * Check, if bbox is within this.
+ * Check, if rectangle rect intersects with bounding box.
  */
+
 bool Rectangle::in_bounding_box(BoundingBox const& bbox) const {
-  if(min_x <= bbox.min_x &&
-     max_x >= bbox.max_x &&
-     min_y <= bbox.min_y &&
-     max_y >= bbox.max_y) return true;
-  return false;
+  return intersects(bbox);
+}
+
+bool Rectangle::intersects(Rectangle const & rect) const {
+
+  return !( rect.min_x > max_x ||
+	    rect.max_x < min_x ||
+	    rect.min_y > max_y ||
+	    rect.max_y < min_y);
+}
+
+
+/**
+ * Check, if rectangle rect is complete within rectangle represented by this.
+ */
+
+bool Rectangle::complete_within(Rectangle const & rect) const {
+
+  return (min_x <= rect.min_x &&
+	  max_x >= rect.max_x &&
+	  min_y <= rect.min_y &&
+	  max_y >= rect.max_y);
 }
 
 int Rectangle::get_width() {

@@ -58,8 +58,8 @@ class QuadTree {
     ~iterator() {}
     iterator& operator=(const iterator& other);
     iterator& operator++();
-    bool operator==(const iterator& other);
-    bool operator!=(const iterator& other);
+    bool operator==(const iterator& other) const;
+    bool operator!=(const iterator& other) const;
     T * operator->() const;
     T operator*() const;
   };
@@ -68,7 +68,9 @@ class QuadTree {
   private:
     iterator subnode_iter;
     iterator subnode_iter_end;
-    QuadTree<T> * node, * tree;
+    QuadTree<T> 
+      * node, // the subtree, where we need to iterate over all objectes
+      * tree; // the whole quad tree 
     BoundingBox bbox;
     typename std::list<T>::iterator children_iter;
     typename std::list<T>::iterator children_iter_end;
@@ -78,8 +80,8 @@ class QuadTree {
     ~region_iterator() {}
     region_iterator& operator=(const region_iterator& other);
     region_iterator& operator++();
-    bool operator==(const region_iterator& other);
-    bool operator!=(const region_iterator& other);
+    bool operator==(const region_iterator& other) const;
+    bool operator!=(const region_iterator& other) const;
     T * operator->() const;
     T operator*() const;
   };
@@ -114,12 +116,15 @@ class QuadTree {
   QuadTree(BoundingBox const & box, int max_entries = 200);
   ~QuadTree();
 
-  bool is_leave();
+  bool is_leave() const;
 
   ret_t insert(T object);
   ret_t remove(T object);
-  unsigned int total_size();
-  unsigned int depth();
+  unsigned int total_size() const;
+  unsigned int depth() const;
+
+  int get_width();
+  int get_height();
 
   iterator begin();
   iterator end();
@@ -147,6 +152,16 @@ QuadTree<T>::QuadTree(BoundingBox const & box, QuadTree * parent, int max_entrie
 
 template <typename T>
 QuadTree<T>::~QuadTree() {
+}
+
+template <typename T>
+int QuadTree<T>::get_width() {
+  return box.get_width();
+}
+
+template <typename T>
+int QuadTree<T>::get_height() {
+  return box.get_height();
 }
 
 
@@ -233,8 +248,6 @@ ret_t QuadTree<T>::insert(T object) {
 
 template <typename T>
 ret_t QuadTree<T>::remove(T object) {
-  ret_t ret;
-
   const BoundingBox & bbox = algorithm_selector<is_pointer<T>::value>::get_bounding_box_for_object(object);
 
   QuadTree<T> * found = traverse_downto_bounding_box(bbox);
@@ -257,7 +270,7 @@ ret_t QuadTree<T>::remove(T object) {
 
 
 template <typename T>
-bool QuadTree<T>::is_leave() {
+bool QuadTree<T>::is_leave() const {
   return subtree_nodes.size() == 4 ? false : true;
 }
 
@@ -281,11 +294,11 @@ QuadTree<T> * const QuadTree<T>::traverse_downto_bounding_box(BoundingBox const 
 }
 
 template <typename T>
-unsigned int QuadTree<T>::total_size() {
+unsigned int QuadTree<T>::total_size() const {
   unsigned int this_node = children.size();
   unsigned int sub_nodes = 0;
   if(!is_leave()) {
-    for(typename std::vector< QuadTree<T> >::iterator it = subtree_nodes.begin();
+    for(typename std::vector< QuadTree<T> >::const_iterator it = subtree_nodes.begin();
 	it != subtree_nodes.end();
 	++it) {
       sub_nodes += (*it).total_size();
@@ -295,11 +308,11 @@ unsigned int QuadTree<T>::total_size() {
 }
 
 template <typename T>
-unsigned int QuadTree<T>::depth() {
+unsigned int QuadTree<T>::depth() const {
 
   unsigned int max_d = 0;
   if(!is_leave()) {
-    for(typename std::vector< QuadTree<T> >::iterator it = subtree_nodes.begin();
+    for(typename std::vector< QuadTree<T> >::const_iterator it = subtree_nodes.begin();
 	it != subtree_nodes.end();
 	++it) {
       
@@ -312,19 +325,19 @@ unsigned int QuadTree<T>::depth() {
 
 template <typename T>
 typename QuadTree<T>::iterator QuadTree<T>::begin() {
-  return QuadTree<T>::iterator(this);
+  return typename QuadTree<T>::iterator(this);
 }
 
 template <typename T>
 typename QuadTree<T>::iterator QuadTree<T>::end() {
-  return QuadTree<T>::iterator(NULL);
+  return typename QuadTree<T>::iterator(NULL);
 }
 
 template <typename T>
 typename QuadTree<T>::region_iterator QuadTree<T>::region_begin(int min_x, int max_x, int min_y, int max_y) {
 
   BoundingBox bbox(min_x, max_x, min_y, max_y);
-  return region_iterator(bbox);
+  return region_begin(bbox);
 }
 
 template <typename T>
@@ -333,14 +346,14 @@ typename QuadTree<T>::region_iterator QuadTree<T>::region_begin(BoundingBox cons
   QuadTree<T> * found = traverse_downto_bounding_box(bbox);
   assert(found != NULL);
   if(found != NULL)
-    return QuadTree<T>::region_iterator(this, found, bbox);
+    return typename QuadTree<T>::region_iterator(this, found, bbox);
   else
-    return QuadTree<T>::region_iterator(NULL, NULL);
+    return typename QuadTree<T>::region_iterator(NULL, NULL, bbox);
 }
 
 template <typename T>
 typename QuadTree<T>::region_iterator QuadTree<T>::region_end() {
-  return QuadTree<T>::region_iterator(NULL, NULL);
+  return typename QuadTree<T>::region_iterator(NULL, NULL);
 }
 
 /* missing:

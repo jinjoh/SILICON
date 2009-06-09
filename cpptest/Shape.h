@@ -10,7 +10,10 @@ class Shape {
 
  public:
 
+  virtual ~Shape() {}
+
   virtual BoundingBox const& get_bounding_box() const = 0;
+
   virtual bool in_shape(int x, int y) = 0;
   virtual bool in_bounding_box(BoundingBox const& bbox) const = 0;
 

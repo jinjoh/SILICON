@@ -16,7 +16,8 @@ class QuadTreeTest : public CPPUNIT_NS :: TestFixture {
   CPPUNIT_TEST (test_iterator_pointer);
   CPPUNIT_TEST (test_split);
   CPPUNIT_TEST (test_remove);
-  
+  CPPUNIT_TEST (test_region_iterator);
+
   CPPUNIT_TEST_SUITE_END ();
 
  public:
@@ -32,6 +33,7 @@ class QuadTreeTest : public CPPUNIT_NS :: TestFixture {
   void test_remove(void);
 
 
+  void test_region_iterator(void);
 
  private:
   QuadTree<Rectangle *> * qt_p;

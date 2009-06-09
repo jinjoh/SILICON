@@ -71,7 +71,7 @@ typename QuadTree<T>::iterator& QuadTree<T>::iterator::operator=(const QuadTree<
 }
 
 template<typename T>
-bool QuadTree<T>::iterator::operator==(const QuadTree<T>::iterator& other) {
+bool QuadTree<T>::iterator::operator==(const QuadTree<T>::iterator& other) const {
 
     if(node == NULL && other.node == NULL)
         return (
@@ -88,7 +88,7 @@ bool QuadTree<T>::iterator::operator==(const QuadTree<T>::iterator& other) {
 
 
 template<typename T>
-bool QuadTree<T>::iterator::operator!=(const QuadTree<T>::iterator& other) {
+bool QuadTree<T>::iterator::operator!=(const QuadTree<T>::iterator& other) const {
   return !(*this == other);
 }
 

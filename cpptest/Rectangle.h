@@ -20,6 +20,9 @@ class Rectangle : public Shape {
   bool operator==(const Rectangle& other) const;
   bool operator!=(const Rectangle& other) const;
 
+  bool intersects(Rectangle const & rect) const;
+  bool complete_within(Rectangle const & rect) const;
+
   int get_width();
   int get_height();
 

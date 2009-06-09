@@ -119,7 +119,7 @@ void QuadTreeTest::test_split(void) {
 }
 
 void QuadTreeTest::test_remove(void) {
-    const unsigned int max_elements = 10000;
+    const unsigned int max_elements = 1000;
 
     std::list<Rectangle *> r_list;
     for(unsigned int i = 0; i < max_elements; i++) {
@@ -146,3 +146,25 @@ void QuadTreeTest::test_remove(void) {
     CPPUNIT_ASSERT(qt_p->depth() == 1);
 }
 
+
+void QuadTreeTest::test_region_iterator(void) {
+
+  CPPUNIT_ASSERT(qt_p != NULL);
+
+  test_insert_pointer();
+  unsigned int i = 0;
+
+  std::cout << std::endl;
+  for(QuadTree<Rectangle *>::region_iterator it = qt_p->region_begin(0, 0, qt_p->get_width(), qt_p->get_height());
+      it != qt_p->region_end();
+      ++it, i++) {
+    std::cout << "node " << i << std::endl;
+    CPPUNIT_ASSERT (it != qt_p->region_end());
+    CPPUNIT_ASSERT(*it != NULL);
+    CPPUNIT_ASSERT ((*it == r1) || (*it == r2));
+  }
+  std::cout << std::endl;
+  
+  CPPUNIT_ASSERT(qt_p->total_size() == i);
+  CPPUNIT_ASSERT(i == 2);
+}
