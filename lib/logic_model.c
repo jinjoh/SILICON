@@ -36,6 +36,8 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include <FileContent.h>
 #include "graphics.h"
 #include <vector>
+#include <string>
+#include "GateLibraryExporter.h"
 
 #define EPSILON 0.001
 
@@ -627,9 +629,13 @@ ret_t lmodel_serialize_gate_template_to_file(const lmodel_gate_template_t * cons
     gport_list = gport_list->next;
   }
 
-
   ASN_SEQUENCE_ADD(&file_content->list, object);
-  
+
+
+  GateLibraryExporter * exporter = GateLibraryExporter::get_instance();
+  assert(exporter != NULL);
+  exporter->add(tmpl);
+
   return RET_OK;
 }
 
@@ -724,6 +730,12 @@ ret_t lmodel_serialize_to_file(const logic_model_t * const lmodel, const char * 
   fclose(fh);
 
   if(rename(fq_filename_tmp, fq_filename) == -1) return RET_ERR;
+
+
+  char fq_filename_xml[PATH_MAX];
+  snprintf(fq_filename_xml, PATH_MAX, "%s/gate_library.xml", project_dir);
+  GateLibraryExporter * exporter = GateLibraryExporter::get_instance();
+  exporter->save_as(std::string(fq_filename_xml));
 
   return RET_OK;
 }
