@@ -24,7 +24,7 @@ CXXFLAGS=$(DEBUG_FLAGS) -Wall $(OPTIMIZATION_FLAGS) -fPIC \
 	`Magick-config --cppflags --cflags` \
 	`freetype-config --cflags`
 
-LIBS=-lstdc++ -lc -lpthread -ldl \
+LIBS=-lstdc++ -lc -lpthread -ldl -lxerces-c \
 	`Wand-config --ldflags --libs` \
 	`freetype-config --libs` \
 	`pkg-config --print-errors --libs $(LIB_NAMES)`
@@ -41,7 +41,8 @@ LIB_OBJS=lib/grid.o \
 	lib/img_algorithms.o \
 	lib/renderer.o \
 	lib/project.o \
-	lib/scaling_manager.o
+	lib/scaling_manager.o \
+	lib/GateLibraryExporter.o
 
 GUI_OBJS=gui/SplashWin.o \
 	gui/HlObjectSet.o \
