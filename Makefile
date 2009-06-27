@@ -42,7 +42,8 @@ LIB_OBJS=lib/grid.o \
 	lib/renderer.o \
 	lib/project.o \
 	lib/scaling_manager.o \
-	lib/GateLibraryExporter.o
+	lib/GateLibraryExporter.o \
+	lib/LogicExporter.o
 
 GUI_OBJS=gui/SplashWin.o \
 	gui/HlObjectSet.o \

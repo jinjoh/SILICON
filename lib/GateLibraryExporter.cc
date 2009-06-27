@@ -24,15 +24,16 @@ ret_t GateLibraryExporter::init() {
   try {
     
     doc = impl->createDocument(0,                 // root element namespace URI.
-			       X("root"),         // root element name
+			       X("gate-library"), // root element name
 			       0);                // document type object (DTD).
 
-    doc->setEncoding(X("ISO-8859-1")); 
+    doc->setEncoding(X("ISO-8859-1"));
     doc->setVersion(X("1.0"));
+    doc->setStandalone(true);
 
-    rootElem = doc->getDocumentElement();
-    
-
+    rootElem = doc->createElement(X("gate-templates"));
+    doc->getDocumentElement()->appendChild(rootElem);
+   
   }
   catch (...) {
     return RET_ERR;
@@ -58,16 +59,6 @@ GateLibraryExporter * GateLibraryExporter::get_instance() {
 
 /*
 
-struct lmodel_gate_template_port {
-  unsigned int id;
-  char * port_name;
-  LM_PORT_TYPE port_type;
-  unsigned int relative_x_coord;
-  unsigned int relative_y_coord;
-  unsigned int diameter;
-  color_t color;
-  lmodel_gate_template_port_t * next;
-};
 
 struct lmodel_gate_template {
   unsigned int id; // a value of zero indicates that this is undefined
@@ -83,19 +74,57 @@ struct lmodel_gate_template {
   lmodel_gate_template_port_t * ports;
 };
 
+struct lmodel_gate_template_port {
+  unsigned int id;
+  char * port_name;
+  LM_PORT_TYPE port_type;
+  unsigned int relative_x_coord;
+  unsigned int relative_y_coord;
+  unsigned int diameter;
+  color_t color;
+  lmodel_gate_template_port_t * next;
+};
 
 */
 
 ret_t GateLibraryExporter::add(const lmodel_gate_template_t * tmpl) {
 
-  DOMElement * gateElem = doc->createElement(X("Gate"));
+  lmodel_gate_template_port_t * gport_list;
+
+  if(tmpl == NULL) return RET_INV_PTR;
+
+  DOMElement * gateElem = doc->createElement(X("gate"));
   rootElem->appendChild(gateElem);
-
     
-  gateElem->setAttribute(X("gateID"), X("1200"));
-  gateElem->setAttribute(X("gateType"), X("Nor"));
+  gateElem->setAttribute(X("type-id"), X(tmpl->id));
+  gateElem->setAttribute(X("name"), X(tmpl->short_name));
+  gateElem->setAttribute(X("description"), X(tmpl->description));
 
+  DOMElement * portSetElem = doc->createElement(X("ports"));
+  gateElem->appendChild(portSetElem);
   
+  gport_list = tmpl->ports;
+  while(gport_list != NULL) {
+    
+    DOMElement * port = doc->createElement(X("port"));
+    portSetElem->appendChild(port);
+
+    port->setAttribute(X("id"), X(gport_list->id));
+    port->setAttribute(X("name"), X(gport_list->port_name));
+
+    string port_type;
+    switch(gport_list->port_type) {
+    case LM_PT_IN: port_type = "in"; break;
+    case LM_PT_OUT: port_type = "out"; break;
+    case LM_PT_TRISTATE: port_type = "tristate"; break;
+    case LM_PT_UNDEF: port_type = "undef"; break;
+    }
+
+    port->setAttribute(X("type"), X(port_type));
+    
+    gport_list = gport_list->next;
+  }
+
   return RET_OK;
 }
 
@@ -116,7 +145,9 @@ ret_t GateLibraryExporter::save_as(std::string filename) {
 
    
   try {
+
     theSerializer->writeNode(myFormTarget, *doc);
+    myFormTarget->flush();
   }
   catch (const XMLException& toCatch) {
     char* message = XMLString::transcode(toCatch.getMessage());
@@ -138,6 +169,8 @@ ret_t GateLibraryExporter::save_as(std::string filename) {
   }
 
   theSerializer->release();
+  //delete theSerializer;
+  delete myFormTarget;
   return ret;
 }
 

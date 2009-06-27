@@ -4,6 +4,7 @@
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/util/XMLString.hpp>
 #include <xercesc/dom/DOM.hpp>
+#include <string>
 
 // ---------------------------------------------------------------------------
 //  This is a simple class that lets us do easy (though not terribly efficient)
@@ -15,26 +16,34 @@ class XMLStr
   // ----------------------------------------------------------------------
   //  Constructors and Destructor
   // -----------------------------------------------------------------------
-  XMLStr(const char* const toTranscode)
-    {
-      // Call the private transcoding method
-      fUnicodeForm = XERCES_CPP_NAMESPACE_QUALIFIER XMLString::transcode(toTranscode);
-    }
+  XMLStr(unsigned long i) {
+    char tmp[30];
+    sprintf(tmp, "%ld", i);
+    fUnicodeForm = XERCES_CPP_NAMESPACE_QUALIFIER XMLString::transcode(tmp);
+  }
 
-  ~XMLStr()
-    {
-      XERCES_CPP_NAMESPACE_QUALIFIER XMLString::release(&fUnicodeForm);
-    }
+  XMLStr(const char* const toTranscode) {
+    // Call the private transcoding method
+    fUnicodeForm = XERCES_CPP_NAMESPACE_QUALIFIER XMLString::transcode(toTranscode);
+  }
+
+  XMLStr(std::string const& toTranscode) {
+    // Call the private transcoding method
+    fUnicodeForm = XERCES_CPP_NAMESPACE_QUALIFIER XMLString::transcode(toTranscode.c_str());
+  }
+
+  ~XMLStr() {
+    XERCES_CPP_NAMESPACE_QUALIFIER XMLString::release(&fUnicodeForm);
+  }
 
 
   // -----------------------------------------------------------------------
   //  Getter methods
   // -----------------------------------------------------------------------
-  const XMLCh* unicodeForm() const
-  {
+  const XMLCh* unicodeForm() const {
     return fUnicodeForm;
   }
-
+  
  private :
   // -----------------------------------------------------------------------
   //  Private data members

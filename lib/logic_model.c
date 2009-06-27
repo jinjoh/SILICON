@@ -38,6 +38,7 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <string>
 #include "GateLibraryExporter.h"
+#include "LogicExporter.h"
 
 #define EPSILON 0.001
 
@@ -480,6 +481,10 @@ ret_t lmodel_serialize_gate_to_file(const lmodel_gate_t * const gate, lmodel_qtr
 
   ASN_SEQUENCE_ADD(&ser_data->file_content->list, object);
     
+  // export as xml
+  LogicExporter * exporter = LogicExporter::get_instance();
+  assert(exporter != NULL);
+  if(RET_IS_NOT_OK(ret = exporter->add(gate))) return ret;
   
   return RET_OK;
 }
@@ -634,7 +639,7 @@ ret_t lmodel_serialize_gate_template_to_file(const lmodel_gate_template_t * cons
 
   GateLibraryExporter * exporter = GateLibraryExporter::get_instance();
   assert(exporter != NULL);
-  exporter->add(tmpl);
+  if(RET_IS_NOT_OK(ret = exporter->add(tmpl))) return ret;
 
   return RET_OK;
 }
@@ -732,16 +737,25 @@ ret_t lmodel_serialize_to_file(const logic_model_t * const lmodel, const char * 
   if(rename(fq_filename_tmp, fq_filename) == -1) return RET_ERR;
 
 
+  // XML export
   char fq_filename_xml[PATH_MAX];
   snprintf(fq_filename_xml, PATH_MAX, "%s/gate_library.xml", project_dir);
-  GateLibraryExporter * exporter = GateLibraryExporter::get_instance();
-  exporter->save_as(std::string(fq_filename_xml));
+  GateLibraryExporter * lib_exporter = GateLibraryExporter::get_instance();
+  if(RET_IS_NOT_OK(ret = lib_exporter->save_as(std::string(fq_filename_xml)))) return ret;
+
+
+  snprintf(fq_filename_xml, PATH_MAX, "%s/lmodel.xml", project_dir);
+  LogicExporter * lm_exporter = LogicExporter::get_instance();
+  assert(lm_exporter != NULL);
+  if(RET_IS_NOT_OK(ret = lm_exporter->save_as(std::string(fq_filename_xml)))) return ret;
+
 
   return RET_OK;
 }
 
 ret_t lmodel_gate_template_add_port(logic_model_t * lmodel,
-				    lmodel_gate_template_t * const tmpl, lmodel_gate_template_port_t * port) {
+				    lmodel_gate_template_t * const tmpl, 
+				    lmodel_gate_template_port_t * port) {
   ret_t ret;
   assert(tmpl);
   assert(port);
