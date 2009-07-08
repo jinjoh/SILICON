@@ -30,6 +30,11 @@ along with degate. If not, see <http://www.gnu.org/licenses/>.
 #include "MainWin.h"
 #include "SplashWin.h"
 
+#include <xercesc/util/PlatformUtils.hpp>
+#include <xercesc/util/XMLString.hpp>
+
+XERCES_CPP_NAMESPACE_USE
+
 void show_env_help() {
     std::cout 
       << std::endl
@@ -64,6 +69,7 @@ bool directory_exists(const char * const env_variable, const char * const sub_pa
   
 }
 
+
 int main(int argc, char ** argv) {
 
   // check environment variables
@@ -76,18 +82,36 @@ int main(int argc, char ** argv) {
   if(directory_exists("DEGATE_HOME", "icons") == false) exit(1);
   if(directory_exists("DEGATE_PLUGINS", "") == false) exit(1);
   
+  // setup threading
   if(!Glib::thread_supported()) Glib::thread_init();
   Gtk::Main kit(argc, argv);
 
+  // setup splash window
   SplashWin * splashWin = new SplashWin(1500);
   Gtk::Main::run(*splashWin);
   setlocale(LC_ALL, "C");
 
+  // initialize xml library
+  try {
+    XMLPlatformUtils::Initialize();
+  }
+  catch(const XMLException& toCatch) {
+    char *pMsg =  XMLString::transcode(toCatch.getMessage());
+    std::cout << "Can't initialize xml library: " << pMsg << std::endl;
+    XMLString::release(&pMsg);
+    return 1;
+  }
+
+  // create main window
   MainWin mainWin;
   if(argc > 1 && argv[1] != NULL) mainWin.set_project_to_open(argv[1]);
 
   delete splashWin;
 
   Gtk::Main::run(mainWin);
+
+
+  XMLPlatformUtils::Terminate();
+
   return 1;
 }
