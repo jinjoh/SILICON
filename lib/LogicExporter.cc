@@ -7,6 +7,9 @@
 #include "XMLStr.h"
 #include <iostream>
 
+
+#define DEBUG 1
+
 XERCES_CPP_NAMESPACE_USE
 using namespace std;
 
@@ -36,12 +39,10 @@ ret_t LogicExporter::init() {
 
     netsElem = doc->createElement(X("nets"));
     doc->getDocumentElement()->appendChild(netsElem);
-
-    connsElem = doc->createElement(X("connections"));
-    doc->getDocumentElement()->appendChild(connsElem);
    
   }
   catch (...) {
+    debug(TM, "Excpetion occurred.");
     return RET_ERR;
   }
   
@@ -49,7 +50,8 @@ ret_t LogicExporter::init() {
 }
 
 LogicExporter::~LogicExporter() {
-  doc->release();
+
+  if(doc != NULL) doc->release();
 }
 
 LogicExporter * LogicExporter::get_instance() {
@@ -78,8 +80,10 @@ struct lmodel_gate {
 */
 ret_t LogicExporter::add(const lmodel_gate_t * g) {
 
-
+  ret_t ret;
   if(g == NULL) return RET_INV_PTR;
+
+  if(doc == NULL) init();
 
   DOMElement * gateElem = doc->createElement(X("gate"));
   gatesElem->appendChild(gateElem);
@@ -92,10 +96,22 @@ ret_t LogicExporter::add(const lmodel_gate_t * g) {
 
 
   lmodel_gate_port_t * ptr = g->ports;
+  
+  // This is a hack, because 'nets' in degate don't have net-ids, yet.
+  lmodel_gate_port_t * highest_ptr = ptr;
+  while(ptr != NULL) {
+    if(ptr > highest_ptr) highest_ptr = ptr;
+    ptr = ptr->next;
+  }
+
+  ptr = g->ports; // reset pointer
+
   while(ptr != NULL) {
     
-    add_net((unsigned long)ptr);
-    add_connection(g->id, ptr->port_id, (unsigned long)ptr);
+    unsigned long net_id = (unsigned long)highest_ptr; // XXX this is a hack
+
+    if(RET_IS_NOT_OK(ret = add_net(net_id))) return ret;
+    if(RET_IS_NOT_OK(ret = add_connection(g->id, ptr->port_id, net_id))) return ret;
 
     ptr = ptr->next;
   }
@@ -103,33 +119,55 @@ ret_t LogicExporter::add(const lmodel_gate_t * g) {
   return RET_OK;
 }
 
-ret_t LogicExporter::add_connection(unsigned long gate_id, unsigned long port_id, unsigned long net_id) {
-
-  DOMElement * connElem = doc->createElement(X("connection"));
-  connsElem->appendChild(connElem);
-
-  connElem->setAttribute(X("from-gate"), X(gate_id));
-  connElem->setAttribute(X("from-port"), X(port_id));
-  connElem->setAttribute(X("net-id"), X(net_id));
-
-  return RET_OK;
-}
 
 ret_t LogicExporter::add_net(unsigned long net_id) {
 
   if(nets.find(net_id) == nets.end()) {
+    debug(TM, "Create a new net");
     DOMElement * netElem = doc->createElement(X("net"));
     netsElem->appendChild(netElem);
 
     netElem->setAttribute(X("id"), X(net_id));
-    nets.insert(net_id);
+
+    nets[net_id] = netElem;
+  }
+  else {
+    debug(TM, "Net %ld exists aleady", net_id);
   }
   return RET_OK;
+
 }
+
+
+ret_t LogicExporter::add_connection(unsigned long gate_id, unsigned long port_id, unsigned long net_id) {
+
+  DOMElement * insert_where = nets[net_id];
+  assert(insert_where != NULL);
+  if(insert_where == NULL) {
+    debug(TM, "Can't add a connection to netlist.");
+    return RET_INV_PTR;
+  }
+  else {
+    DOMElement * connElem = doc->createElement(X("connection"));
+    assert(connElem != NULL);
+    if(connElem != NULL) {
+      insert_where->appendChild(connElem);
+
+      connElem->setAttribute(X("from-gate"), X(gate_id));
+      connElem->setAttribute(X("from-port"), X(port_id));
+    }
+    else return RET_INV_PTR;
+  }
+
+  return RET_OK;
+}
+
 
 ret_t LogicExporter::save_as(std::string filename) {
 
   ret_t ret = RET_OK;
+
+  if(doc == NULL) init();
 
   DOMImplementation *impl = DOMImplementationRegistry::getDOMImplementation(X("LS"));
   DOMWriter* theSerializer = ((DOMImplementationLS*)impl)->createDOMWriter();
@@ -167,9 +205,13 @@ ret_t LogicExporter::save_as(std::string filename) {
     ret = RET_ERR;
   }
 
+  
   theSerializer->release();
   //delete theSerializer;
   delete myFormTarget;
+
+  doc->release();
+  doc = NULL;
   return ret;
 }
 

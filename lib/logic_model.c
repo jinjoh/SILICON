@@ -460,6 +460,7 @@ ret_t lmodel_serialize_gate_to_file(const lmodel_gate_t * const gate, lmodel_qtr
 
   asn_long2INTEGER(&(object->choice.gate.layer), ser_data->layer);
 
+
   // serialize gate ports
   lmodel_gate_port_t * ptr = gate->ports;
   while(ptr != NULL) {
@@ -481,11 +482,12 @@ ret_t lmodel_serialize_gate_to_file(const lmodel_gate_t * const gate, lmodel_qtr
 
   ASN_SEQUENCE_ADD(&ser_data->file_content->list, object);
     
+
   // export as xml
-  LogicExporter * exporter = LogicExporter::get_instance();
-  assert(exporter != NULL);
-  if(RET_IS_NOT_OK(ret = exporter->add(gate))) return ret;
-  
+  LogicExporter * lm_exporter = LogicExporter::get_instance();
+  assert(lm_exporter != NULL);
+  if(RET_IS_NOT_OK(ret = lm_exporter->add(gate))) return ret;
+
   return RET_OK;
 }
 

@@ -6,7 +6,7 @@
 #include <xercesc/util/XMLString.hpp>
 #include <xercesc/util/PlatformUtils.hpp>
 #include <string>
-#include <set>
+#include <map>
 
 class LogicExporter {
 
@@ -18,9 +18,8 @@ class LogicExporter {
 
   XERCES_CPP_NAMESPACE_QUALIFIER DOMElement* gatesElem;
   XERCES_CPP_NAMESPACE_QUALIFIER DOMElement* netsElem;
-  XERCES_CPP_NAMESPACE_QUALIFIER DOMElement* connsElem;
 
-  std::set<unsigned long> nets;
+  std::map<unsigned long /*net_id*/, XERCES_CPP_NAMESPACE_QUALIFIER DOMElement * /*net_node*/> nets;
 
   ret_t init();
   LogicExporter();
