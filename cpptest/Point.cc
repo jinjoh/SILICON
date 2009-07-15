@@ -1,7 +1,7 @@
 #include "globals.h"
-//#include "Shape.h"
-//#include "Rectangle.h"
+
 #include "Point.h"
+#include "BoundingBox.h"
 
 Point::Point() {
   x = y = 0;
@@ -12,7 +12,7 @@ Point::Point(int x, int y) : bbox(x, x, y, y) {
   this->y = y;
 }
 
-Point::Point(const Point& o) : bbox(x, x, y, y) {
+Point::Point(Point const & o) : bbox(x, x, y, y) {
   x = o.x;
   y = o.y;
 }
@@ -34,13 +34,13 @@ bool Point::operator!=(const Point& other) const {
 }
 
 /**
- * Check, if bbox is within this.
+ * Check if this point is within the bounding box.
  */
 bool Point::in_bounding_box(BoundingBox const& bbox) const {
-  return (x == bbox.get_min_x() &&
-	  y == bbox.get_max_x() &&
-	  bbox.get_width() == 0 &&
-	  bbox.get_height() == 0);
+  return ( bbox.get_min_x() <= x &&
+	   bbox.get_max_x() >= x &&
+	   bbox.get_min_y() <= y &&
+	   bbox.get_max_y() >= y);
 }
 
 

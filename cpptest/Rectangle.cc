@@ -5,14 +5,14 @@ Rectangle::Rectangle() {
   max_y = min_y = max_x = min_x = 0;
 }
 
-Rectangle::Rectangle(int min_x, int max_x, int min_y, int max_y) {
+Rectangle::Rectangle(int min_x, int max_x, int min_y, int max_y) : bbox(min_x, max_x, min_y, max_y) {
   this->min_x = MIN(min_x, max_x);
   this->max_x = MAX(min_x, max_x);
   this->min_y = MIN(min_y, max_y);
   this->max_y = MAX(min_y, max_y);
 }
 
-Rectangle::Rectangle(const Rectangle& o) {
+Rectangle::Rectangle(const Rectangle& o) : bbox(o.min_x, o.max_x, o.min_y, o.max_y) {
   this->min_x = o.min_x;
   this->max_x = o.max_x;
   this->min_y = o.min_y;
@@ -20,7 +20,7 @@ Rectangle::Rectangle(const Rectangle& o) {
 }
 
 BoundingBox const& Rectangle::get_bounding_box() const {
-  return *this;
+  return bbox;
 }
 
 bool Rectangle::in_shape(int x, int y) {
@@ -39,11 +39,15 @@ bool Rectangle::operator!=(const Rectangle& other) const {
 }
 
 /**
- * Check, if rectangle rect intersects with bounding box.
+ * Check, if this rectangle is in the bounding box.
  */
 
 bool Rectangle::in_bounding_box(BoundingBox const& bbox) const {
-  return intersects(bbox);
+  
+  return ( bbox.get_min_x() <= min_x ||
+	   bbox.get_max_x() >= max_x ||
+	   bbox.get_min_y() <= min_y ||
+	   bbox.get_max_y() >= max_y);
 }
 
 bool Rectangle::intersects(Rectangle const & rect) const {
@@ -67,27 +71,27 @@ bool Rectangle::complete_within(Rectangle const & rect) const {
 	  max_y >= rect.max_y);
 }
 
-int Rectangle::get_width() {
+int Rectangle::get_width() const {
   return max_x - min_x;
 }
 
-int Rectangle::get_height() {
+int Rectangle::get_height() const {
   return max_y - min_y;
 }
 
-int Rectangle::get_min_x() {
+int Rectangle::get_min_x() const {
   return max_x;
 }
 
-int Rectangle::get_max_x() {
+int Rectangle::get_max_x() const {
   return max_x;
 }
 
-int Rectangle::get_min_y() {
+int Rectangle::get_min_y() const {
   return max_y;
 }
 
-int Rectangle::get_max_y() {
+int Rectangle::get_max_y() const {
   return max_y;
 }
 
@@ -126,10 +130,10 @@ void Rectangle::shift(int delta_x, int delta_y) {
   shift_y(delta_y);
 }
 
-int Rectangle::get_center_x() {
+int Rectangle::get_center_x() const {
   return min_x + get_width() / 2;
 }
 
-int Rectangle::get_center_y() {
+int Rectangle::get_center_y() const {
   return min_y + get_height() / 2;
 }

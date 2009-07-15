@@ -1,11 +1,8 @@
 #ifndef __POINT_H__
 #define __POINT_H__
 
-class Shape;
-class Rectangle;
-class Point;
-
 #include "Shape.h"
+#include "BoundingBox.h"
 
 class Point : public Shape {
 
@@ -14,9 +11,10 @@ class Point : public Shape {
   BoundingBox bbox;
 
  public:
+
   Point();
   Point(int x, int y);
-  Point(const Point& o);
+  Point(Point const& o);
 
   BoundingBox const& get_bounding_box() const;
   bool in_shape(int x, int y) const;

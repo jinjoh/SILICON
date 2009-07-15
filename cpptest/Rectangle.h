@@ -1,12 +1,14 @@
 #ifndef __RECTANGLE_H__
 #define __RECTANGLE_H__
 
+#include "BoundingBox.h"
 #include "Shape.h"
 
 class Rectangle : public Shape {
 
  private:
   int min_x, max_x, min_y, max_y;
+  BoundingBox bbox;
 
  public:
   Rectangle();
@@ -23,16 +25,16 @@ class Rectangle : public Shape {
   bool intersects(Rectangle const & rect) const;
   bool complete_within(Rectangle const & rect) const;
 
-  int get_width();
-  int get_height();
+  int get_width() const;
+  int get_height() const;
 
-  int get_min_x();
-  int get_max_x();
-  int get_min_y();
-  int get_max_y();
+  int get_min_x() const;
+  int get_max_x() const;
+  int get_min_y() const;
+  int get_max_y() const;
 
-  int get_center_x();
-  int get_center_y();
+  int get_center_x() const;
+  int get_center_y() const;
 
   void set_min_x(int min_x);
   void set_min_y(int min_y);

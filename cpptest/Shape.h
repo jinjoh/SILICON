@@ -1,10 +1,7 @@
 #ifndef __SHAPE_H__
 #define __SHAPE_H__
 
-
-#include "Rectangle.h"
-
-typedef class Rectangle BoundingBox;
+#include "BoundingBox.h"
 
 class Shape {
 
@@ -24,7 +21,6 @@ class Shape {
   //virtual bool operator==(const Shape& other) const = 0;
   //virtual bool operator!=(const Shape& other) const = 0;
 
-  virtual ~Shape() {} ;
 };
 
 #endif
