@@ -90,30 +90,55 @@ ret_t LogicExporter::add(const lmodel_gate_t * g) {
     
   gateElem->setAttribute(X("id"), X(g->id));
   gateElem->setAttribute(X("name"), X(g->name));
+  gateElem->setAttribute(X("min-x"), X(g->min_x));
+  gateElem->setAttribute(X("min-y"), X(g->min_y));
+  gateElem->setAttribute(X("max-x"), X(g->max_x));
+  gateElem->setAttribute(X("max-y"), X(g->max_y));
+
+  switch(g->template_orientation) {
+  case LM_TEMPLATE_ORIENTATION_UNDEFINED:
+    gateElem->setAttribute(X("orientation"), X("undefined"));
+    break;
+  case LM_TEMPLATE_ORIENTATION_NORMAL:
+    gateElem->setAttribute(X("orientation"), X("normal"));
+    break;
+  case LM_TEMPLATE_ORIENTATION_FLIPPED_UP_DOWN:
+    gateElem->setAttribute(X("orientation"), X("flipped-up-down"));
+    break;
+  case LM_TEMPLATE_ORIENTATION_FLIPPED_LEFT_RIGHT:
+    gateElem->setAttribute(X("orientation"), X("flipped-left-right"));
+    break;
+  case LM_TEMPLATE_ORIENTATION_FLIPPED_BOTH:
+    gateElem->setAttribute(X("orientation"), X("flipped-both"));
+    break;
+  }
 
   if(g->gate_template != NULL)
     gateElem->setAttribute(X("type-id"), X(g->gate_template->id));
 
 
-  lmodel_gate_port_t * ptr = g->ports;
   
-  // This is a hack, because 'nets' in degate don't have net-ids, yet.
-  lmodel_gate_port_t * highest_ptr = ptr;
-  while(ptr != NULL) {
-    if(ptr > highest_ptr) highest_ptr = ptr;
-    ptr = ptr->next;
-  }
 
-  ptr = g->ports; // reset pointer
+  lmodel_gate_port_t * port_ptr = g->ports;
 
-  while(ptr != NULL) {
+  while(port_ptr != NULL) {
+
+
+    // This is a hack, because 'nets' in degate don't have net-ids, yet.
+    lmodel_connection_t * conn_ptr = port_ptr->connections;
+    lmodel_connection_t * highest_ptr = conn_ptr;
+    while(conn_ptr != NULL) {
+      if(conn_ptr > highest_ptr) highest_ptr = conn_ptr;
+      conn_ptr = conn_ptr->next;
+    }
+
     
     unsigned long net_id = (unsigned long)highest_ptr; // XXX this is a hack
 
     if(RET_IS_NOT_OK(ret = add_net(net_id))) return ret;
-    if(RET_IS_NOT_OK(ret = add_connection(g->id, ptr->port_id, net_id))) return ret;
+    if(RET_IS_NOT_OK(ret = add_connection(g->id, port_ptr->port_id, net_id))) return ret;
 
-    ptr = ptr->next;
+    port_ptr = port_ptr->next;
   }
 
   return RET_OK;
