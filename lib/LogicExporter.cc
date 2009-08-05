@@ -15,11 +15,13 @@ using namespace std;
 
 LogicExporter * LogicExporter::instance = NULL;
 
-LogicExporter::LogicExporter() {
+LogicExporter::LogicExporter() : doc(NULL) {
 }
 
 ret_t LogicExporter::init() {
-  
+
+  if(doc != NULL) return RET_OK;
+
   DOMImplementation* impl =  DOMImplementationRegistry::getDOMImplementation(X("Core"));
 
   if(impl == NULL) return RET_ERR;
@@ -45,7 +47,9 @@ ret_t LogicExporter::init() {
     debug(TM, "Excpetion occurred.");
     return RET_ERR;
   }
-  
+
+  nets.clear();
+
   return RET_OK;
 }
 
@@ -57,11 +61,13 @@ LogicExporter::~LogicExporter() {
 LogicExporter * LogicExporter::get_instance() {
   if(instance == NULL) {
     instance = new LogicExporter();
-    if(RET_IS_NOT_OK(instance->init())) {
-      delete instance;
-      instance = NULL;
-    }
   }
+
+  if(RET_IS_NOT_OK(instance->init())) {
+    delete instance;
+    instance = NULL;
+  }
+
   return instance;
 }
 

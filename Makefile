@@ -43,6 +43,7 @@ LIB_OBJS=lib/grid.o \
 	lib/project.o \
 	lib/scaling_manager.o \
 	lib/GateLibraryExporter.o \
+	lib/ProjectExporter.o \
 	lib/LogicExporter.o
 
 GUI_OBJS=gui/SplashWin.o \

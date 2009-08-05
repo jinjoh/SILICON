@@ -12,11 +12,13 @@ using namespace std;
 
 GateLibraryExporter * GateLibraryExporter::instance = NULL;
 
-GateLibraryExporter::GateLibraryExporter() {
+GateLibraryExporter::GateLibraryExporter() : doc(NULL) {
 }
 
 ret_t GateLibraryExporter::init() {
   
+  if(doc != NULL) return RET_OK;
+
   DOMImplementation* impl =  DOMImplementationRegistry::getDOMImplementation(X("Core"));
 
   if(impl == NULL) return RET_ERR;
@@ -43,17 +45,19 @@ ret_t GateLibraryExporter::init() {
 }
 
 GateLibraryExporter::~GateLibraryExporter() {
-  doc->release();
+  if(doc != NULL) doc->release();
 }
 
 GateLibraryExporter * GateLibraryExporter::get_instance() {
   if(instance == NULL) {
     instance = new GateLibraryExporter();
-    if(RET_IS_NOT_OK(instance->init())) {
-      delete instance;
-      instance = NULL;
-    }
   }
+
+  if(RET_IS_NOT_OK(instance->init())) {
+    delete instance;
+    instance = NULL;
+  }
+
   return instance;
 }
 
@@ -171,6 +175,10 @@ ret_t GateLibraryExporter::save_as(std::string filename) {
   theSerializer->release();
   //delete theSerializer;
   delete myFormTarget;
+
+  doc->release();
+  doc = NULL;
+
   return ret;
 }
 
